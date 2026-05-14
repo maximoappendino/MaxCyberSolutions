@@ -114,6 +114,32 @@ section { padding-top: var(--pad-section); padding-bottom: var(--pad-section); p
 }
 .bar__brand-icon { width: 28px; height: 28px; object-fit: contain; display: block; }
 .bar__right { display: flex; align-items: center; gap: 10px; }
+
+/* Language switcher */
+.bar__lang {
+  display: flex; align-items: center;
+  border: 1px solid var(--line-soft);
+  background: color-mix(in srgb, var(--bg) 80%, transparent);
+  backdrop-filter: blur(14px) saturate(120%);
+  -webkit-backdrop-filter: blur(14px) saturate(120%);
+  overflow: hidden;
+}
+.bar__lang-btn {
+  font-family: var(--mono); font-size: 10px;
+  letter-spacing: 0.14em; text-transform: uppercase;
+  padding: 12px 11px; color: var(--fg-faint);
+  text-decoration: none; cursor: pointer;
+  transition: color 160ms ease, background 160ms ease;
+  border-right: 1px solid var(--line-soft);
+}
+.bar__lang-btn:last-child { border-right: none; }
+.bar__lang-btn:hover { color: var(--fg); }
+.bar__lang-btn--active { color: var(--accent); }
+
+@media (max-width: 640px) {
+  .bar__lang-btn { padding: 12px 9px; }
+}
+
 .bar__theme, .bar__cta {
   font-family: var(--mono); font-size: 11px;
   letter-spacing: 0.18em; text-transform: uppercase;
@@ -304,7 +330,7 @@ section { padding-top: var(--pad-section); padding-bottom: var(--pad-section); p
 .tier:hover     { background: color-mix(in srgb, var(--accent) 5%, var(--bg)); }
 .tier--featured { background: color-mix(in srgb, var(--accent) 7%, var(--bg)); }
 .tier--featured::before {
-  content: "Most chosen"; position: absolute; top: 14px; right: 14px;
+  content: attr(data-most-chosen); position: absolute; top: 14px; right: 14px;
   font-family: var(--mono); font-size: 9px; letter-spacing: 0.18em;
   text-transform: uppercase; color: var(--accent);
 }

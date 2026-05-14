@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="it" data-lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MaxCyberSolutions — Dalle mani umane al Cyberspazio</title>
+  <meta name="description" content="MaxCyberSolutions — Design e sviluppo web, applicazioni full-stack, videogiochi, design 2D/3D e doppiaggio. Studio indipendente di Max." />
+  <meta name="robots" content="index, follow" />
+
+  <!-- Canonical & hreflang — sostituisci maxcybersolutions.com con il tuo dominio reale -->
+  <link rel="canonical"  href="https://www.maxcybersolutions.com/it/" />
+  <link rel="alternate"  hreflang="en"        href="https://www.maxcybersolutions.com/en/" />
+  <link rel="alternate"  hreflang="es"        href="https://www.maxcybersolutions.com/es/" />
+  <link rel="alternate"  hreflang="it"        href="https://www.maxcybersolutions.com/it/" />
+  <link rel="alternate"  hreflang="x-default" href="https://www.maxcybersolutions.com/en/" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400;1,500&family=DM+Sans:wght@300;400;500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+
+  <link rel="stylesheet" href="../styles.css" />
+
+  <script>
+  window.PAGE_DATA = {
+    lang: 'it',
+    strings: {
+      dark: 'Scuro', light: 'Chiaro',
+      commission: 'Commissiona', mostChosen: 'Più scelto', tierLabel: 'Livello',
+      contactAlert: 'Grazie — Max ti contatterà entro un giorno.',
+    },
+    clients: ['Helios Labs','Northwind & Co.','Atelier Polaris','Studio Vermillion','Kasselmark','Plinth','Orbital 9','Maison Bréa'],
+    pricing: [
+      { num:'I', name:'Sviluppo Web', lede:'Da una singola landing page a un e-commerce completo.',
+        tiers:[
+          { name:'Pagina',     num:'01', price:'€900',       unit:'/ progetto', lede:'Una pagina, studiata nei dettagli.', feat:false,
+            items:['Sito one-page o landing','Tipografia e animazioni personalizzate','Mobile + desktop','Due cicli di revisione','Consegna in due settimane'] },
+          { name:'Sito',       num:'02', price:'€2.800',     unit:'/ progetto', lede:'Un sito multipagina, dalla A alla Z.', feat:true,
+            items:['Fino a 8 pagine','Integrazione CMS','Front-end personalizzato','Ottimizzazione performance e SEO','Consegna in quattro settimane','Tre mesi di supporto post-lancio'] },
+          { name:'Piattaforma',num:'03', price:'Da €6.500',  unit:'',           lede:'Store, dashboard, back-end su misura.', feat:false,
+            items:['Architettura full-stack','Auth, pagamenti, admin','API personalizzate','Ciclo di sviluppo di otto settimane','Retainer opzionale','Linea diretta durante lo sviluppo'] },
+        ]},
+      { num:'II', name:'Design 2D', lede:'Editoriale, brand, personaggi — illustrazione originale e animazione.',
+        tiers:[
+          { name:'Pezzo',    num:'01', price:'€220',       unit:'/ pezzo',  lede:'Una singola illustrazione.', feat:false,
+            items:["Un'illustrazione chiave",'Due cicli di revisione','Esportazioni per stampa e web','File sorgente inclusi','Consegna in una settimana'] },
+          { name:'Serie',    num:'02', price:'€1.400',     unit:'/ set',    lede:'Un set coordinato di 6–10 pezzi.', feat:true,
+            items:['Fino a 10 illustrazioni','Linguaggio visivo condiviso','Style frame iniziali','Tre cicli di revisione','Consegna in tre settimane'] },
+          { name:'Sistema',  num:'03', price:'Da €3.800',  unit:'',         lede:"Un'identità visiva completa in 2D.", feat:false,
+            items:['Logo e wordmark','Pattern, iconografia, animazione','Brand guide PDF','File master per stampa + web','Sviluppo in sei settimane','Un anno di piccoli aggiornamenti'] },
+        ]},
+      { num:'III', name:'Modellazione 3D', lede:'Prop, personaggi, ambienti — pronti per giochi o rendering.',
+        tiers:[
+          { name:'Asset',      num:'01', price:'€280',       unit:'/ modello', lede:'Un singolo prop o busto di personaggio.', feat:false,
+            items:['Low o high-poly','Texture PBR incluse','Due cicli di revisione','FBX / GLB pronto per i giochi','Consegna in due settimane'] },
+          { name:'Pack',       num:'02', price:'€1.800',     unit:'/ pack',    lede:"Un set coerente, pronto all'uso.", feat:true,
+            items:['Fino a 12 asset','Libreria materiali condivisa','Rigging dove necessario','LOD su richiesta','Consegna in quattro settimane','Supporto importazione nel motore'] },
+          { name:'Produzione', num:'03', price:'Da €5.400',  unit:'',          lede:'Pipeline completo: modellazione, rigging, animazione.', feat:false,
+            items:['Personaggi principali o ambienti','Rigging e animazione','Setup di render o motore','Documentazione del pipeline','Sviluppo in otto settimane','Linea diretta durante la consegna'] },
+        ]},
+      { num:'IV', name:'Sonoro e Doppiaggio', lede:'Voce, sound design, supervisione musicale.',
+        tiers:[
+          { name:'Voce',       num:'01', price:'€180',       unit:'/ sessione', lede:'Una singola sessione da 1 ora.', feat:false,
+            items:['Fino a 1 ora di registrazione','WAV qualità studio','Due take per battuta','Post-processing leggero','Consegna in 48 ore'] },
+          { name:'Produzione', num:'02', price:'€1.200',     unit:'/ progetto', lede:'Voce + audio completo per un cortometraggio.', feat:true,
+            items:['Recitazione e narrazione','SFX e foley','Stem pronti per il mix','Tre cicli di revisione','Consegna in due settimane','Master stereo e mono'] },
+          { name:'Colonna Sonora',num:'03',price:'Da €3.400',unit:'',           lede:'Musica originale + sound design completo.', feat:false,
+            items:['Colonna sonora composta','Layer adattivi per giochi','Sound design completo','Supporto implementazione','Sviluppo in sei settimane','Consegna stem + master'] },
+        ]},
+    ],
+  };
+  </script>
+</head>
+<body>
+
+  <div class="cursor-halo" id="cursor-halo" aria-hidden="true"></div>
+
+  <!-- Barra fissa -->
+  <div class="bar">
+    <div class="bar__brand">
+      <img class="bar__brand-icon" src="../img/icon.webp" alt="" />
+      <span>MaxCyberSolutions</span>
+    </div>
+    <div class="bar__right">
+      <nav class="bar__lang" aria-label="Lingua">
+        <a href="../en/" class="bar__lang-btn" data-lang="en" hreflang="en">EN</a>
+        <a href="../es/" class="bar__lang-btn" data-lang="es" hreflang="es">ES</a>
+        <a href="../it/" class="bar__lang-btn" data-lang="it" hreflang="it">IT</a>
+      </nav>
+      <button class="bar__theme" id="theme-toggle" aria-label="Cambia tema">
+        <span class="bar__theme-dot"></span>
+        <span id="theme-label">Scuro</span>
+      </button>
+      <a href="#contact" class="bar__cta">Prenota 30 min ↗</a>
+    </div>
+  </div>
+
+  <!-- Hero -->
+  <header class="hero container">
+    <div class="hero__top">
+      <div class="hero__meta">
+        <strong>MaxCyberSolutions</strong><br />
+        Studio indipendente<br />
+        Est. 2026
+      </div>
+      <div class="hero__meta hero__meta--right">
+        <strong>Tavola I &mdash; Il Contatto</strong><br />
+        dopo Buonarroti, 1512<br />
+        umano ↦ cyberspazio
+      </div>
+    </div>
+
+    <div class="hero__stage">
+      <div class="hand hand--human">
+        <img class="hand__img" src="../img/hand-human.webp" alt="Mano umana che raggiunge il mondo digitale" />
+      </div>
+      <div class="hero__spark-wrap" aria-hidden="true">
+        <span class="hero__spark"></span>
+      </div>
+      <div class="hand hand--ascii">
+        <img class="hand__img" src="../img/hand-ascii.webp" alt="Mano ASCII che raggiunge dal mondo digitale" />
+      </div>
+    </div>
+
+    <div class="hero__title">
+      <h1 class="display">
+        Dalle <em>mani umane</em>, al <em>Cyberspazio</em>.
+      </h1>
+    </div>
+
+    <div class="hero__bottom">
+      <div class="hero__signature">
+        <span>Max</span> &mdash; design, codice &amp; voce.
+      </div>
+      <div class="hero__scroll">Scorri</div>
+    </div>
+  </header>
+
+  <!-- Si fidano di me -->
+  <section class="trusted">
+    <div class="trusted__label">
+      <div class="tag-mono">Si fidano di me</div>
+      <div class="lede">Una breve lista di persone che ho aiutato in silenzio.</div>
+    </div>
+    <div class="marquee">
+      <div class="marquee__track" id="marquee-track"></div>
+    </div>
+  </section>
+
+  <!-- Prezzi -->
+  <section class="pricing" id="pricing">
+    <div class="container">
+      <div class="sec-head">
+        <div class="tag-mono">§ 02 &nbsp;/&nbsp; Prezzi</div>
+        <div>
+          <h2 class="sec-head__title">Contratti chiari. <em>Per disciplina.</em></h2>
+          <p class="sec-head__lede">
+            Ogni servizio ha i suoi tre livelli. Ambito, prezzo e tempi fissi.
+            Qualsiasi cosa fuori dal brief viene quotata separatamente &mdash; mai inclusa silenziosamente.
+          </p>
+        </div>
+      </div>
+      <div id="pricing-categories"></div>
+    </div>
+  </section>
+
+  <!-- Contatti -->
+  <section class="contact" id="contact">
+    <div class="container">
+      <div class="contact__free">Una conversazione gratuita</div>
+      <h2 class="contact__title">
+        Trenta minuti,<br /><em>offerti da me.</em>
+      </h2>
+      <p class="contact__lede">
+        Prenota mezzora. Porta un'idea, uno schizzo, un file a metà &mdash; e vedremo
+        cosa vuole esistere. Nessuna presentazione, nessun obbligo.
+      </p>
+      <form class="contact__form" id="contact-form">
+        <div class="contact__field">
+          <label for="f-name">Il tuo nome</label>
+          <input id="f-name" type="text" placeholder="es. Sofia Ricci" required />
+        </div>
+        <div class="contact__field">
+          <label for="f-email">Email</label>
+          <input id="f-email" type="email" placeholder="tu@esempio.com" required />
+        </div>
+        <div class="contact__field">
+          <label for="f-idea">Qual è l'idea?</label>
+          <textarea id="f-idea" rows="3" placeholder="Un sito per il mio studio, un piccolo gioco, una voce per un'animazione…"></textarea>
+        </div>
+        <button class="contact__submit" type="submit">Prenota la chiamata</button>
+      </form>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="foot">
+    <div class="foot__logo">MaxCyberSolutions</div>
+    <div class="foot__links">
+      <a href="#pricing">Prezzi</a>
+      <a href="#contact">Contatti</a>
+      <a href="mailto:max@maxcybersolutions.com">Email</a>
+    </div>
+    <div class="foot__copy">&copy; 2026 Max &nbsp;/&nbsp; Tutti i diritti riservati</div>
+  </footer>
+
+  <script src="../js/main.js"></script>
+</body>
+</html>

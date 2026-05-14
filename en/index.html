@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en" data-lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MaxCyberSolutions — From human hands to the Cyberspace</title>
+  <meta name="description" content="MaxCyberSolutions — Web design & development, full-stack apps, game development, 2D/3D design, and voice acting. Independent studio by Max." />
+  <meta name="robots" content="index, follow" />
+
+  <!-- Canonical & hreflang — replace maxcybersolutions.com with your actual domain -->
+  <link rel="canonical"  href="https://www.maxcybersolutions.com/en/" />
+  <link rel="alternate"  hreflang="en"        href="https://www.maxcybersolutions.com/en/" />
+  <link rel="alternate"  hreflang="es"        href="https://www.maxcybersolutions.com/es/" />
+  <link rel="alternate"  hreflang="it"        href="https://www.maxcybersolutions.com/it/" />
+  <link rel="alternate"  hreflang="x-default" href="https://www.maxcybersolutions.com/en/" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400;1,500&family=DM+Sans:wght@300;400;500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+
+  <link rel="stylesheet" href="../styles.css" />
+
+  <script>
+  window.PAGE_DATA = {
+    lang: 'en',
+    strings: {
+      dark: 'Dark', light: 'Light',
+      commission: 'Commission', mostChosen: 'Most chosen', tierLabel: 'Tier',
+      contactAlert: 'Thanks — Max will be in touch within a day.',
+    },
+    clients: ['Helios Labs','Northwind & Co.','Atelier Polaris','Studio Vermillion','Kasselmark','Plinth','Orbital 9','Maison Bréa'],
+    pricing: [
+      { num:'I', name:'Web Development', lede:'From a single landing page to a full storefront.',
+        tiers:[
+          { name:'Page',     num:'01', price:'€900',       unit:'/ project', lede:'A single, considered page.', feat:false,
+            items:['One-page site or landing','Custom typography & motion','Mobile + desktop','Two rounds of revision','Two-week delivery'] },
+          { name:'Site',     num:'02', price:'€2,800',     unit:'/ project', lede:'A multi-page site, end-to-end.', feat:true,
+            items:['Up to 8 pages','CMS integration','Custom front-end','Performance & SEO pass','Four-week delivery','Three months post-launch care'] },
+          { name:'Platform', num:'03', price:'From €6,500',unit:'',          lede:'Stores, dashboards, custom back-end.', feat:false,
+            items:['Full-stack architecture','Auth, payments, admin','Custom APIs','Eight-week build cycle','Optional retainer','Direct line during build'] },
+        ]},
+      { num:'II', name:'2D Design', lede:'Editorial, brand, character — original illustration and motion.',
+        tiers:[
+          { name:'Spot',   num:'01', price:'€220',       unit:'/ piece', lede:'A single illustration.', feat:false,
+            items:['One key illustration','Two rounds of revision','Print-ready & web exports','Source files included','One-week delivery'] },
+          { name:'Series', num:'02', price:'€1,400',     unit:'/ set',   lede:'A coordinated set of 6–10 pieces.', feat:true,
+            items:['Up to 10 illustrations','Shared visual language','Style frames upfront','Three rounds of revision','Three-week delivery'] },
+          { name:'System', num:'03', price:'From €3,800',unit:'',        lede:'A complete visual identity in 2D.', feat:false,
+            items:['Logo & wordmark','Pattern, iconography, motion','Brand guide PDF','Master files for print + web','Six-week build','One year of small updates'] },
+        ]},
+      { num:'III', name:'3D Modeling', lede:'Props, characters, environments — game-ready or rendered.',
+        tiers:[
+          { name:'Asset',      num:'01', price:'€280',       unit:'/ model', lede:'A single prop or character bust.', feat:false,
+            items:['Low or high-poly','PBR textures included','Two rounds of revision','Game-ready FBX / GLB','Two-week delivery'] },
+          { name:'Pack',       num:'02', price:'€1,800',     unit:'/ pack',  lede:'A coherent set, ready to ship.', feat:true,
+            items:['Up to 12 assets','Shared material library','Rigged where needed','LODs on request','Four-week delivery','Engine import support'] },
+          { name:'Production', num:'03', price:'From €5,400',unit:'',        lede:'Full pipeline: model, rig, animate.', feat:false,
+            items:['Hero characters or environments','Rigging & animation','Render or engine setup','Pipeline documentation','Eight-week build','Direct line through delivery'] },
+        ]},
+      { num:'IV', name:'Sound and Voice Acting', lede:'Voice, sound design, music supervision.',
+        tiers:[
+          { name:'Voice',      num:'01', price:'€180',       unit:'/ session', lede:'A single 1-hour session.', feat:false,
+            items:['Up to 1 hour recording','Studio-quality WAV','Two takes per line','Light post-processing','48-hour turnaround'] },
+          { name:'Production', num:'02', price:'€1,200',     unit:'/ project', lede:'Full voice + sound for a short.', feat:true,
+            items:['Voice acting & narration','SFX & foley','Mix-ready stems','Three rounds of revision','Two-week delivery','Stereo & mono masters'] },
+          { name:'Soundtrack', num:'03', price:'From €3,400',unit:'',          lede:'Original music + full sound design.', feat:false,
+            items:['Composed score','Adaptive layers for games','Full sound design','Implementation support','Six-week build','Stem delivery + master'] },
+        ]},
+    ],
+  };
+  </script>
+</head>
+<body>
+
+  <div class="cursor-halo" id="cursor-halo" aria-hidden="true"></div>
+
+  <!-- Sticky bar -->
+  <div class="bar">
+    <div class="bar__brand">
+      <img class="bar__brand-icon" src="../img/icon.webp" alt="" />
+      <span>MaxCyberSolutions</span>
+    </div>
+    <div class="bar__right">
+      <nav class="bar__lang" aria-label="Language">
+        <a href="../en/" class="bar__lang-btn" data-lang="en" hreflang="en">EN</a>
+        <a href="../es/" class="bar__lang-btn" data-lang="es" hreflang="es">ES</a>
+        <a href="../it/" class="bar__lang-btn" data-lang="it" hreflang="it">IT</a>
+      </nav>
+      <button class="bar__theme" id="theme-toggle" aria-label="Toggle theme">
+        <span class="bar__theme-dot"></span>
+        <span id="theme-label">Dark</span>
+      </button>
+      <a href="#contact" class="bar__cta">Book 30 min ↗</a>
+    </div>
+  </div>
+
+  <!-- Hero -->
+  <header class="hero container">
+    <div class="hero__top">
+      <div class="hero__meta">
+        <strong>MaxCyberSolutions</strong><br />
+        Independent studio<br />
+        Est. 2026
+      </div>
+      <div class="hero__meta hero__meta--right">
+        <strong>Plate I &mdash; The Reaching</strong><br />
+        after Buonarroti, 1512<br />
+        human ↦ cyberspace
+      </div>
+    </div>
+
+    <div class="hero__stage">
+      <div class="hand hand--human">
+        <img class="hand__img" src="../img/hand-human.webp" alt="Human hand reaching toward the digital world" />
+      </div>
+      <div class="hero__spark-wrap" aria-hidden="true">
+        <span class="hero__spark"></span>
+      </div>
+      <div class="hand hand--ascii">
+        <img class="hand__img" src="../img/hand-ascii.webp" alt="ASCII hand reaching from the digital world" />
+      </div>
+    </div>
+
+    <div class="hero__title">
+      <h1 class="display">
+        From <em>human</em> hands, to the <em>Cyberspace</em>.
+      </h1>
+    </div>
+
+    <div class="hero__bottom">
+      <div class="hero__signature">
+        <span>Max</span> &mdash; design, code &amp; voice.
+      </div>
+      <div class="hero__scroll">Scroll</div>
+    </div>
+  </header>
+
+  <!-- Trusted by -->
+  <section class="trusted">
+    <div class="trusted__label">
+      <div class="tag-mono">Trusted by</div>
+      <div class="lede">A short list of the people I've quietly helped.</div>
+    </div>
+    <div class="marquee">
+      <div class="marquee__track" id="marquee-track"></div>
+    </div>
+  </section>
+
+  <!-- Pricing -->
+  <section class="pricing" id="pricing">
+    <div class="container">
+      <div class="sec-head">
+        <div class="tag-mono">§ 02 &nbsp;/&nbsp; Pricing</div>
+        <div>
+          <h2 class="sec-head__title">Clean contracts. <em>Per discipline.</em></h2>
+          <p class="sec-head__lede">
+            Each service has its own three tiers. Fixed scope, fixed price, fixed timeline.
+            Anything outside the brief is quoted separately &mdash; never bundled in quietly.
+          </p>
+        </div>
+      </div>
+      <div id="pricing-categories"></div>
+    </div>
+  </section>
+
+  <!-- Contact -->
+  <section class="contact" id="contact">
+    <div class="container">
+      <div class="contact__free">A free conversation</div>
+      <h2 class="contact__title">
+        Thirty minutes,<br /><em>on the house.</em>
+      </h2>
+      <p class="contact__lede">
+        Schedule half an hour. Bring an idea, a sketch, a half-finished file &mdash; and
+        we'll see what wants to exist. No pitch deck, no obligation.
+      </p>
+      <form class="contact__form" id="contact-form">
+        <div class="contact__field">
+          <label for="f-name">Your name</label>
+          <input id="f-name" type="text" placeholder="e.g. Anya Lindqvist" required />
+        </div>
+        <div class="contact__field">
+          <label for="f-email">Email</label>
+          <input id="f-email" type="email" placeholder="you@somewhere.io" required />
+        </div>
+        <div class="contact__field">
+          <label for="f-idea">What's the idea?</label>
+          <textarea id="f-idea" rows="3" placeholder="A site for my studio, a small game, a voice for an animation…"></textarea>
+        </div>
+        <button class="contact__submit" type="submit">Book the call</button>
+      </form>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="foot">
+    <div class="foot__logo">MaxCyberSolutions</div>
+    <div class="foot__links">
+      <a href="#pricing">Pricing</a>
+      <a href="#contact">Contact</a>
+      <a href="mailto:max@maxcybersolutions.com">Email</a>
+    </div>
+    <div class="foot__copy">&copy; 2026 Max &nbsp;/&nbsp; All rights reserved</div>
+  </footer>
+
+  <script src="../js/main.js"></script>
+</body>
+</html>
