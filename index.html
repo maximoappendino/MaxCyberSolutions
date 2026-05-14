@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MaxCyberSolutions — From human hands to the Cyberspace</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400;1,500&family=DM+Sans:wght@300;400;500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+  <div class="cursor-halo" id="cursor-halo" aria-hidden="true"></div>
+
+  <!-- Sticky bar -->
+  <div class="bar">
+    <div class="bar__brand">
+      <img class="bar__brand-icon" src="img/icon.webp" alt="" />
+      <span>MaxCyberSolutions</span>
+    </div>
+    <div class="bar__right">
+      <button class="bar__theme" id="theme-toggle" aria-label="Toggle theme">
+        <span class="bar__theme-dot"></span>
+        <span id="theme-label">Dark</span>
+      </button>
+      <a href="#contact" class="bar__cta">Book 30 min ↗</a>
+    </div>
+  </div>
+
+  <!-- Hero -->
+  <header class="hero container">
+    <div class="hero__top">
+      <div class="hero__meta">
+        <strong>MaxCyberSolutions</strong><br />
+        Independent studio<br />
+        Est. 2026
+      </div>
+      <div class="hero__meta hero__meta--right">
+        <strong>Plate I &mdash; The Reaching</strong><br />
+        after Buonarroti, 1512<br />
+        human ↦ cyberspace
+      </div>
+    </div>
+
+    <div class="hero__stage">
+      <div class="hand hand--human">
+        <img class="hand__img" src="img/hand-human.webp" alt="Human hand, reaching" />
+      </div>
+      <div class="hero__spark-wrap" aria-hidden="true">
+        <span class="hero__spark"></span>
+      </div>
+      <div class="hand hand--ascii">
+        <img class="hand__img" src="img/hand-ascii.webp" alt="ASCII hand, reaching" />
+      </div>
+    </div>
+
+    <div class="hero__title">
+      <h1 class="display">
+        From <em>human</em> hands, to the <em>Cyberspace</em>.
+      </h1>
+    </div>
+
+    <div class="hero__bottom">
+      <div class="hero__signature">
+        <span>Max</span> &mdash; design, code &amp; voice.
+      </div>
+      <div class="hero__scroll">Scroll</div>
+    </div>
+  </header>
+
+  <!-- Trusted by -->
+  <section class="trusted">
+    <div class="trusted__label">
+      <div class="tag-mono">Trusted by</div>
+      <div class="lede">A short list of the people I've quietly helped.</div>
+    </div>
+    <div class="marquee">
+      <div class="marquee__track" id="marquee-track"></div>
+    </div>
+  </section>
+
+  <!-- Pricing -->
+  <section class="pricing" id="pricing">
+    <div class="container">
+      <div class="sec-head">
+        <div class="tag-mono">§ 02 &nbsp;/&nbsp; Pricing</div>
+        <div>
+          <h2 class="sec-head__title">Clean contracts. <em>Per discipline.</em></h2>
+          <p class="sec-head__lede">
+            Each service has its own three tiers. Fixed scope, fixed price, fixed timeline.
+            Anything outside the brief is quoted separately &mdash; never bundled in quietly.
+          </p>
+        </div>
+      </div>
+      <div id="pricing-categories"></div>
+    </div>
+  </section>
+
+  <!-- Contact -->
+  <section class="contact" id="contact">
+    <div class="container">
+      <div class="contact__free">A free conversation</div>
+      <h2 class="contact__title">
+        Thirty minutes,<br /><em>on the house.</em>
+      </h2>
+      <p class="contact__lede">
+        Schedule half an hour. Bring an idea, a sketch, a half-finished file &mdash; and
+        we'll see what wants to exist. No pitch deck, no obligation.
+      </p>
+      <form class="contact__form" id="contact-form">
+        <div class="contact__field">
+          <label for="f-name">Your name</label>
+          <input id="f-name" type="text" placeholder="e.g. Anya Lindqvist" required />
+        </div>
+        <div class="contact__field">
+          <label for="f-email">Email</label>
+          <input id="f-email" type="email" placeholder="you@somewhere.io" required />
+        </div>
+        <div class="contact__field">
+          <label for="f-idea">What's the idea?</label>
+          <textarea id="f-idea" rows="3" placeholder="A site for my studio, a small game, a voice for an animation…"></textarea>
+        </div>
+        <button class="contact__submit" type="submit">Book the call</button>
+      </form>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="foot">
+    <div class="foot__logo">MaxCyberSolutions</div>
+    <div class="foot__links">
+      <a href="#pricing">Pricing</a>
+      <a href="#contact">Contact</a>
+      <a href="mailto:max@maxcybersolutions.com">Email</a>
+    </div>
+    <div class="foot__copy">&copy; 2026 Max &nbsp;/&nbsp; All rights reserved</div>
+  </footer>
+
+  <script src="js/main.js"></script>
+</body>
+</html>
