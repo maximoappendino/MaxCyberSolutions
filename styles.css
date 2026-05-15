@@ -280,14 +280,17 @@ section { padding-top: var(--pad-section); padding-bottom: var(--pad-section); p
   animation: marquee 40s linear infinite;
 }
 
-@keyframes marquee { to { transform: translateX(-50%); } }
+@keyframes marquee { to { transform: translateX(calc(-1 * var(--marquee-dist, 50%))); } }
 .marquee__item {
-  font-family: var(--serif); font-size: clamp(28px, 3vw, 42px);
-  letter-spacing: -0.01em; color: var(--fg-soft);
   display: flex; align-items: center; gap: 60px;
-  white-space: nowrap; font-style: italic;
+  text-decoration: none; flex-shrink: 0;
 }
-.marquee__item::after { content: "✦"; font-size: 18px; color: var(--accent); font-style: normal; }
+.marquee__item img {
+  height: 52px; width: auto; object-fit: contain;
+  opacity: 0.6; transition: opacity 200ms ease;
+}
+.marquee__item:hover img { opacity: 1; }
+.marquee__item::after { content: "✦"; font-size: 18px; color: var(--accent); }
 
 /* Section header */
 .sec-head {

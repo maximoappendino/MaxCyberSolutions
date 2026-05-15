@@ -89,8 +89,30 @@ function initContactForm() {
 function buildMarquee(clients) {
   const track = document.getElementById('marquee-track');
   if (!track) return;
-  track.innerHTML = [...clients, ...clients]
-    .map(c => `<div class="marquee__item">${esc(c)}</div>`).join('');
+
+  const GAP    = 60; // must match CSS gap on .marquee__track
+  const makeSet = () => clients.map(c =>
+    `<a class="marquee__item" href="${esc(c.url)}" target="_blank" rel="noopener">` +
+    `<img src="${esc(c.logo)}" alt="${esc(c.name)}" /></a>`
+  ).join('');
+
+  track.innerHTML = makeSet();
+
+  function cloneToFill() {
+    const setW   = track.scrollWidth + GAP;
+    const copies = Math.ceil((window.innerWidth * 4) / setW) + 2;
+    track.innerHTML = Array.from({ length: copies }, makeSet).join('');
+    track.style.setProperty('--marquee-dist', setW + 'px');
+  }
+
+  // Wait for images so scrollWidth is accurate
+  const imgs    = [...track.querySelectorAll('img')];
+  let   pending = imgs.filter(i => !i.complete).length;
+  if (pending === 0) { requestAnimationFrame(cloneToFill); return; }
+  imgs.forEach(img => {
+    if (!img.complete)
+      img.addEventListener('load', () => { if (--pending === 0) cloneToFill(); }, { once: true });
+  });
 }
 
 // ── Pricing ───────────────────────────────────────────────────────────────────
