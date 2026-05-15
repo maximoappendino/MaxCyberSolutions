@@ -5,10 +5,10 @@
 const CONFIG = {
   dark:      false,
   accent:    '#e2a14a',
-  density:   'airy',    // 'airy' | 'compact'
-  headline:  'serif',   // 'serif' | 'sans'
+  density:   'airy',
+  headline:  'serif',
   animate:   true,
-  closeness: 50,        // 0–100
+  closeness: 50,
 };
 
 const DATA = window.PAGE_DATA;
@@ -22,6 +22,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initDarkToggle();
   initCursorHalo();
   initContactForm();
+  initPromoCode();
   highlightActiveLang();
 });
 
@@ -118,12 +119,83 @@ function renderTier(t) {
         <div class="tier__num">${esc(S.tierLabel)} ${esc(t.num)}</div>
       </div>
       <div>
-        <div class="tier__price">${esc(t.price)}${t.unit ? `<small>${esc(t.unit)}</small>` : ''}</div>
+        <div class="tier__price"
+             data-price="${esc(t.price)}"
+             data-unit="${esc(t.unit || '')}">
+          ${esc(t.price)}${t.unit ? `<small>${esc(t.unit)}</small>` : ''}
+        </div>
         <div class="tier__lede">${esc(t.lede)}</div>
       </div>
       <ul class="tier__list">${t.items.map(i => `<li><span>${esc(i)}</span></li>`).join('')}</ul>
       <a href="#contact" class="tier__cta">${esc(S.commission)}</a>
     </div>`;
+}
+
+// ── Promo code ────────────────────────────────────────────────────────────────
+function initPromoCode() {
+  const form = document.getElementById('promo-form');
+  if (!form) return;
+  form.addEventListener('submit', e => {
+    e.preventDefault();
+    const code = document.getElementById('promo-input').value.trim().toUpperCase();
+    if (code === 'ARGENTINA') {
+      applyDiscount(0.20);
+    } else {
+      showPromoMsg('error', S.promoInvalid);
+    }
+  });
+}
+
+function applyDiscount(pct) {
+  // Lock the form
+  document.getElementById('promo-input').disabled = true;
+  document.querySelector('.promo-btn').disabled = true;
+  showPromoMsg('success', S.promoSuccess);
+
+  // Update every price element
+  document.querySelectorAll('.tier__price').forEach(el => {
+    const original = el.dataset.price;
+    const unit     = el.dataset.unit;
+    const reduced  = calcDiscount(original, pct);
+
+    el.classList.add('price--discounted');
+    el.innerHTML =
+      `<span class="tier__price-old">${esc(original)}</span>` +
+      `<span class="tier__price-new">${esc(reduced)}</span>` +
+      (unit ? `<small>${esc(unit)}</small>` : '');
+  });
+
+  // Staggered card celebration
+  document.querySelectorAll('.tier').forEach((card, i) => {
+    setTimeout(() => {
+      card.classList.add('tier--celebrating');
+      card.addEventListener('animationend',
+        () => card.classList.remove('tier--celebrating'), { once: true });
+    }, i * 90);
+  });
+}
+
+// Applies `pct` discount to the numeric part of a price string.
+// Handles both "," and "." as thousand separators (EN vs ES/IT formats).
+function calcDiscount(priceStr, pct) {
+  return priceStr.replace(/\d[\d.,]*/, match => {
+    const num     = parseInt(match.replace(/[.,]/g, ''), 10);
+    const reduced = Math.round(num * (1 - pct));
+    // Detect original thousand separator: "." only if string is long enough to be thousands
+    const sep = match.includes('.') && match.replace('.', '').length >= 3 ? '.' : ',';
+    return formatNum(reduced, sep);
+  });
+}
+
+function formatNum(n, sep) {
+  return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, sep);
+}
+
+function showPromoMsg(type, text) {
+  const msg = document.getElementById('promo-msg');
+  if (!msg) return;
+  msg.textContent = text;
+  msg.className = `promo-msg visible ${type}`;
 }
 
 // ── Utility ───────────────────────────────────────────────────────────────────

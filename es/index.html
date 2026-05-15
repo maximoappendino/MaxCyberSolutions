@@ -27,43 +27,44 @@
       dark: 'Oscuro', light: 'Claro',
       commission: 'Comisionar', mostChosen: 'Más elegido', tierLabel: 'Nivel',
       contactAlert: 'Gracias — Max se pondrá en contacto en un día.',
+      promoSuccess: '✦ ARGENTINA — 20% de descuento aplicado', promoInvalid: 'Código inválido',
     },
     clients: ['Helios Labs','Northwind & Co.','Atelier Polaris','Studio Vermillion','Kasselmark','Plinth','Orbital 9','Maison Bréa'],
     pricing: [
       { num:'I', name:'Desarrollo Web', lede:'Desde una sola página de destino hasta una tienda completa.',
         tiers:[
-          { name:'Página',   num:'01', price:'€900',       unit:'/ proyecto', lede:'Una página, bien pensada.', feat:false,
+          { name:'Página',   num:'01', price:'$900',       unit:'/ proyecto', lede:'Una página, bien pensada.', feat:false,
             items:['Sitio de una página o landing','Tipografía y movimiento personalizados','Móvil + escritorio','Dos rondas de revisión','Entrega en dos semanas'] },
-          { name:'Sitio',    num:'02', price:'€2.800',     unit:'/ proyecto', lede:'Un sitio multipágina, de principio a fin.', feat:true,
+          { name:'Sitio',    num:'02', price:'$2.800',     unit:'/ proyecto', lede:'Un sitio multipágina, de principio a fin.', feat:true,
             items:['Hasta 8 páginas','Integración CMS','Front-end personalizado','Optimización de rendimiento y SEO','Entrega en cuatro semanas','Tres meses de cuidado post-lanzamiento'] },
-          { name:'Plataforma',num:'03',price:'Desde €6.500',unit:'',          lede:'Tiendas, dashboards, back-end personalizado.', feat:false,
+          { name:'Plataforma',num:'03',price:'Desde $6.500',unit:'',          lede:'Tiendas, dashboards, back-end personalizado.', feat:false,
             items:['Arquitectura full-stack','Auth, pagos, admin','APIs personalizadas','Ciclo de desarrollo de ocho semanas','Retainer opcional','Línea directa durante el proyecto'] },
         ]},
       { num:'II', name:'Diseño 2D', lede:'Editorial, marca, personaje — ilustración original y movimiento.',
         tiers:[
-          { name:'Pieza',    num:'01', price:'€220',       unit:'/ pieza', lede:'Una ilustración.', feat:false,
+          { name:'Pieza',    num:'01', price:'$220',       unit:'/ pieza', lede:'Una ilustración.', feat:false,
             items:['Una ilustración clave','Dos rondas de revisión','Exportaciones para impresión y web','Archivos fuente incluidos','Entrega en una semana'] },
-          { name:'Serie',    num:'02', price:'€1.400',     unit:'/ set',   lede:'Un conjunto coordinado de 6 a 10 piezas.', feat:true,
+          { name:'Serie',    num:'02', price:'$1.400',     unit:'/ set',   lede:'Un conjunto coordinado de 6 a 10 piezas.', feat:true,
             items:['Hasta 10 ilustraciones','Lenguaje visual compartido','Marcos de estilo previos','Tres rondas de revisión','Entrega en tres semanas'] },
-          { name:'Sistema',  num:'03', price:'Desde €3.800',unit:'',       lede:'Una identidad visual completa en 2D.', feat:false,
+          { name:'Sistema',  num:'03', price:'Desde $3.800',unit:'',       lede:'Una identidad visual completa en 2D.', feat:false,
             items:['Logo y wordmark','Patrón, iconografía, movimiento','PDF de guía de marca','Archivos maestros para impresión + web','Desarrollo de seis semanas','Un año de pequeñas actualizaciones'] },
         ]},
       { num:'III', name:'Modelado 3D', lede:'Props, personajes, entornos — listos para juegos o renderizados.',
         tiers:[
-          { name:'Asset',      num:'01', price:'€280',       unit:'/ modelo', lede:'Un prop o busto de personaje.', feat:false,
+          { name:'Asset',      num:'01', price:'$280',       unit:'/ modelo', lede:'Un prop o busto de personaje.', feat:false,
             items:['Low o high-poly','Texturas PBR incluidas','Dos rondas de revisión','FBX / GLB listo para juegos','Entrega en dos semanas'] },
-          { name:'Pack',       num:'02', price:'€1.800',     unit:'/ pack',   lede:'Un conjunto coherente, listo para usar.', feat:true,
+          { name:'Pack',       num:'02', price:'$1.800',     unit:'/ pack',   lede:'Un conjunto coherente, listo para usar.', feat:true,
             items:['Hasta 12 assets','Biblioteca de materiales compartida','Rigging donde sea necesario','LODs a pedido','Entrega en cuatro semanas','Soporte de importación al motor'] },
-          { name:'Producción', num:'03', price:'Desde €5.400',unit:'',        lede:'Pipeline completo: modelado, rigging, animación.', feat:false,
+          { name:'Producción', num:'03', price:'Desde $5.400',unit:'',        lede:'Pipeline completo: modelado, rigging, animación.', feat:false,
             items:['Personajes principales o entornos','Rigging y animación','Configuración de render o motor','Documentación del pipeline','Desarrollo de ocho semanas','Línea directa durante la entrega'] },
         ]},
       { num:'IV', name:'Sonido y Doblaje', lede:'Voz, diseño de sonido, supervisión musical.',
         tiers:[
-          { name:'Voz',        num:'01', price:'€180',       unit:'/ sesión',  lede:'Una sesión de 1 hora.', feat:false,
+          { name:'Voz',        num:'01', price:'$180',       unit:'/ sesión',  lede:'Una sesión de 1 hora.', feat:false,
             items:['Hasta 1 hora de grabación','WAV de calidad estudio','Dos takes por línea','Postprocesado ligero','Entrega en 48 horas'] },
-          { name:'Producción', num:'02', price:'€1.200',     unit:'/ proyecto', lede:'Voz + sonido completo para un corto.', feat:true,
+          { name:'Producción', num:'02', price:'$1.200',     unit:'/ proyecto', lede:'Voz + sonido completo para un corto.', feat:true,
             items:['Actuación de voz y narración','SFX y foley','Stems listos para mezcla','Tres rondas de revisión','Entrega en dos semanas','Masters estéreo y mono'] },
-          { name:'Banda Sonora',num:'03',price:'Desde €3.400',unit:'',          lede:'Música original + diseño de sonido completo.', feat:false,
+          { name:'Banda Sonora',num:'03',price:'Desde $3.400',unit:'',          lede:'Música original + diseño de sonido completo.', feat:false,
             items:['Partitura compuesta','Capas adaptativas para juegos','Diseño de sonido completo','Soporte de implementación','Desarrollo de seis semanas','Entrega de stems + master'] },
         ]},
     ],
@@ -159,7 +160,22 @@
           </p>
         </div>
       </div>
+      <div class="promo-wrap">
+        <p class="tag-mono">Código promocional</p>
+        <form class="promo-form" id="promo-form" autocomplete="off">
+          <input id="promo-input" class="promo-input" type="text"
+                 placeholder="Ingresa el código" maxlength="30"
+                 spellcheck="false" autocapitalize="characters" />
+          <button type="submit" class="promo-btn">Aplicar</button>
+        </form>
+        <p class="promo-msg" id="promo-msg" aria-live="polite"></p>
+      </div>
       <div id="pricing-categories"></div>
+      <div class="pricing__open">
+        <p class="pricing__open-text">¿Algo más en mente? Cualquier proyecto fuera de los niveles anteriores sigue valiendo una conversación.</p>
+        <a href="https://calendar.google.com/calendar/u/0/appointments/schedules/AcZssZ1zqFzLuwcYKQh1bWl7c3MD0YQSR0FhfAzpJfb7HFkioBOU7QptyDRbV5TZDEOmkvc-Rs9oR39D"
+           class="pricing__open-cta" target="_blank" rel="noopener">Reservar 30 min para hablarlo</a>
+      </div>
     </div>
   </section>
 
@@ -167,38 +183,28 @@
   <section class="contact" id="contact">
     <div class="container">
       <div class="contact__free">Una conversación sin cargo</div>
-      <h2 class="contact__title">
-        Treinta minutos,<br /><em>de mi parte.</em>
-      </h2>
-      <p class="contact__lede">
-        Reserva media hora. Trae una idea, un boceto, un archivo a medias &mdash; y veremos
-        qué quiere existir. Sin presentación, sin compromiso.
-      </p>
-      <form class="contact__form" id="contact-form">
-        <div class="contact__field">
-          <label for="f-name">Tu nombre</label>
-          <input id="f-name" type="text" placeholder="p.ej. Ana García" required />
-        </div>
-        <div class="contact__field">
-          <label for="f-email">Correo electrónico</label>
-          <input id="f-email" type="email" placeholder="tú@ejemplo.com" required />
-        </div>
-        <div class="contact__field">
-          <label for="f-idea">¿Cuál es la idea?</label>
-          <textarea id="f-idea" rows="3" placeholder="Un sitio para mi estudio, un pequeño juego, una voz para una animación…"></textarea>
-        </div>
-        <button class="contact__submit" type="submit">Reservar la llamada</button>
-      </form>
+      <img class="contact__logo" src="../img/icon.webp" alt="MaxCyberSolutions" />
+      <div class="contact__content">
+          <h2 class="contact__title">
+            Treinta minutos,<br /><em>de mi parte.</em>
+          </h2>
+          <p class="contact__lede">
+            Reserva media hora. Trae una idea, un boceto, un archivo a medias &mdash; y veremos
+            qué quiere existir. Sin presentación, sin compromiso.
+          </p>
+<a href="https://calendar.google.com/calendar/u/0/appointments/schedules/AcZssZ1zqFzLuwcYKQh1bWl7c3MD0YQSR0FhfAzpJfb7HFkioBOU7QptyDRbV5TZDEOmkvc-Rs9oR39D"
+             class="contact__submit" target="_blank" rel="noopener">Reservar la llamada</a>
+      </div>
     </div>
   </section>
 
   <!-- Pie de página -->
   <footer class="foot">
     <div class="foot__logo">MaxCyberSolutions</div>
-    <div class="foot__links">
-      <a href="#pricing">Precios</a>
-      <a href="#contact">Contacto</a>
-      <a href="mailto:max@maxcybersolutions.com">Correo</a>
+    <div class="foot__contact">
+      <a href="mailto:maximoppendinopadilla@gmail.com">maximoppendinopadilla@gmail.com</a>
+      <a href="tel:+5493517146520">+54 9 351 714-6520</a>
+      <a href="tel:+441217519880">+44 1217519880</a>
     </div>
     <div class="foot__copy">&copy; 2026 Max &nbsp;/&nbsp; Todos los derechos reservados</div>
   </footer>
