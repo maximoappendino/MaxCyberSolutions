@@ -1,0 +1,15 @@
+{
+  "name": "maxcybersolutions",
+  "private": true,
+  "scripts": {
+    "dev":              "wrangler pages dev . --d1 DB",
+    "deploy":           "wrangler pages deploy .",
+    "db:create":        "wrangler d1 create maxcybersolutions-db",
+    "db:migrate":       "wrangler d1 migrations apply maxcybersolutions-db --remote",
+    "db:migrate:local": "wrangler d1 migrations apply maxcybersolutions-db --local",
+    "db:seed":          "wrangler d1 execute maxcybersolutions-db --local --file=migrations/seed.sql"
+  },
+  "devDependencies": {
+    "wrangler": "^3.99.0"
+  }
+}

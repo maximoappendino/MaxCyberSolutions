@@ -1,0 +1,21 @@
+name = "maxcybersolutions"
+compatibility_date = "2024-09-23"
+pages_build_output_dir = "."
+
+# ── D1 Database ────────────────────────────────────────────────────────────────
+# 1. Run: wrangler d1 create maxcybersolutions-db
+# 2. Paste the returned database_id below
+[[d1_databases]]
+binding      = "DB"
+database_name = "maxcybersolutions-db"
+database_id  = "PASTE_DATABASE_ID_HERE"
+
+# ── R2 Object Storage ─────────────────────────────────────────────────────────
+# 1. Run: wrangler r2 bucket create maxcybersolutions-assets
+[[r2_buckets]]
+binding     = "ASSETS_BUCKET"
+bucket_name = "maxcybersolutions-assets"
+
+# ── Environment vars ──────────────────────────────────────────────────────────
+[vars]
+ENVIRONMENT = "production"
