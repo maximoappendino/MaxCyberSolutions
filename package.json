@@ -7,7 +7,7 @@
     "db:create":        "wrangler d1 create maxcybersolutions-db",
     "db:migrate":       "wrangler d1 migrations apply maxcybersolutions-db --remote",
     "db:migrate:local": "wrangler d1 migrations apply maxcybersolutions-db --local",
-    "db:seed":          "wrangler d1 execute maxcybersolutions-db --local --file=migrations/seed.sql"
+    "seed:local":       "node scripts/seed-local.js"
   },
   "devDependencies": {
     "wrangler": "^3.99.0"
