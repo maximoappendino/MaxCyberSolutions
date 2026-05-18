@@ -79,26 +79,37 @@ function setupLoginForm() {
     btn.disabled = true;
     setMsg('login-msg', '', '');
 
-    const endpoint = isRegister ? '/api/auth/register' : '/api/auth/login';
-    const res = await api('POST', endpoint, { email, password });
-    const data = await res.json();
+    try {
+      const endpoint = isRegister ? '/api/auth/register' : '/api/auth/login';
+      const res  = await api('POST', endpoint, { email, password });
+      const data = await safeJson(res);
 
-    if (res.ok) {
+      if (!res.ok) {
+        setMsg('login-msg', data.error || `Server error (${res.status})`, 'error');
+        btn.disabled = false;
+        return;
+      }
+
       if (isRegister) {
-        // Auto-login after register
-        const loginRes = await api('POST', '/api/auth/login', { email, password });
+        // Auto-login after successful registration
+        const loginRes  = await api('POST', '/api/auth/login', { email, password });
+        const loginData = await safeJson(loginRes);
         if (loginRes.ok) {
-          state.owner = await loginRes.json();
+          state.owner = loginData;
           onAuthenticated();
         } else {
-          setMsg('login-msg', 'Registered. Please sign in.', 'success');
+          setMsg('login-msg', 'Account created — please sign in.', 'success');
+          document.querySelector('.login-tab[data-tab="signin"]').click();
+          btn.disabled = false;
         }
-      } else {
-        state.owner = data;
-        onAuthenticated();
+        return;
       }
-    } else {
-      setMsg('login-msg', data.error || 'Something went wrong', 'error');
+
+      state.owner = data;
+      onAuthenticated();
+
+    } catch (err) {
+      setMsg('login-msg', 'Network error — is the dev server running?', 'error');
       btn.disabled = false;
     }
   });
@@ -411,6 +422,10 @@ function showScreen(name) {
 }
 
 // ── Utilities ─────────────────────────────────────────────────────────────────
+async function safeJson(res) {
+  try { return await res.json(); } catch { return {}; }
+}
+
 async function api(method, path, body) {
   const opts = { method, headers: {} };
   if (body) {

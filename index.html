@@ -21,7 +21,7 @@
       var lang = (navigator.language || navigator.userLanguage || 'en')
                    .split('-')[0].toLowerCase();
       var map  = { en: 'en', es: 'es', it: 'it' };
-      location.replace((map[lang] || 'en') + '/');
+      location.replace('/' + (map[lang] || 'en') + '/');
     })();
   </script>
 
