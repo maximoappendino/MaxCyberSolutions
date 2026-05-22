@@ -38,10 +38,10 @@ export async function onRequestGet({ params, env, request }) {
   }
 
   const { results: products } = await env.DB.prepare(
-    'SELECT * FROM products WHERE store_id = ? ORDER BY created_at DESC'
+    'SELECT * FROM products WHERE store_id = ? AND visible = 1 ORDER BY created_at DESC'
   ).bind(store.id).all();
 
-  const html = renderStorefront(store, config, products || []);
+  const html = renderStorefront(store, config, products || [], isPreview);
   const response = new Response(html, {
     headers: {
       'Content-Type':  'text/html;charset=UTF-8',
@@ -59,20 +59,34 @@ export async function onRequestGet({ params, env, request }) {
 
 // ── Top-level renderer ────────────────────────────────────────────────────────
 
-function renderStorefront(store, config, products) {
+function renderStorefront(store, config, products, isPreview = false) {
   const name     = config.name  || store.name || store.slug;
   const theme    = config.theme    || {};
   const seo      = config.seo      || {};
   const features = config.features || {};
   const accent   = theme.accent    || '#e2a14a';
+  const bgColor  = theme.bg        || '#efeae0';
+  const fgColor  = theme.fg        || '#1c1a16';
   const logo     = config.logo     || '';
+  const fonts    = theme.fonts     || {};
   const sections = Array.isArray(config.sections) && config.sections.length
     ? config.sections : null;
 
-  const floaters = sections ? sections.filter(s => s.type === 'floating-cta') : [];
-  const body     = sections
+  const floaters    = sections ? sections.filter(s => s.type === 'floating-cta') : [];
+  const customBtns  = Array.isArray(config.buttons) ? config.buttons.filter(b => b.text && b.url) : [];
+  const body        = sections
     ? sections.filter(s => s.type !== 'floating-cta').map(s => renderSection(s, products, config)).join('\n')
     : renderLegacyBody(store, config, products);
+
+  // Custom font links (onerror falls through to CSS fallback stack)
+  const fontLinks = [fonts.titleUrl, fonts.bodyUrl, fonts.accentUrl, fonts.sloganUrl]
+    .filter(Boolean)
+    .map(u => `<link rel="stylesheet" href="${esc(u)}" />`)
+    .join('\n  ');
+
+  const fgSoft  = fgColor === '#1c1a16' ? '#45403a' : fgColor + 'bb';
+  const fgFaint = fgColor === '#1c1a16' ? '#7a736a' : fgColor + '77';
+  const ruleSoft = bgColor === '#efeae0' ? '#e2dccd' : bgColor + '44';
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -84,20 +98,22 @@ function renderStorefront(store, config, products) {
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400;1,500&family=DM+Sans:wght@300;400;500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  ${fontLinks}
   <link rel="icon" href="/img/icon.webp" type="image/webp" />
   <style>
     :root {
       --accent:      ${esc(accent)};
       --accent-soft: color-mix(in srgb, ${esc(accent)} 18%, transparent);
-      --cream: #efeae0; --ink: #1c1a16;
-      --ink-soft: #45403a; --ink-faint: #7a736a;
-      --rule: #d4cdbd; --rule-soft: #e2dccd;
+      --cream: ${esc(bgColor)}; --ink: ${esc(fgColor)};
+      --ink-soft: ${esc(fgSoft)}; --ink-faint: ${esc(fgFaint)};
+      --rule: #d4cdbd; --rule-soft: ${esc(ruleSoft)};
       --bg: var(--cream); --fg: var(--ink);
       --fg-soft: var(--ink-soft); --fg-faint: var(--ink-faint);
       --line: var(--rule); --line-soft: var(--rule-soft);
-      --serif: "Cormorant Garamond", Georgia, serif;
-      --sans:  "DM Sans", sans-serif;
-      --mono:  "JetBrains Mono", monospace;
+      --serif: ${fonts.titleFamily  ? `"${esc(fonts.titleFamily)}"  ,` : ''}"Cormorant Garamond", Georgia, serif;
+      --sans:  ${fonts.bodyFamily   ? `"${esc(fonts.bodyFamily)}"   ,` : ''}"DM Sans", sans-serif;
+      --mono:  ${fonts.accentFamily ? `"${esc(fonts.accentFamily)}" ,` : ''}"JetBrains Mono", monospace;
+      --slogan:${fonts.sloganFamily ? `"${esc(fonts.sloganFamily)}" ,` : ''}"Cormorant Garamond", Georgia, serif;
       --pad:   clamp(24px, 6vw, 96px);
     }
     *, *::before, *::after { box-sizing: border-box; }
@@ -265,6 +281,22 @@ function renderStorefront(store, config, products) {
     .s-float--top-left     { top: 88px;    left:  28px; }
     .s-float__icon { font-size: 16px; line-height: 1; }
 
+    /* ── Carousel ── */
+    .s-hero--carousel { position: relative; overflow: hidden; }
+    .s-carousel__track { position: absolute; inset: 0; }
+    .s-carousel__slide { position: absolute; inset: 0; background-size: cover; background-position: center;
+      opacity: 0; transition: opacity 900ms ease; }
+    .s-carousel__slide.active { opacity: 1; }
+    .s-carousel__btn {
+      position: absolute; top: 50%; transform: translateY(-50%); z-index: 2;
+      background: rgba(255,255,255,.18); border: none; color: #fff;
+      font-size: 28px; line-height: 1; padding: 10px 16px; cursor: pointer;
+      backdrop-filter: blur(4px); transition: background 160ms ease;
+    }
+    .s-carousel__btn:hover { background: rgba(255,255,255,.35); }
+    .s-carousel__btn--prev { left: 16px; }
+    .s-carousel__btn--next { right: 16px; }
+
     /* ── Empty ── */
     .s-empty { padding: 80px var(--pad); text-align: center; border-top: 1px solid var(--line); }
     .s-empty__text { font-family: var(--serif); font-style: italic;
@@ -324,9 +356,12 @@ function renderStorefront(store, config, products) {
 
   ${body}
 
-  ${features.hasNewsletterPopup ? renderNewsletterModal() : ''}
+  ${features.hasNewsletterPopup && !isPreview ? renderNewsletterModal() : ''}
 
-  ${floaters.length ? `<div class="s-floats">${floaters.map(renderFloatingCta).join('\n')}</div>` : ''}
+  ${floaters.length || customBtns.length ? `<div class="s-floats">
+    ${floaters.map(renderFloatingCta).join('\n')}
+    ${customBtns.map((b, i) => renderCustomBtn(b, i)).join('\n')}
+  </div>` : ''}
 
   <footer class="s-foot">
     <span class="s-foot__brand">Powered by MaxCyberSolutions</span>
@@ -334,7 +369,7 @@ function renderStorefront(store, config, products) {
   </footer>
 
   ${features.hasDiscountCountdown ? countdownScript()  : ''}
-  ${features.hasNewsletterPopup   ? newsletterScript() : ''}
+  ${features.hasNewsletterPopup && !isPreview ? newsletterScript() : ''}
 </body>
 </html>`;
 }
@@ -353,10 +388,12 @@ function renderSection(section, products, config) {
 }
 
 function renderHero(s, config) {
-  const align  = s.align || 'left';
-  const cta    = s.cta   || {};
+  const align   = s.align  || 'left';
+  const layout  = s.layout || 'static';
+  const cta     = s.cta    || {};
   const ctaHtml = cta.label && cta.url
     ? `<a href="${esc(cta.url)}" class="s-hero__cta">${esc(cta.label)}</a>` : '';
+  const overlayVal = typeof s.overlay === 'number' ? s.overlay : (s.overlay ? 0.48 : 0);
 
   const inner = `
     <p class="s-hero__tag">Store &nbsp;/&nbsp; ${esc((config.name || ''))}</p>
@@ -364,10 +401,32 @@ function renderHero(s, config) {
     ${s.subline ? `<p class="s-hero__desc">${esc(s.subline)}</p>` : ''}
     ${ctaHtml}`;
 
-  if (s.image) {
+  // Carousel mode: multiple images
+  const images = Array.isArray(s.images) && s.images.length ? s.images : (s.image ? [s.image] : []);
+  if (layout === 'carousel' && images.length > 1) {
+    const slides = images.map((img, i) =>
+      `<div class="s-carousel__slide${i===0?' active':''}" style="background-image:url('${esc(img)}')"></div>`
+    ).join('');
+    return `<header class="s-hero s-hero--img s-hero--${esc(align)} s-hero--carousel" id="s-hero">
+  <div class="s-carousel__track">${slides}</div>
+  ${overlayVal ? `<div class="s-hero__overlay" style="background:rgba(0,0,0,${overlayVal})"></div>` : ''}
+  <div class="s-hero__inner" style="position:relative;z-index:1">${inner}</div>
+  ${images.length > 1 ? `<button class="s-carousel__btn s-carousel__btn--prev" onclick="carouselStep(-1)">‹</button>
+  <button class="s-carousel__btn s-carousel__btn--next" onclick="carouselStep(1)">›</button>` : ''}
+</header>
+<script>(function(){
+  var slides=document.querySelectorAll('.s-carousel__slide'),cur=0;
+  window.carouselStep=function(d){slides[cur].classList.remove('active');cur=(cur+d+slides.length)%slides.length;slides[cur].classList.add('active');};
+  setInterval(function(){carouselStep(1);},5000);
+})();</script>`;
+  }
+
+  // Static mode
+  const bgImg = images[0] || '';
+  if (bgImg) {
     return `<header class="s-hero s-hero--img s-hero--${esc(align)}">
-  <div class="s-hero__bg" style="background-image:url('${esc(s.image)}')"></div>
-  ${s.overlay ? '<div class="s-hero__overlay"></div>' : ''}
+  <div class="s-hero__bg" style="background-image:url('${esc(bgImg)}')"></div>
+  ${overlayVal ? `<div class="s-hero__overlay" style="background:rgba(0,0,0,${overlayVal})"></div>` : ''}
   <div class="s-hero__inner">${inner}</div>
 </header>`;
   }
@@ -436,6 +495,18 @@ function renderFloatingCta(s) {
   style="background:${esc(color)}" target="_blank" rel="noopener noreferrer">
   <span class="s-float__icon">${icon}</span>
   ${s.label ? `<span>${esc(s.label)}</span>` : ''}
+</a>`;
+}
+
+function renderCustomBtn(b, i) {
+  const POSITIONS = ['bottom-right','bottom-left','top-right','top-left'];
+  const pos   = POSITIONS[i % POSITIONS.length];
+  const style = b.sticky ? 'position:fixed' : '';
+  const color = b.color || 'var(--accent)';
+  return `<a href="${esc(b.url)}" class="s-float s-float--${esc(pos)}"
+  style="background:${esc(color)};${style}" target="_blank" rel="noopener noreferrer">
+  ${b.image ? `<img src="${esc(b.image)}" style="width:20px;height:20px;object-fit:contain" alt="" />` : ''}
+  ${b.text ? `<span>${esc(b.text)}</span>` : ''}
 </a>`;
 }
 

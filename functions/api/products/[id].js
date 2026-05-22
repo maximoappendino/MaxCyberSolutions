@@ -25,7 +25,7 @@ export async function onRequestPut({ params, request, data, env }) {
   const product = await owned(params.id, data.owner_id, env);
   if (!product) return json({ error: 'Not found' }, 404);
 
-  const { name, description, price_cents, metadata, sku, in_stock } = body ?? {};
+  const { name, description, price_cents, metadata, sku, in_stock, category, visible } = body ?? {};
 
   if (price_cents !== undefined && (!Number.isInteger(price_cents) || price_cents < 0)) {
     return json({ error: 'price_cents must be a non-negative integer' }, 400);
@@ -38,21 +38,26 @@ export async function onRequestPut({ params, request, data, env }) {
     sku:         sku         ?? product.sku,
     in_stock:    in_stock !== undefined ? (in_stock ? 1 : 0) : product.in_stock,
     metadata:    JSON.stringify(metadata ?? JSON.parse(product.metadata || '{}')),
+    category:    category !== undefined ? category : (product.category || ''),
+    visible:     visible  !== undefined ? (visible ? 1 : 0) : (product.visible ?? 1),
+    image:       body.image !== undefined ? body.image : (product.image || ''),
   };
 
   try {
     await env.DB.prepare(`
       UPDATE products
-      SET name = ?, description = ?, price_cents = ?, sku = ?, in_stock = ?, metadata = ?
+      SET name = ?, description = ?, price_cents = ?, sku = ?, in_stock = ?, metadata = ?,
+          category = ?, visible = ?, image = ?
       WHERE id = ? AND store_id IN (SELECT id FROM stores WHERE owner_id = ?)
     `).bind(u.name, u.description, u.price_cents, u.sku, u.in_stock, u.metadata,
-             params.id, data.owner_id).run();
+            u.category, u.visible, u.image, params.id, data.owner_id).run();
   } catch (e) {
     if (e.message?.includes('UNIQUE')) return json({ error: 'SKU already exists in this store' }, 409);
     throw e;
   }
 
-  return json({ ...u, id: params.id, metadata: JSON.parse(u.metadata), in_stock: !!u.in_stock });
+  return json({ ...u, id: params.id, metadata: JSON.parse(u.metadata),
+                in_stock: !!u.in_stock, visible: !!u.visible });
 }
 
 export async function onRequestDelete({ params, data, env }) {
@@ -68,5 +73,7 @@ export async function onRequestDelete({ params, data, env }) {
 function parseMeta(row) {
   try { row.metadata = JSON.parse(row.metadata); } catch { row.metadata = {}; }
   row.in_stock = !!row.in_stock;
+  row.visible  = row.visible !== 0;
+  row.category = row.category || '';
   return row;
 }

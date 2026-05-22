@@ -23,7 +23,8 @@ export async function onRequestPost({ request, data, env }) {
   try { body = await request.json(); }
   catch { return json({ error: 'Invalid JSON' }, 400); }
 
-  const { store_id, sku, name, description = '', price_cents, metadata = {}, in_stock = true } = body ?? {};
+  const { store_id, sku, name, description = '', price_cents, metadata = {},
+          in_stock = true, category = '', visible = true } = body ?? {};
   if (!store_id || !sku || !name || price_cents === undefined) {
     return json({ error: 'store_id, sku, name, and price_cents are required' }, 400);
   }
@@ -40,18 +41,22 @@ export async function onRequestPost({ request, data, env }) {
   const id = uuid();
   try {
     await env.DB.prepare(
-      'INSERT INTO products (id, store_id, sku, name, description, price_cents, metadata, in_stock) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
-    ).bind(id, store_id, sku, name, description, price_cents, JSON.stringify(metadata), in_stock ? 1 : 0).run();
+      'INSERT INTO products (id, store_id, sku, name, description, price_cents, metadata, in_stock, category, visible) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+    ).bind(id, store_id, sku, name, description, price_cents, JSON.stringify(metadata),
+           in_stock ? 1 : 0, category, visible ? 1 : 0).run();
   } catch (e) {
     if (e.message?.includes('UNIQUE')) return json({ error: 'SKU already exists in this store' }, 409);
     throw e;
   }
 
-  return json({ id, store_id, sku, name, description, price_cents, metadata, in_stock: !!in_stock }, 201);
+  return json({ id, store_id, sku, name, description, price_cents, metadata,
+                in_stock: !!in_stock, category, visible: !!visible }, 201);
 }
 
 function parseMeta(row) {
   try { row.metadata = JSON.parse(row.metadata); } catch { row.metadata = {}; }
   row.in_stock = !!row.in_stock;
+  row.visible  = row.visible !== 0;
+  row.category = row.category || '';
   return row;
 }
