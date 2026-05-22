@@ -1,0 +1,116 @@
+MaxCyberSolutions — Environment & Dependency Checklist
+========================================================
+Run this on any new machine before starting development.
+
+
+─── SYSTEM REQUIREMENTS ──────────────────────────────────────────────────────
+
+Node.js   v18 or higher  (v22 recommended)
+  Check:  node --version
+  Install: https://nodejs.org  or  nvm install 22
+
+npm       v9 or higher   (comes with Node)
+  Check:  npm --version
+
+git
+  Check:  git --version
+
+
+─── PROJECT SETUP (run once per machine) ─────────────────────────────────────
+
+1. Clone the repo (if not already):
+   git clone https://github.com/maximoappendino/MaxCyberSolutions.git
+   cd MaxCyberSolutions
+
+2. Install Node dependencies (includes wrangler):
+   npm install
+
+   NOTE: npm install must NOT use --no-optional.
+   The .npmrc in this repo already sets include=optional to
+   ensure the correct wrangler native binary (workerd) is installed.
+   If wrangler still fails, run:
+   npm install --include=optional
+
+3. Verify wrangler works:
+   npx wrangler --version
+   Expected: wrangler 3.x.x
+
+4. Log in to Cloudflare (one-time, opens browser):
+   npx wrangler login
+
+
+─── LOCAL DEVELOPMENT ────────────────────────────────────────────────────────
+
+# Terminal 1 — start the local dev server
+npm run dev
+  → Starts at http://localhost:8788
+  → Uses Miniflare to simulate D1 and R2 locally (no Cloudflare account needed)
+
+# Terminal 2 — apply DB schema to the local dev server's database
+npm run db:migrate:local
+
+# Terminal 2 — seed the local DB with a demo owner + store + products
+node scripts/seed-local.js
+
+Test URLs:
+  Landing page  →  http://localhost:8788/
+  Store         →  http://localhost:8788/store/e-commerce
+  Dashboard     →  http://localhost:8788/dashboard/
+  Credentials   →  admin@maxcybersolutions.com / demo1234
+
+
+─── PRODUCTION DEPLOY (Cloudflare) ──────────────────────────────────────────
+
+1. Create the remote D1 database (one-time):
+   npm run db:create
+   → Copy the database_id it prints, paste it into wrangler.toml
+
+2. Apply schema to the remote database:
+   npm run db:migrate
+
+3. Deploy to Cloudflare Pages:
+   npm run deploy
+   → Gets a free *.pages.dev URL automatically, no domain purchase needed.
+
+4. Seed production (optional — uses the same script against the live URL):
+   BASE=https://your-project.pages.dev node scripts/seed-local.js
+
+
+─── NPM PACKAGES (devDependencies) ──────────────────────────────────────────
+
+wrangler  ^3.114.17
+  Cloudflare's CLI — runs the local dev server (Miniflare), manages D1
+  migrations, and deploys to Pages. Requires the workerd native binary
+  which is installed as an optional dependency for the current OS/arch.
+
+  Optional platform packages pulled in automatically by wrangler:
+    @cloudflare/workerd-linux-64   (Linux x64)
+    @cloudflare/workerd-linux-arm64 (Linux ARM)
+    @cloudflare/workerd-darwin-64  (macOS Intel)
+    @cloudflare/workerd-darwin-arm64 (macOS Apple Silicon)
+    @cloudflare/workerd-windows-64 (Windows)
+
+  No frontend framework, no bundler, no runtime dependencies.
+  Everything runs on the Cloudflare Workers edge runtime at deploy time.
+
+
+─── COMMON ISSUES ────────────────────────────────────────────────────────────
+
+"wrangler: command not found"
+  → Run npm install first. All npm scripts in this repo use `npx wrangler`
+    so the local installation is always used, never a global one.
+
+"The package @cloudflare/workerd-linux-64 could not be found"
+  → npm skipped optional deps. Run: npm install --include=optional
+
+"D1_ERROR: no such table: owners"
+  → The local DB schema hasn't been applied yet.
+    Run npm run db:migrate:local, then restart npm run dev.
+
+"sh: line 1: wrangler: command not found" when running npm run dev
+  → Same as above: run npm install. The scripts use npx so they don't
+    need wrangler globally installed.
+
+Slow first page load (~100s) on local dev
+  → Wrangler tries to fetch Cloudflare edge metadata on cold start.
+    Run `npx wrangler login` once and subsequent starts are instant.

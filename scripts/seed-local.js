@@ -55,6 +55,43 @@ async function seed() {
         hasNewsletterPopup:   true,
         hasInventoryTracking: true,
       },
+      sections: [
+        {
+          id:       's-hero',
+          type:     'hero',
+          headline: 'Digital Goods & Creative Services',
+          subline:  'Websites, illustrations, 3D assets, and original soundtracks — crafted for impact.',
+          image:    '',
+          overlay:  0.45,
+          align:    'center',
+          cta:      { label: 'Browse Services', url: '#products' },
+        },
+        {
+          id:    's-intro',
+          type:  'text-banner',
+          text:  'Trusted by indie creators and growing teams. Every deliverable ships with source files and a no-nonsense revision policy.',
+          bg:    '#1a1a2e',
+          color: '#ffffff',
+          align: 'center',
+        },
+        {
+          id:             's-products',
+          type:           'product-grid',
+          title:          'Our Services',
+          tag:            '',
+          columns:        3,
+          showOutOfStock: false,
+        },
+        {
+          id:       's-cta',
+          type:     'floating-cta',
+          icon:     '💬',
+          label:    'Chat with us',
+          url:      'mailto:hello@maxcybersolutions.com',
+          position: 'bottom-right',
+          color:    '#e2a14a',
+        },
+      ],
     },
   };
 

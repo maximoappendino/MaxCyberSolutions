@@ -2,14 +2,15 @@
   "name": "maxcybersolutions",
   "private": true,
   "scripts": {
-    "dev":              "wrangler pages dev . --d1 DB",
-    "deploy":           "wrangler pages deploy .",
-    "db:create":        "wrangler d1 create maxcybersolutions-db",
-    "db:migrate":       "wrangler d1 migrations apply maxcybersolutions-db --remote",
-    "db:migrate:local": "wrangler d1 migrations apply maxcybersolutions-db --local",
-    "seed:local":       "node scripts/seed-local.js"
+    "dev": "npx wrangler pages dev . --d1 DB",
+    "deploy": "npx wrangler pages deploy .",
+    "db:create": "npx wrangler d1 create maxcybersolutions-db",
+    "db:migrate": "npx wrangler d1 migrations apply maxcybersolutions-db --remote",
+    "db:migrate:local": "npx wrangler d1 migrations apply maxcybersolutions-db --local",
+    "seed:local": "node scripts/seed-local.js",
+    "migrate:local": "node --experimental-sqlite scripts/migrate-local.js"
   },
   "devDependencies": {
-    "wrangler": "^3.99.0"
+    "wrangler": "^3.114.17"
   }
 }

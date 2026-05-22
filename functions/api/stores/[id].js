@@ -2,11 +2,15 @@ import { json } from '../../_lib/helpers.js';
 
 export async function onRequestGet({ params, data, env }) {
   const store = await env.DB.prepare(
-    'SELECT id, slug, name, config, created_at FROM stores WHERE id = ? AND owner_id = ?'
+    'SELECT id, slug, name, config, preview_config, created_at FROM stores WHERE id = ? AND owner_id = ?'
   ).bind(params.id, data.owner_id).first();
 
   if (!store) return json({ error: 'Not found' }, 404);
   try { store.config = JSON.parse(store.config); } catch { store.config = {}; }
+  if (store.preview_config) {
+    try { store.preview_config = JSON.parse(store.preview_config); }
+    catch { store.preview_config = null; }
+  }
   return json(store);
 }
 
@@ -16,31 +20,42 @@ export async function onRequestPut({ params, request, data, env }) {
   catch { return json({ error: 'Invalid JSON' }, 400); }
 
   const row = await env.DB.prepare(
-    'SELECT config FROM stores WHERE id = ? AND owner_id = ?'
+    'SELECT config, preview_config FROM stores WHERE id = ? AND owner_id = ?'
   ).bind(params.id, data.owner_id).first();
   if (!row) return json({ error: 'Not found' }, 404);
 
+  const isDraft = body._draft === true;
+
+  // Drafts layer on top of the current preview_config (or live config if no draft yet)
+  const baseStr = isDraft && row.preview_config ? row.preview_config : row.config;
   let current;
-  try { current = JSON.parse(row.config); } catch { current = {}; }
+  try { current = JSON.parse(baseStr || '{}'); } catch { current = {}; }
 
   const { name, config } = body ?? {};
 
-  // Deep-merge features so callers can toggle individual flags without overwriting others
-  const updated = config
-    ? {
-        ...current,
-        ...config,
-        features: { ...(current.features || {}), ...(config.features || {}) },
-        theme:    { ...(current.theme    || {}), ...(config.theme    || {}) },
-        seo:      { ...(current.seo      || {}), ...(config.seo      || {}) },
-      }
-    : current;
+  const updated = config ? {
+    ...current,
+    ...config,
+    features: { ...(current.features || {}), ...(config.features || {}) },
+    theme:    { ...(current.theme    || {}), ...(config.theme    || {}) },
+    seo:      { ...(current.seo      || {}), ...(config.seo      || {}) },
+    // sections replaces entirely — no merge
+    sections: config.sections !== undefined ? config.sections : (current.sections || []),
+  } : current;
 
-  const updatedName = name ?? (current.name || '');
   if (name) updated.name = name;
 
+  if (isDraft) {
+    await env.DB.prepare(
+      'UPDATE stores SET preview_config = ? WHERE id = ? AND owner_id = ?'
+    ).bind(JSON.stringify(updated), params.id, data.owner_id).run();
+    return json({ id: params.id, draft: true, config: updated });
+  }
+
+  // Push live: save to config, wipe preview_config
+  const updatedName = name ?? (current.name || '');
   await env.DB.prepare(
-    'UPDATE stores SET name = ?, config = ? WHERE id = ? AND owner_id = ?'
+    'UPDATE stores SET name = ?, config = ?, preview_config = NULL WHERE id = ? AND owner_id = ?'
   ).bind(updatedName, JSON.stringify(updated), params.id, data.owner_id).run();
 
   return json({ id: params.id, name: updatedName, config: updated });
