@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>E-Commerce</title>
+  <meta name="description" content="A curated selection of digital goods, design work, and creative services." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400;1,500&family=DM+Sans:wght@300;400;500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  
+  <link rel="icon" href="/img/icon.webp" type="image/webp" />
+  <style>
+    :root {
+      --accent:      #e2944b;
+      --accent-soft: color-mix(in srgb, #e2944b 18%, transparent);
+      --cream: #efeae0; --ink: #1c1a16;
+      --ink-soft: #45403a; --ink-faint: #7a736a;
+      --rule: #d4cdbd; --rule-soft: #e2dccd;
+      --bg: var(--cream); --fg: var(--ink);
+      --fg-soft: var(--ink-soft); --fg-faint: var(--ink-faint);
+      --line: var(--rule); --line-soft: var(--rule-soft);
+      --serif: "Cormorant Garamond", Georgia, serif;
+      --sans:  "DM Sans", sans-serif;
+      --mono:  "JetBrains Mono", monospace;
+      --slogan:"Cormorant Garamond", Georgia, serif;
+      --pad:   clamp(24px, 6vw, 96px);
+      --s-radius: 0px; --s-radius-btn: 0px;
+      --s-border-w: 1px; --s-shadow: none; --s-shadow-card: none;
+    }
+    *, *::before, *::after { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0;
+      background: var(--bg); color: var(--fg);
+      font-family: var(--sans); font-size: 16px; line-height: 1.5;
+      -webkit-font-smoothing: antialiased; }
+    body { overflow-x: hidden; }
+    h1,h2,h3,h4,p,span,a { overflow-wrap: break-word; word-break: break-word; }
+    a { color: var(--fg); }
+    ::selection { background: var(--accent); color: #fff; }
+
+    /* ── Nav ── */
+    .s-bar {
+      position: sticky; top: 0; z-index: 40;
+      padding: 14px var(--pad);
+      background: color-mix(in srgb, var(--bg) 88%, transparent);
+      backdrop-filter: blur(14px) saturate(120%);
+      border-bottom: 1px solid var(--line-soft);
+      display: flex; justify-content: space-between; align-items: center; gap: 16px;
+    }
+    .s-bar__logo { height: 32px; width: auto; object-fit: contain; }
+    .s-bar__name { font-family: var(--mono); font-size: 11px;
+      letter-spacing: 0.18em; text-transform: uppercase; }
+    .s-bar__back { font-family: var(--mono); font-size: 10px;
+      letter-spacing: 0.12em; text-transform: uppercase;
+      color: var(--fg-faint); text-decoration: none; transition: color 160ms ease; }
+    .s-bar__back:hover { color: var(--accent); }
+
+    /* ── Countdown ── */
+    .countdown {
+      padding: 12px var(--pad); background: var(--accent); color: #fff;
+      display: flex; align-items: center; gap: 20px; font-family: var(--mono);
+    }
+    .countdown__label { font-size: 9px; letter-spacing: 0.2em; text-transform: uppercase; opacity: 0.85; }
+    .countdown__time  { font-size: 20px; letter-spacing: 0.06em; }
+
+    /* ── Hero (base) ── */
+    .s-hero { border-bottom: 1px solid var(--line); }
+    .s-hero__inner { padding: 80px var(--pad) 60px; }
+    .s-hero__tag   { font-family: var(--mono); font-size: 10px;
+      letter-spacing: 0.18em; text-transform: uppercase; color: var(--fg-faint); margin-bottom: 20px; }
+    .s-hero__title { font-family: var(--serif);
+      font-size: clamp(52px, 9vw, 128px); line-height: 0.93;
+      letter-spacing: -0.02em; font-weight: 400; margin: 0 0 24px; }
+    .s-hero__desc  { font-family: var(--serif); font-style: italic;
+      font-size: clamp(18px, 1.8vw, 26px); color: var(--fg-soft); max-width: 60ch; margin: 0; }
+    .s-hero__cta   {
+      display: inline-block; margin-top: 32px;
+      font-family: var(--mono); font-size: 11px; letter-spacing: 0.18em;
+      text-transform: uppercase; padding: 14px 32px;
+      background: var(--fg); color: var(--bg); text-decoration: none;
+      border-radius: var(--s-radius-btn); border: var(--s-border-w) solid var(--fg);
+      box-shadow: var(--s-shadow);
+      transition: opacity 160ms ease;
+    }
+    .s-hero__cta:hover { opacity: 0.8; }
+
+    /* ── Hero with image ── */
+    .s-hero--img { position: relative; overflow: hidden; min-height: 60vh; display: flex; align-items: center; }
+    .s-hero__bg  { position: absolute; inset: 0; background-size: cover; background-position: center; }
+    .s-hero__overlay { position: absolute; inset: 0; background: rgba(0,0,0,.48); }
+    .s-hero--img .s-hero__inner { position: relative; z-index: 1; width: 100%; }
+    .s-hero--img .s-hero__tag,
+    .s-hero--img .s-hero__title,
+    .s-hero--img .s-hero__desc { color: #fff; }
+    .s-hero--img .s-hero__cta  { background: #fff; color: #1c1a16; }
+
+    /* ── Alignment ── */
+    .s-hero--center .s-hero__inner { text-align: center; }
+    .s-hero--center .s-hero__desc  { margin-left: auto; margin-right: auto; }
+    .s-hero--right  .s-hero__inner { text-align: right; }
+    .s-hero--right  .s-hero__desc  { margin-left: auto; }
+
+    /* ── Text banner ── */
+    .s-banner { padding: 14px var(--pad); font-family: var(--mono); }
+    .s-banner--center { text-align: center; }
+    .s-banner--right  { text-align: right; }
+    .s-banner__text   { font-size: 12px; letter-spacing: 0.12em; }
+    .s-banner__sub    { font-size: 11px; opacity: .75; display: block; margin-top: 3px; }
+    .s-banner__cta    { display: inline-block; margin-left: 16px; font-size: 10px;
+      letter-spacing: 0.13em; text-transform: uppercase; padding: 5px 14px;
+      border: 1px solid currentColor; color: inherit; text-decoration: none; border-radius: var(--s-radius-btn); }
+    .s-banner--sticky { position: sticky; top: 0; z-index: 30; }
+    .s-banner--dismiss-btn { position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+      background: none; border: none; color: inherit; cursor: pointer; font-size: 14px; opacity: .6; }
+    .s-banner--relative { position: relative; }
+    .s-banner--marquee { overflow: hidden; padding-top: 12px; padding-bottom: 12px; }
+    .s-banner__marquee { display: flex; gap: 80px; animation: s-marquee 22s linear infinite; width: max-content; }
+    .s-banner__marquee span { white-space: nowrap; font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; }
+    @keyframes s-marquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+
+    /* ── Products ── */
+    .s-products { padding: 64px var(--pad); }
+    .s-products__head { margin-bottom: 48px; }
+    .s-products__tag  { font-family: var(--mono); font-size: 10px;
+      letter-spacing: 0.18em; text-transform: uppercase; color: var(--fg-faint); margin-bottom: 12px; }
+    .s-products__title { font-family: var(--serif);
+      font-size: clamp(36px, 4.5vw, 64px); letter-spacing: -0.02em; margin: 0; }
+    .s-products__title em { color: var(--fg-soft); font-style: italic; }
+
+    /* ── Filter / Sort toolbar ── */
+    .s-grid-toolbar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+      padding: 16px 0; border-top: 1px solid var(--line-soft); margin-bottom: 0; }
+    .s-grid-filters { display: flex; gap: 6px; flex-wrap: wrap; }
+    .s-filter-btn { font-family: var(--mono); font-size: 10px; letter-spacing: 0.12em;
+      text-transform: uppercase; padding: 6px 14px; background: transparent;
+      border: 1px solid var(--line); color: var(--fg-faint); cursor: pointer;
+      border-radius: var(--s-radius-btn); transition: all 160ms ease; }
+    .s-filter-btn:hover        { color: var(--fg); border-color: var(--fg); }
+    .s-filter-btn--active      { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+    .s-sort-select { margin-left: auto; font-family: var(--mono); font-size: 11px;
+      letter-spacing: 0.08em; padding: 6px 12px; background: var(--bg); color: var(--fg);
+      border: 1px solid var(--line); border-radius: var(--s-radius-btn); cursor: pointer; }
+
+    /* Grid base */
+    .s-grid { display: grid; border-top: 1px solid var(--line); border-left: 1px solid var(--line); }
+
+    /* Grid layout: list */
+    .s-grid--list { grid-template-columns: 1fr !important; }
+    .s-grid--list .s-card { flex-direction: row; min-height: 200px; }
+    .s-grid--list .s-card__img { width: 260px; min-width: 260px; aspect-ratio: unset; flex-shrink: 0; }
+
+    /* Grid layout: featured (first item spans 2 cols) */
+    .s-grid--featured .s-card:first-child { grid-column: span 2; }
+    .s-grid--featured .s-card:first-child .s-card__img { aspect-ratio: 16/9; }
+    .s-grid--featured .s-card:first-child .s-card__name { font-size: clamp(28px, 3vw, 42px); }
+
+    /* Grid layout: minimal (2 cols, generous spacing) */
+    .s-grid--minimal .s-card__body { padding: 32px 36px 44px; gap: 18px; }
+    .s-grid--minimal .s-card__name { font-size: 28px; }
+    .s-grid--minimal .s-card__price { font-size: 40px; }
+
+    .s-card {
+      border-right: var(--s-border-w) solid var(--line); border-bottom: var(--s-border-w) solid var(--line);
+      border-radius: var(--s-radius); box-shadow: var(--s-shadow-card);
+      display: flex; flex-direction: column; gap: 12px;
+      background: var(--bg); transition: background 200ms ease; overflow: hidden; position: relative;
+    }
+    .s-card:hover { background: color-mix(in srgb, var(--accent) 5%, var(--bg)); }
+    .s-card__img  {
+      width: 100%; aspect-ratio: 4/3;
+      background-size: cover; background-position: center;
+      background-color: var(--line-soft); transition: transform 300ms ease, opacity 300ms ease;
+    }
+    /* Hover effects */
+    .s-card--zoom:hover .s-card__img    { transform: scale(1.06); }
+    .s-card--fade:hover .s-card__img    { opacity: 0.78; }
+    .s-card--overlay::after { content: ''; position: absolute; inset: 0; background: transparent; transition: background 300ms ease; pointer-events: none; }
+    .s-card--overlay:hover::after { background: rgba(0,0,0,.18); }
+
+    .s-card__body { padding: 0 24px 28px; display: flex; flex-direction: column; gap: 12px; flex: 1; }
+    .s-card--noimg .s-card__body { padding-top: 28px; }
+    .s-card__sku   { font-family: var(--mono); font-size: 9px;
+      letter-spacing: 0.2em; text-transform: uppercase; color: var(--fg-faint); }
+    .s-card__name  { font-family: var(--serif); font-size: 24px;
+      letter-spacing: -0.01em; line-height: 1.1; }
+    .s-card__cat   { font-family: var(--mono); font-size: 9px; letter-spacing: 0.15em;
+      text-transform: uppercase; color: var(--fg-faint); }
+    .s-card__desc  { font-family: var(--serif); font-style: italic;
+      font-size: 14px; color: var(--fg-soft); flex: 1; }
+    .s-card__price { font-family: var(--serif); font-size: 34px; letter-spacing: -0.02em; line-height: 1; }
+    .s-card__rating { font-family: var(--mono); font-size: 11px; color: var(--accent); letter-spacing: 0.05em; }
+    .s-card__badges { display: flex; flex-wrap: wrap; gap: 6px; }
+    .s-card__badge  { font-family: var(--mono); font-size: 9px;
+      letter-spacing: 0.1em; text-transform: uppercase; padding: 3px 7px;
+      border: var(--s-border-w) solid var(--line); border-radius: var(--s-radius-sm); color: var(--fg-faint); }
+    .s-card__badge--oos { border-color: #b33; color: #b33; }
+    .s-card__cta {
+      margin-top: auto; padding: 12px 0;
+      border-top: 1px solid var(--line-soft); border-left: none; border-right: none; border-bottom: none;
+      font-family: var(--mono); font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase;
+      background: none; color: var(--fg); width: 100%;
+      display: flex; justify-content: space-between; align-items: center;
+      cursor: pointer; transition: color 160ms ease;
+    }
+    .s-card__cta:hover  { color: var(--accent); }
+    .s-card__cta::after { content: "→"; }
+
+    /* ── Image gallery ── */
+    .s-gallery { padding: 64px var(--pad); }
+    .s-gallery__title { font-family: var(--serif);
+      font-size: clamp(32px, 4.5vw, 56px); letter-spacing: -0.02em; margin: 0 0 40px; }
+    .s-gallery__grid { display: grid; gap: 12px; }
+    .s-gallery__item { position: relative; overflow: hidden; }
+    .s-gallery__item img { width: 100%; height: 100%; object-fit: cover; display: block;
+      transition: transform 300ms ease, opacity 300ms ease; }
+    .s-gallery__item--zoom:hover img   { transform: scale(1.06); }
+    .s-gallery__item--fade:hover img   { opacity: 0.78; }
+    .s-gallery__item--overlay::after { content: ''; position: absolute; inset: 0; background: transparent; transition: background 300ms ease; }
+    .s-gallery__item--overlay:hover::after { background: rgba(0,0,0,.2); }
+    .s-gallery__caption {
+      position: absolute; bottom: 0; left: 0; right: 0;
+      padding: 8px 12px; background: rgba(0,0,0,.55); color: #fff;
+      font-family: var(--mono); font-size: 10px; letter-spacing: 0.1em;
+    }
+    /* Gallery: strip layout (horizontal scroll) */
+    .s-gallery--strip .s-gallery__grid { display: flex; overflow-x: auto; flex-wrap: nowrap; gap: 12px;
+      scrollbar-width: thin; padding-bottom: 8px; }
+    .s-gallery--strip .s-gallery__item { flex-shrink: 0; width: 300px; }
+    /* Gallery: featured (first image larger) */
+    .s-gallery--featured .s-gallery__item:first-child { grid-column: span 2; grid-row: span 2; }
+    /* Gallery: minimal (2 cols, more gap) */
+    .s-gallery--minimal .s-gallery__grid { gap: 20px; }
+
+    /* ── Rich text / Text Block ── */
+    .s-rich { padding: 64px var(--pad); }
+    .s-rich--sm  { padding: 32px var(--pad); }
+    .s-rich--lg  { padding: 96px var(--pad); }
+    .s-rich--center { text-align: center; }
+    .s-rich--center .s-rich__body { margin-left: auto; margin-right: auto; }
+    .s-rich__inner { margin: 0 auto; }
+    .s-rich--narrow .s-rich__inner { max-width: 60ch; }
+    .s-rich--normal .s-rich__inner { max-width: 80ch; }
+    .s-rich--wide   .s-rich__inner { max-width: 100%; }
+    .s-rich__heading    { font-family: var(--serif); font-size: clamp(32px,4vw,56px);
+      letter-spacing: -0.02em; line-height: 1.1; margin: 0 0 16px; }
+    .s-rich__subheading { font-family: var(--serif); font-style: italic;
+      font-size: clamp(17px,1.8vw,22px); color: var(--fg-soft); margin: 0 0 28px; }
+    .s-rich__body { font-family: var(--serif); font-size: 18px; color: var(--fg-soft);
+      line-height: 1.75; max-width: 72ch; white-space: pre-wrap; }
+    .s-rich__cta  { display: inline-block; margin-top: 28px; font-family: var(--mono);
+      font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; padding: 12px 28px;
+      border-radius: var(--s-radius-btn); border: var(--s-border-w) solid var(--fg);
+      background: var(--fg); color: var(--bg); text-decoration: none; transition: opacity 160ms ease; }
+    .s-rich__cta:hover { opacity: 0.82; }
+    .s-rich__cta--outline { background: transparent; color: var(--fg); }
+    .s-rich__cta--ghost   { background: transparent; border-color: transparent; }
+    .s-rich p  { font-family: var(--serif); font-size: 18px; color: var(--fg-soft); line-height: 1.75; }
+    .s-rich h2 { font-family: var(--serif); font-size: clamp(28px,3vw,44px); letter-spacing: -0.02em; }
+
+    /* ── Floating CTAs ── */
+    .s-floats { position: fixed; inset: 0; z-index: 50; pointer-events: none; }
+    .s-float {
+      position: absolute; pointer-events: auto;
+      display: flex; align-items: center; gap: 8px; padding: 12px 18px;
+      font-family: var(--mono); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase;
+      text-decoration: none; color: #fff; border-radius: var(--s-radius-btn);
+      box-shadow: 0 4px 20px rgba(0,0,0,.25);
+      transition: transform 160ms ease, box-shadow 160ms ease;
+    }
+    .s-float:hover { transform: translateY(-2px); box-shadow: 0 6px 24px rgba(0,0,0,.32); }
+    .s-float--bottom-right { bottom: 28px; right: 28px; }
+    .s-float--bottom-left  { bottom: 28px; left:  28px; }
+    .s-float--top-right    { top: 88px;    right: 28px; }
+    .s-float--top-left     { top: 88px;    left:  28px; }
+    .s-float__icon { font-size: 16px; line-height: 1; }
+
+    /* ── Carousel ── */
+    .s-hero--carousel { position: relative; overflow: hidden; }
+    .s-carousel__track { position: absolute; inset: 0; }
+    .s-carousel__slide { position: absolute; inset: 0; background-size: cover; background-position: center;
+      opacity: 0; transition: opacity 900ms ease; }
+    .s-carousel__slide.active { opacity: 1; }
+    .s-carousel__btn {
+      position: absolute; top: 50%; transform: translateY(-50%); z-index: 2;
+      background: rgba(255,255,255,.18); border: none; color: #fff;
+      font-size: 28px; line-height: 1; padding: 10px 16px; cursor: pointer;
+      backdrop-filter: blur(4px); transition: background 160ms ease;
+    }
+    .s-carousel__btn:hover { background: rgba(255,255,255,.35); }
+    .s-carousel__btn--prev { left: 16px; }
+    .s-carousel__btn--next { right: 16px; }
+
+    /* ── Empty ── */
+    .s-empty { padding: 80px var(--pad); text-align: center; border-top: 1px solid var(--line); }
+    .s-empty__text { font-family: var(--serif); font-style: italic;
+      font-size: 26px; color: var(--fg-soft); }
+
+    /* ── Footer ── */
+    .s-foot {
+      padding: 40px var(--pad); border-top: 1px solid var(--line);
+      display: flex; justify-content: space-between; align-items: center; gap: 16px;
+    }
+    .s-foot__brand { font-family: var(--serif); font-size: 13px; color: var(--fg-faint); }
+    .s-foot__link  { font-family: var(--mono); font-size: 9px;
+      letter-spacing: 0.18em; text-transform: uppercase; color: var(--fg-faint);
+      text-decoration: none; transition: color 160ms ease; }
+    .s-foot__link:hover { color: var(--accent); }
+
+    /* ── Header section ── */
+    .s-announce {
+      padding: 0 var(--pad); display: flex; align-items: center; justify-content: center;
+      gap: 16px; font-family: var(--mono); font-size: 11px; letter-spacing: 0.12em; position: relative;
+    }
+    .s-announce--sticky { position: sticky; top: 0; z-index: 50; }
+    .s-announce__dismiss {
+      position: absolute; right: var(--pad); background: none; border: none; cursor: pointer;
+      font-family: var(--mono); font-size: 14px; opacity: 0.6; color: inherit; line-height: 1;
+      transition: opacity 160ms; padding: 4px;
+    }
+    .s-announce__dismiss:hover { opacity: 1; }
+    .s-announce__label { font-size: 9px; letter-spacing: 0.2em; text-transform: uppercase; opacity: 0.85; }
+    .s-announce__time  { font-size: 18px; letter-spacing: 0.06em; }
+    .s-header {
+      padding: 14px var(--pad);
+      display: flex; align-items: center;
+    }
+    .s-header--sticky-always,
+    .s-header--sticky-smart,
+    .s-header--sticky-shrinking { position: sticky; top: 0; z-index: 40; }
+    .s-header--sticky-partial   { position: sticky; top: 0; z-index: 40; }
+    .s-header--sticky-floating  { position: fixed; top: 0; left: 0; right: 0; z-index: 40; }
+    .s-header__inner {
+      width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 16px;
+    }
+    .s-header--centered-logo .s-header__inner { justify-content: center; gap: 24px; }
+    .s-header__brand { display: flex; align-items: center; gap: 12px; }
+    .s-header__actions { display: flex; align-items: center; gap: 14px; }
+    .s-header__action {
+      background: none; border: none; cursor: pointer; font-size: 18px; color: inherit;
+      padding: 4px; transition: opacity 160ms; line-height: 1;
+    }
+    .s-header__action:hover { opacity: 0.65; }
+    .s-header__lang {
+      font-family: var(--mono); font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase;
+    }
+
+    /* ── Footer section ── */
+    .s-section-foot { border-top: 1px solid var(--line); }
+    .s-section-foot__newsletter {
+      padding: 48px var(--pad); border-bottom: 1px solid var(--line-soft);
+      display: flex; flex-direction: column; align-items: center; gap: 16px; text-align: center;
+    }
+    .s-section-foot__nl-title {
+      font-family: var(--serif); font-size: clamp(24px,3vw,40px); letter-spacing: -0.02em; margin: 0;
+    }
+    .s-section-foot__nl-text {
+      font-family: var(--serif); font-style: italic; font-size: 15px; color: var(--fg-soft); margin: 0;
+    }
+    .s-section-foot__bottom {
+      padding: 20px var(--pad); display: flex; flex-wrap: wrap; align-items: center;
+      justify-content: space-between; gap: 16px;
+    }
+    .s-section-foot__copyright {
+      font-family: var(--mono); font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--fg-faint);
+    }
+    .s-section-foot__socials { display: flex; gap: 16px; align-items: center; }
+    .s-section-foot__social {
+      font-family: var(--mono); font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase;
+      color: var(--fg-faint); text-decoration: none; transition: color 160ms;
+    }
+    .s-section-foot__social:hover { color: var(--accent); }
+    .s-section-foot__legal { display: flex; gap: 16px; align-items: center; }
+    .s-section-foot__legal a {
+      font-family: var(--mono); font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase;
+      color: var(--fg-faint); text-decoration: none; transition: color 160ms;
+    }
+    .s-section-foot__legal a:hover { color: var(--fg); }
+    .s-section-foot__pay {
+      font-family: var(--mono); font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--fg-faint);
+    }
+
+    /* ── Newsletter modal ── */
+    .nl-overlay { position: fixed; inset: 0; z-index: 100;
+      background: rgba(0,0,0,.55); display: flex; align-items: center; justify-content: center;
+      opacity: 0; pointer-events: none; transition: opacity 360ms ease; }
+    .nl-overlay.active { opacity: 1; pointer-events: auto; }
+    .nl-modal { background: var(--bg); border: var(--s-border-w) solid var(--line);
+      border-radius: var(--s-radius); box-shadow: var(--s-shadow-card);
+      padding: 48px; max-width: 460px; width: calc(100% - 40px);
+      display: flex; flex-direction: column; gap: 22px; }
+    .nl-modal__title { font-family: var(--serif);
+      font-size: clamp(28px, 5vw, 52px); letter-spacing: -0.02em; margin: 0; }
+    .nl-modal__lede  { font-family: var(--serif); font-style: italic;
+      font-size: 17px; color: var(--fg-soft); margin: 0; }
+    .nl-form  { display: flex; border: var(--s-border-w) solid var(--line); border-radius: var(--s-radius-btn); overflow: hidden; }
+    .nl-input { flex: 1; background: transparent; border: none; outline: none;
+      font-family: var(--mono); font-size: 12px; letter-spacing: 0.1em;
+      color: var(--fg); padding: 12px 16px; }
+    .nl-btn   { font-family: var(--mono); font-size: 10px; letter-spacing: 0.18em;
+      text-transform: uppercase; padding: 12px 20px;
+      background: var(--fg); color: var(--bg); border: none; cursor: pointer; }
+    .nl-close { align-self: flex-end; background: none; border: none;
+      font-family: var(--mono); font-size: 10px; letter-spacing: 0.12em;
+      text-transform: uppercase; color: var(--fg-faint); cursor: pointer; }
+
+    @media (max-width: 700px) {
+      .s-grid { grid-template-columns: 1fr !important; }
+      .s-gallery__grid--3, .s-gallery__grid--4 { grid-template-columns: repeat(2, 1fr); }
+      .s-foot { flex-direction: column; text-align: center; }
+    }
+  </style>
+</head>
+<body>
+  <nav class="s-bar">
+    <div style="display:flex;align-items:center;gap:12px">
+      
+      <span class="s-bar__name">E-Commerce</span>
+    </div>
+    <a href="/" class="s-bar__back">← MaxCyberSolutions</a>
+  </nav>
+
+  <div class="countdown">
+  <span class="countdown__label">Limited offer ends in</span>
+  <span class="countdown__time" id="cd-time">--:--:--</span>
+</div>
+
+  
+<header class="s-hero">
+  <div class="s-hero__inner">
+    <p class="s-hero__tag">Store &nbsp;/&nbsp; e-commerce</p>
+    <h1 class="s-hero__title">E-Commerce</h1>
+    <p class="s-hero__desc">A curated selection of digital goods, design work, and creative services.</p>
+  </div>
+</header>
+<section class="s-products" id="products">
+  <div class="s-products__head">
+    <p class="s-products__tag">§ Catalogue</p>
+    <h2 class="s-products__title">All <em>products</em>.</h2>
+  </div>
+  <div class="s-grid" style="grid-template-columns:repeat(auto-fill,minmax(280px,1fr))">
+        <article class="s-card s-card--noimg"
+  data-price="0" data-name="Item" data-instock="1">
+  
+  <div class="s-card__body">
+    <div class="s-card__sku">SKU 100</div>
+    
+    <h3 class="s-card__name">Item</h3>
+    
+    <div class="s-card__price">$0.00</div>
+    
+    <div class="s-card__badges">
+      
+      
+    </div>
+    <button class="s-card__cta">Inquire</button>
+  </div>
+</article><article class="s-card s-card--noimg"
+  data-price="900" data-name="Landing Page" data-instock="1">
+  
+  <div class="s-card__body">
+    <div class="s-card__sku">SKU WEB-01</div>
+    
+    <h3 class="s-card__name">Landing Page</h3>
+    <p class="s-card__desc">One-page site with custom typography, motion, and mobile-first layout.</p>
+    <div class="s-card__price">$900.00</div>
+    
+    <div class="s-card__badges">
+      
+      <span class="s-card__badge">pages: 1</span><span class="s-card__badge">delivery: 2 weeks</span><span class="s-card__badge">revisions: 2 rounds</span>
+    </div>
+    <button class="s-card__cta">Inquire</button>
+  </div>
+</article><article class="s-card s-card--noimg"
+  data-price="2800" data-name="Full Site" data-instock="1">
+  
+  <div class="s-card__body">
+    <div class="s-card__sku">SKU WEB-02</div>
+    
+    <h3 class="s-card__name">Full Site</h3>
+    <p class="s-card__desc">Up to 8 pages, CMS integration, custom front-end, and an SEO pass.</p>
+    <div class="s-card__price">$2800.00</div>
+    
+    <div class="s-card__badges">
+      
+      <span class="s-card__badge">pages: up to 8</span><span class="s-card__badge">delivery: 4 weeks</span><span class="s-card__badge">revisions: 4 rounds</span>
+    </div>
+    <button class="s-card__cta">Inquire</button>
+  </div>
+</article><article class="s-card s-card--noimg"
+  data-price="6500" data-name="Platform" data-instock="1">
+  
+  <div class="s-card__body">
+    <div class="s-card__sku">SKU WEB-03</div>
+    
+    <h3 class="s-card__name">Platform</h3>
+    <p class="s-card__desc">Full-stack: auth, payments, admin, custom APIs, and a direct line during build.</p>
+    <div class="s-card__price">$6500.00</div>
+    
+    <div class="s-card__badges">
+      
+      <span class="s-card__badge">delivery: 8 weeks</span><span class="s-card__badge">type: Custom quote</span>
+    </div>
+    <button class="s-card__cta">Inquire</button>
+  </div>
+</article><article class="s-card s-card--noimg"
+  data-price="220" data-name="Spot Illustration" data-instock="1">
+  
+  <div class="s-card__body">
+    <div class="s-card__sku">SKU ILL-01</div>
+    
+    <h3 class="s-card__name">Spot Illustration</h3>
+    <p class="s-card__desc">One key illustration, print-ready and web exports, source files included.</p>
+    <div class="s-card__price">$220.00</div>
+    
+    <div class="s-card__badges">
+      
+      <span class="s-card__badge">format: PNG + SVG</span><span class="s-card__badge">delivery: 1 week</span><span class="s-card__badge">revisions: 2 rounds</span>
+    </div>
+    <button class="s-card__cta">Inquire</button>
+  </div>
+</article><article class="s-card s-card--noimg"
+  data-price="1400" data-name="Illustration Series" data-instock="1">
+  
+  <div class="s-card__body">
+    <div class="s-card__sku">SKU ILL-02</div>
+    
+    <h3 class="s-card__name">Illustration Series</h3>
+    <p class="s-card__desc">Coordinated set of 6–10 pieces sharing a single visual language.</p>
+    <div class="s-card__price">$1400.00</div>
+    
+    <div class="s-card__badges">
+      
+      <span class="s-card__badge">pieces: 6–10</span><span class="s-card__badge">delivery: 3 weeks</span><span class="s-card__badge">revisions: 3 rounds</span>
+    </div>
+    <button class="s-card__cta">Inquire</button>
+  </div>
+</article><article class="s-card s-card--noimg"
+  data-price="3800" data-name="Visual Identity System" data-instock="1">
+  
+  <div class="s-card__body">
+    <div class="s-card__sku">SKU BRAND-01</div>
+    
+    <h3 class="s-card__name">Visual Identity System</h3>
+    <p class="s-card__desc">Logo, wordmark, pattern, iconography, motion, and a full brand guide PDF.</p>
+    <div class="s-card__price">$3800.00</div>
+    
+    <div class="s-card__badges">
+      
+      <span class="s-card__badge">format: PDF + master files</span><span class="s-card__badge">delivery: 6 weeks</span><span class="s-card__badge">updates: 1 year</span>
+    </div>
+    <button class="s-card__cta">Inquire</button>
+  </div>
+</article><article class="s-card s-card--noimg"
+  data-price="280" data-name="3D Asset" data-instock="1">
+  
+  <div class="s-card__body">
+    <div class="s-card__sku">SKU 3D-01</div>
+    
+    <h3 class="s-card__name">3D Asset</h3>
+    <p class="s-card__desc">Single prop or character bust — low or high-poly with PBR textures.</p>
+    <div class="s-card__price">$280.00</div>
+    
+    <div class="s-card__badges">
+      
+      <span class="s-card__badge">format: FBX / GLB</span><span class="s-card__badge">delivery: 2 weeks</span><span class="s-card__badge">revisions: 2 rounds</span>
+    </div>
+    <button class="s-card__cta">Inquire</button>
+  </div>
+</article><article class="s-card s-card--noimg"
+  data-price="1800" data-name="3D Asset Pack" data-instock="0">
+  
+  <div class="s-card__body">
+    <div class="s-card__sku">SKU 3D-02</div>
+    
+    <h3 class="s-card__name">3D Asset Pack</h3>
+    <p class="s-card__desc">Up to 12 coherent assets with a shared material library.</p>
+    <div class="s-card__price">$1800.00</div>
+    
+    <div class="s-card__badges">
+      <span class="s-card__badge s-card__badge--oos">Out of stock</span>
+      <span class="s-card__badge">assets: up to 12</span><span class="s-card__badge">format: FBX / GLB</span><span class="s-card__badge">delivery: 4 weeks</span>
+    </div>
+    <button class="s-card__cta">Inquire</button>
+  </div>
+</article><article class="s-card s-card--noimg"
+  data-price="180" data-name="Voice Session" data-instock="1">
+  
+  <div class="s-card__body">
+    <div class="s-card__sku">SKU SFX-01</div>
+    
+    <h3 class="s-card__name">Voice Session</h3>
+    <p class="s-card__desc">Studio-quality WAV recording, up to 1 hour, with light post-processing.</p>
+    <div class="s-card__price">$180.00</div>
+    
+    <div class="s-card__badges">
+      
+      <span class="s-card__badge">duration: 1 hour</span><span class="s-card__badge">format: WAV</span><span class="s-card__badge">turnaround: 48 hours</span>
+    </div>
+    <button class="s-card__cta">Inquire</button>
+  </div>
+</article><article class="s-card s-card--noimg"
+  data-price="3400" data-name="Full Soundtrack" data-instock="1">
+  
+  <div class="s-card__body">
+    <div class="s-card__sku">SKU SFX-02</div>
+    
+    <h3 class="s-card__name">Full Soundtrack</h3>
+    <p class="s-card__desc">Original composed score, adaptive game layers, full sound design, stems delivered.</p>
+    <div class="s-card__price">$3400.00</div>
+    
+    <div class="s-card__badges">
+      
+      <span class="s-card__badge">delivery: 6 weeks</span><span class="s-card__badge">format: Stems + Master</span>
+    </div>
+    <button class="s-card__cta">Inquire</button>
+  </div>
+</article><article class="s-card s-card--noimg"
+  data-price="10" data-name="IT WORKS!!!!" data-instock="1">
+  
+  <div class="s-card__body">
+    <div class="s-card__sku">SKU 1</div>
+    
+    <h3 class="s-card__name">IT WORKS!!!!</h3>
+    <p class="s-card__desc">Now I need to see how the client might like the layout.</p>
+    <div class="s-card__price">$10.00</div>
+    
+    <div class="s-card__badges">
+      
+      
+    </div>
+    <button class="s-card__cta">Inquire</button>
+  </div>
+</article>
+       </div>
+</section>
+
+  <div class="nl-overlay" id="nl-overlay" role="dialog" aria-modal="true">
+  <div class="nl-modal">
+    <button class="nl-close" id="nl-close">Close ✕</button>
+    <h2 class="nl-modal__title">Stay in the loop.</h2>
+    <p class="nl-modal__lede">New arrivals, exclusive drops. No noise.</p>
+    <form class="nl-form" id="nl-form">
+      <input class="nl-input" type="email" placeholder="your@email.com" required />
+      <button type="submit" class="nl-btn">Subscribe</button>
+    </form>
+  </div>
+</div>
+
+  
+
+  <footer class="s-foot">
+    <span class="s-foot__brand">Powered by MaxCyberSolutions</span>
+    <a href="/" class="s-foot__link">maxcybersolutions.com ↗</a>
+  </footer>
+
+  <script>
+(function(){
+  var end=new Date(); end.setHours(end.getHours()+24,0,0,0);
+  function tick(){
+    var d=end-Date.now(); if(d<=0){document.getElementById('cd-time').textContent='00:00:00';return;}
+    var h=Math.floor(d/3600000),m=Math.floor((d%3600000)/60000),s=Math.floor((d%60000)/1000);
+    document.getElementById('cd-time').textContent=[h,m,s].map(function(n){return String(n).padStart(2,'0');}).join(':');
+    setTimeout(tick,1000);
+  } tick();
+})();
+</script>
+  <script>
+(function(){
+  var o=document.getElementById('nl-overlay'),c=document.getElementById('nl-close'),f=document.getElementById('nl-form');
+  setTimeout(function(){o.classList.add('active');},3500);
+  c.addEventListener('click',function(){o.classList.remove('active');});
+  o.addEventListener('click',function(e){if(e.target===o)o.classList.remove('active');});
+  f.addEventListener('submit',function(e){e.preventDefault();o.classList.remove('active');});
+})();
+</script>
+</body>
+</html>

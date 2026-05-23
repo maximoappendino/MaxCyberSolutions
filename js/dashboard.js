@@ -18,7 +18,7 @@ const I18N = {
 function t(key) { return (I18N[dashConfig.lang] || I18N.en)[key] || key; }
 
 // ── Dashboard config (localStorage, UI only) ──────────────────────────────────
-let dashConfig = { lang: 'en', size: 'medium', preview: 'desktop', autoRefresh: true, dashStyle: 'maxcybersolutions' };
+let dashConfig = { lang: 'en', size: 'medium', preview: 'desktop', autoRefresh: true, dashStyle: 'warm-linen' };
 
 function loadDashConfig() {
   try { Object.assign(dashConfig, JSON.parse(localStorage.getItem('dash_config') || '{}')); } catch {}
@@ -28,34 +28,125 @@ function saveDashConfig() {
   localStorage.setItem('dash_config', JSON.stringify(dashConfig));
 }
 
+// ── Font catalog ──────────────────────────────────────────────────────────────
+const FONT_CATALOG = {
+  'System Default':     '',
+  'Cormorant Garamond': 'https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400;1,500&display=swap',
+  'Playfair Display':   'https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400&display=swap',
+  'EB Garamond':        'https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;1,400&display=swap',
+  'Libre Baskerville':  'https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&display=swap',
+  'Merriweather':       'https://fonts.googleapis.com/css2?family=Merriweather:ital,wght@0,300;0,400;1,300&display=swap',
+  'Lora':               'https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;1,400&display=swap',
+  'DM Sans':            'https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500&display=swap',
+  'Inter':              'https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&display=swap',
+  'Nunito':             'https://fonts.googleapis.com/css2?family=Nunito:wght@300;400;600&display=swap',
+  'Poppins':            'https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500&display=swap',
+  'Raleway':            'https://fonts.googleapis.com/css2?family=Raleway:wght@300;400;500&display=swap',
+  'Outfit':             'https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500&display=swap',
+  'Barlow':             'https://fonts.googleapis.com/css2?family=Barlow:ital,wght@0,300;0,400;0,500;1,400&display=swap',
+  'Josefin Sans':       'https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@300;400;600&display=swap',
+  'JetBrains Mono':     'https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap',
+  'IBM Plex Mono':      'https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&display=swap',
+  'Space Mono':         'https://fonts.googleapis.com/css2?family=Space+Mono&display=swap',
+  'Bebas Neue':         'https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap',
+  'Pacifico':           'https://fonts.googleapis.com/css2?family=Pacifico&display=swap',
+  'Oswald':             'https://fonts.googleapis.com/css2?family=Oswald:wght@300;400;500&display=swap',
+  'Orbitron':           'https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700&display=swap',
+};
+
 // ── Section type definitions ──────────────────────────────────────────────────
 const SECTION_TYPES = {
+  header: {
+    label: 'Header', icon: '⊤',
+    defaults: {
+      announcementEnabled: false, announcementType: 'top-bar',
+      announcementText: 'Free shipping on orders over $50',
+      announcementSticky: true, announcementDismissible: true,
+      announcementBg: '#1c1a16', announcementColor: '#e2a14a', announcementHeight: 40,
+      countdownEnabled: false, countdownEnd: '',
+      layout: 'left-aligned', sticky: 'smart', stickyStyle: 'solid',
+      showSearch: true, showAccount: true, showWishlist: false, showCart: true,
+      showLanguage: true, showCurrency: false, showBorderBottom: true,
+    },
+  },
   hero: {
     label: 'Hero Banner', icon: '◈',
     defaults: {
       headline: 'Welcome', subline: '', layout: 'static', image: '', images: [],
-      overlay: 0.45, align: 'left', cta: { label: 'Shop now', url: '#products' },
+      overlay: 0.45, align: 'left', verticalAlign: 'middle',
+      heightMode: 'auto', fixedHeight: 600,
+      imgPosition: 'center', imgFit: 'cover',
+      cta: { label: 'Shop now', url: '#products', style: 'solid' },
+      cta2: { label: '', url: '', style: 'outline' },
+      videoUrl: '',
     },
   },
   'product-grid': {
     label: 'Product Grid', icon: '⊞',
-    defaults: { title: 'All products.', tag: '§ Catalogue', columns: 3, showOutOfStock: true },
+    defaults: {
+      title: 'All products.', tag: '§ Catalogue',
+      layout: 'classic',
+      columns: 3, colsMobile: 1,
+      showOutOfStock: true, maxProducts: 0,
+      imgRatio: '4/3', hoverEffect: 'zoom',
+      cardShowImage: true, cardShowBadge: true, cardShowTitle: true,
+      cardShowDescription: true, cardShowCategory: false, cardShowPrice: true, cardShowRating: false, cardShowCTA: true,
+      showFilters: false, showSort: false,
+      selectedProducts: [],
+    },
   },
   'text-banner': {
     label: 'Text Banner', icon: '▬',
-    defaults: { text: 'Announcement text', bg: '#1c1a16', color: '#e2a14a', align: 'center' },
+    defaults: {
+      bannerType: 'promo', layout: 'single',
+      text: 'Announcement text', subtitle: '',
+      bg: '#1c1a16', color: '#e2a14a', align: 'center',
+      ctaLabel: '', ctaUrl: '', ctaStyle: 'outline',
+      sticky: false, dismissible: false,
+    },
   },
   'image-gallery': {
     label: 'Image Gallery', icon: '⊟',
-    defaults: { title: '', columns: 3, images: [] },
+    defaults: {
+      title: '', layout: 'classic', columns: 3,
+      ratio: '1/1', hoverEffect: 'zoom', clickAction: 'lightbox',
+      bg: '', color: '', images: [],
+    },
   },
   'floating-cta': {
     label: 'Floating Button', icon: '◎',
-    defaults: { icon: 'whatsapp', label: 'Chat with us', url: '', position: 'bottom-right', color: '#25D366' },
+    defaults: {
+      icon: 'whatsapp', label: 'Chat with us', url: '',
+      position: 'bottom-right', color: '#25D366',
+      size: 'medium', pulse: false,
+    },
   },
   'rich-text': {
     label: 'Text Block', icon: '¶',
-    defaults: { content: '<p>Your content here.</p>', align: 'left', maxWidth: 'normal' },
+    defaults: {
+      heading: '', headingLevel: 'h2', subheading: '',
+      body: '', content: '',
+      ctaLabel: '', ctaUrl: '', ctaStyle: 'solid',
+      align: 'left', layout: 'simple', maxWidth: 'normal',
+      bgColor: '', padding: 'normal',
+    },
+  },
+  footer: {
+    label: 'Footer', icon: '⊥',
+    defaults: {
+      layout: 'multi-column',
+      newsletterEnabled: true,
+      newsletterTitle: 'Stay in the loop.',
+      newsletterText: 'New arrivals, exclusive drops.',
+      socialInstagram: '', socialTiktok: '', socialYoutube: '',
+      socialFacebook: '', socialPinterest: '',
+      contactEmail: '', contactPhone: '', contactAddress: '',
+      nav1Title: 'Shop', nav1Links: '',
+      nav2Title: 'Company', nav2Links: '',
+      nav3Title: 'Support', nav3Links: '',
+      showPaymentIcons: true, copyrightText: '',
+      privacyUrl: '', termsUrl: '', refundUrl: '',
+    },
   },
 };
 
@@ -64,110 +155,362 @@ const PANEL_SIZES = { small: '280px', medium: '360px', large: '440px' };
 // ── Templates ─────────────────────────────────────────────────────────────────
 const TEMPLATES = [
   {
-    id: 'minimal', name: 'Minimal', icon: '◻',
-    desc: 'Clean hero + product grid.',
+    id: 'max', name: 'Max', icon: '◈',
+    desc: 'Editorial e-commerce. Clean hero, product grid, rich text.',
+    palette: 'max', style: 'max',
     sections: () => [
-      { id: uid(), type: 'hero', ...SECTION_TYPES.hero.defaults, headline: 'Welcome', subline: '' },
-      { id: uid(), type: 'product-grid', ...SECTION_TYPES['product-grid'].defaults },
+      { id: uid(), type: 'hero', ...SECTION_TYPES.hero.defaults,
+        headline: 'Crafted for the few.', subline: 'Minimal store. Maximum impact.',
+        align: 'left', cta: { label: 'Shop now', url: '#products', style: 'solid' } },
+      { id: uid(), type: 'product-grid', ...SECTION_TYPES['product-grid'].defaults,
+        title: 'All products.', tag: '§ Catalogue', layout: 'classic', columns: 3 },
+      { id: uid(), type: 'rich-text', ...SECTION_TYPES['rich-text'].defaults,
+        heading: 'About this store.', body: 'Tell your story here.', align: 'left' },
     ],
   },
   {
-    id: 'full-store', name: 'Full Store', icon: '⊞',
-    desc: 'Hero, banner, grid, gallery.',
+    id: 'alexis', name: 'Alexis', icon: '▪',
+    desc: 'Brutalist industrial. Hard edges, marquee banner, list layout.',
+    palette: 'alexis', style: 'alexis',
     sections: () => [
-      { id: uid(), type: 'hero', ...SECTION_TYPES.hero.defaults },
-      { id: uid(), type: 'text-banner', ...SECTION_TYPES['text-banner'].defaults },
-      { id: uid(), type: 'product-grid', ...SECTION_TYPES['product-grid'].defaults },
-      { id: uid(), type: 'image-gallery', ...SECTION_TYPES['image-gallery'].defaults },
+      { id: uid(), type: 'text-banner', ...SECTION_TYPES['text-banner'].defaults,
+        layout: 'marquee', text: 'NEW DROP — NOW LIVE — SHOP NOW — NO HOLDS —',
+        bg: '#FF3E00', color: '#000000', sticky: false },
+      { id: uid(), type: 'hero', ...SECTION_TYPES.hero.defaults,
+        headline: 'Built to last.', subline: 'No compromises. No excess.',
+        align: 'left', cta: { label: 'View catalogue', url: '#products', style: 'solid' } },
+      { id: uid(), type: 'product-grid', ...SECTION_TYPES['product-grid'].defaults,
+        title: 'Catalogue.', tag: '▪ STOCK', layout: 'list', columns: 1 },
     ],
   },
   {
-    id: 'portfolio', name: 'Portfolio', icon: '◈',
-    desc: 'Gallery-first with rich text.',
+    id: 'alicia', name: 'Alicia', icon: '◎',
+    desc: 'Elegant dark. Image hero, gallery portfolio, featured grid.',
+    palette: 'alicia', style: 'alicia',
     sections: () => [
-      { id: uid(), type: 'image-gallery', ...SECTION_TYPES['image-gallery'].defaults, title: 'Work' },
-      { id: uid(), type: 'rich-text', ...SECTION_TYPES['rich-text'].defaults },
-      { id: uid(), type: 'product-grid', ...SECTION_TYPES['product-grid'].defaults, title: 'Services' },
+      { id: uid(), type: 'hero', ...SECTION_TYPES.hero.defaults,
+        headline: 'Portfolio.', subline: 'Selected work.',
+        align: 'center', overlay: 0.6,
+        cta: { label: 'Explore', url: '#products', style: 'outline' } },
+      { id: uid(), type: 'image-gallery', ...SECTION_TYPES['image-gallery'].defaults,
+        layout: 'featured', columns: 3 },
+      { id: uid(), type: 'product-grid', ...SECTION_TYPES['product-grid'].defaults,
+        title: 'Services.', tag: '◎ Work', layout: 'featured', columns: 3 },
     ],
   },
   {
-    id: 'service', name: 'Service', icon: '¶',
-    desc: 'Hero, intro text, CTA, grid.',
+    id: 'ciro', name: 'Ciro', icon: '◌',
+    desc: 'Smooth & minimal. Centered hero, intro text, clean grid.',
+    palette: 'ciro', style: 'ciro',
     sections: () => [
-      { id: uid(), type: 'hero', ...SECTION_TYPES.hero.defaults },
-      { id: uid(), type: 'text-banner', ...SECTION_TYPES['text-banner'].defaults },
-      { id: uid(), type: 'rich-text', ...SECTION_TYPES['rich-text'].defaults },
-      { id: uid(), type: 'product-grid', ...SECTION_TYPES['product-grid'].defaults },
-      { id: uid(), type: 'floating-cta', ...SECTION_TYPES['floating-cta'].defaults },
+      { id: uid(), type: 'hero', ...SECTION_TYPES.hero.defaults,
+        headline: 'Welcome.', subline: 'Discover what we do best.',
+        align: 'center', cta: { label: 'Get started', url: '#products', style: 'solid' } },
+      { id: uid(), type: 'rich-text', ...SECTION_TYPES['rich-text'].defaults,
+        heading: 'What we offer.', body: 'A short intro about your products or services.',
+        align: 'center', maxWidth: 'narrow' },
+      { id: uid(), type: 'product-grid', ...SECTION_TYPES['product-grid'].defaults,
+        title: 'Our catalogue.', tag: '◌ Services', layout: 'classic', columns: 3 },
+    ],
+  },
+  {
+    id: 'emilse', name: 'Emilse', icon: '◍',
+    desc: 'Elegant & eventful. Announce banner, image hero, featured grid, gallery.',
+    palette: 'emilse', style: 'emilse',
+    sections: () => [
+      { id: uid(), type: 'text-banner', ...SECTION_TYPES['text-banner'].defaults,
+        text: 'New arrivals every week.', bg: '#b94e5e', color: '#ffffff', align: 'center' },
+      { id: uid(), type: 'hero', ...SECTION_TYPES.hero.defaults,
+        headline: 'Every moment counts.', subline: 'Curated experiences for every occasion.',
+        align: 'center', overlay: 0.5,
+        cta: { label: 'Shop now', url: '#products', style: 'solid' } },
+      { id: uid(), type: 'product-grid', ...SECTION_TYPES['product-grid'].defaults,
+        title: 'Latest arrivals.', tag: '◍ New in', layout: 'featured', columns: 3 },
+      { id: uid(), type: 'image-gallery', ...SECTION_TYPES['image-gallery'].defaults,
+        title: 'Inspiration.', layout: 'classic', columns: 3 },
+    ],
+  },
+  {
+    id: 'frank', name: 'Frank', icon: '⬡',
+    desc: 'Futuristic tech. Hero, marquee, minimal grid, rich text.',
+    palette: 'frank', style: 'frank',
+    sections: () => [
+      { id: uid(), type: 'hero', ...SECTION_TYPES.hero.defaults,
+        headline: 'Next level.', subline: 'Technology that works for you.',
+        align: 'left', overlay: 0.6,
+        cta: { label: 'Explore →', url: '#products', style: 'solid' } },
+      { id: uid(), type: 'text-banner', ...SECTION_TYPES['text-banner'].defaults,
+        layout: 'marquee', text: 'FAST — RELIABLE — INNOVATIVE — SECURE — SCALABLE —',
+        bg: '#0a0a0f', color: '#00f0ff', sticky: false },
+      { id: uid(), type: 'product-grid', ...SECTION_TYPES['product-grid'].defaults,
+        title: 'Products.', tag: '⬡ Catalogue', layout: 'minimal', columns: 2 },
+      { id: uid(), type: 'rich-text', ...SECTION_TYPES['rich-text'].defaults,
+        heading: 'Why us.', body: 'Built different. Engineered to perform.',
+        align: 'center', maxWidth: 'narrow' },
+    ],
+  },
+  {
+    id: 'gaspar', name: 'Gaspar', icon: '⊞',
+    desc: 'Gaming platform. Full-image hero, dense filtered grid, announce banner.',
+    palette: 'gaspar', style: 'gaspar',
+    sections: () => [
+      { id: uid(), type: 'hero', ...SECTION_TYPES.hero.defaults,
+        headline: 'Play different.', subline: 'The ultimate collection.',
+        align: 'center', overlay: 0.55,
+        cta: { label: 'Browse all', url: '#products', style: 'solid' } },
+      { id: uid(), type: 'product-grid', ...SECTION_TYPES['product-grid'].defaults,
+        title: 'Most popular.', tag: '⊞ Top picks', layout: 'classic', columns: 4,
+        showFilters: true, showSort: true },
+      { id: uid(), type: 'text-banner', ...SECTION_TYPES['text-banner'].defaults,
+        text: 'Free shipping on orders over $50', bg: '#e75e8d', color: '#ffffff', align: 'center' },
+    ],
+  },
+  {
+    id: 'nani', name: 'Nani', icon: '◈',
+    desc: 'Luxury boutique. Transparent header, editorial hero, gallery, spacious grid.',
+    palette: 'nani', style: 'nani',
+    sections: () => [
+      { id: uid(), type: 'hero', ...SECTION_TYPES.hero.defaults,
+        headline: 'Timeless.', subline: 'Handcrafted for those who know.',
+        align: 'center', overlay: 0.35,
+        cta: { label: 'Discover the collection', url: '#products', style: 'outline' } },
+      { id: uid(), type: 'image-gallery', ...SECTION_TYPES['image-gallery'].defaults,
+        title: 'The collection.', layout: 'minimal', columns: 2 },
+      { id: uid(), type: 'product-grid', ...SECTION_TYPES['product-grid'].defaults,
+        title: 'Shop.', tag: '◈ New arrivals', layout: 'minimal', columns: 2,
+        imgRatio: '4/5', cardShowDescription: false },
+      { id: uid(), type: 'rich-text', ...SECTION_TYPES['rich-text'].defaults,
+        heading: 'The craft.', subheading: 'Every detail, intentional.',
+        body: 'Share your story here.', align: 'center', maxWidth: 'narrow', padding: 'lg' },
+    ],
+  },
+  {
+    id: 'saira', name: 'Saira', icon: '◉',
+    desc: 'Photography & creative. Full-width hero, featured gallery, services grid.',
+    palette: 'saira', style: 'saira',
+    sections: () => [
+      { id: uid(), type: 'hero', ...SECTION_TYPES.hero.defaults,
+        headline: 'See the world differently.', subline: 'Visual stories worth telling.',
+        align: 'center', overlay: 0.4,
+        cta: { label: 'View work', url: '#products', style: 'solid' } },
+      { id: uid(), type: 'image-gallery', ...SECTION_TYPES['image-gallery'].defaults,
+        layout: 'featured', columns: 3, hoverEffect: 'zoom' },
+      { id: uid(), type: 'product-grid', ...SECTION_TYPES['product-grid'].defaults,
+        title: 'Services.', tag: '◉ Packages', layout: 'classic', columns: 3, imgRatio: '4/3' },
+    ],
+  },
+  {
+    id: 'vivi', name: 'Vivi', icon: '◫',
+    desc: 'Fashion e-commerce. Banner, hero, full filtered grid, lookbook gallery.',
+    palette: 'vivi', style: 'vivi',
+    sections: () => [
+      { id: uid(), type: 'text-banner', ...SECTION_TYPES['text-banner'].defaults,
+        text: '✦ Free returns ✦ New season now live ✦ Worldwide shipping',
+        bg: '#1a1a1a', color: '#C9A96E', align: 'center' },
+      { id: uid(), type: 'hero', ...SECTION_TYPES.hero.defaults,
+        headline: 'New season.', subline: 'Fresh styles, curated for you.',
+        align: 'left', overlay: 0.35,
+        cta: { label: 'Shop the collection', url: '#products', style: 'solid' } },
+      { id: uid(), type: 'product-grid', ...SECTION_TYPES['product-grid'].defaults,
+        title: 'Latest drops.', tag: '◫ New in', layout: 'classic', columns: 4,
+        imgRatio: '4/5', showFilters: true, showSort: true },
+      { id: uid(), type: 'image-gallery', ...SECTION_TYPES['image-gallery'].defaults,
+        title: 'Lookbook.', layout: 'classic', columns: 3, hoverEffect: 'overlay', ratio: '4/5' },
+      { id: uid(), type: 'floating-cta', ...SECTION_TYPES['floating-cta'].defaults,
+        icon: 'whatsapp', label: 'Chat', url: '', color: '#25D366' },
     ],
   },
 ];
 
-// ── Store styles (storefront visual themes) ───────────────────────────────────
-const STYLES = [
+// ── Visual styles (shapes, borders, shadows — no colours) ─────────────────────
+const VISUAL_STYLES = [
   {
-    id: 'maxcybersolutions', name: 'MaxCyberSolutions', icon: '◈',
-    desc: 'Warm cream, golden accent, editorial serif.',
+    id: 'max', name: 'Max', icon: '—',
+    desc: 'Editorial flat. Sharp edges, hairline borders, no shadow.',
+    preview: ['—', '□', '▭'],
+    vars: { '--s-radius': '0px', '--s-radius-btn': '0px', '--s-radius-sm': '0px', '--s-border-w': '1px', '--s-shadow': 'none', '--s-shadow-card': 'none' },
+  },
+  {
+    id: 'alexis', name: 'Alexis', icon: '▪',
+    desc: 'Brutalist industrial. 4px borders, hard offset drop shadow.',
+    preview: ['▪', '▬', '◼'],
+    vars: { '--s-radius': '0px', '--s-radius-btn': '0px', '--s-radius-sm': '0px', '--s-border-w': '4px', '--s-shadow': '4px 4px 0 var(--ink)', '--s-shadow-card': '8px 8px 0 var(--ink)' },
+  },
+  {
+    id: 'alicia', name: 'Alicia', icon: '◎',
+    desc: 'Dark modern. Subtle radius, layered soft shadow.',
+    preview: ['◎', '▢', '⬭'],
+    vars: { '--s-radius': '6px', '--s-radius-btn': '6px', '--s-radius-sm': '4px', '--s-border-w': '1px', '--s-shadow': '0 2px 16px rgba(0,0,0,.45)', '--s-shadow-card': '0 4px 28px rgba(0,0,0,.55)' },
+  },
+  {
+    id: 'ciro', name: 'Ciro', icon: '◌',
+    desc: 'Smooth & pill. Generous radius, pill buttons, gentle depth.',
+    preview: ['◌', '⬮', '⬭'],
+    vars: { '--s-radius': '12px', '--s-radius-btn': '48px', '--s-radius-sm': '8px', '--s-border-w': '1px', '--s-shadow': '0 2px 12px rgba(0,0,0,.06)', '--s-shadow-card': '0 4px 20px rgba(0,0,0,.09)' },
+  },
+  {
+    id: 'emilse', name: 'Emilse', icon: '◍',
+    desc: 'Elegant rounded. Soft corners, medium shadow, refined.',
+    preview: ['◍', '▢', '●'],
+    vars: { '--s-radius': '10px', '--s-radius-btn': '20px', '--s-radius-sm': '6px', '--s-border-w': '1px', '--s-shadow': '0 4px 20px rgba(0,0,0,.08)', '--s-shadow-card': '0 6px 28px rgba(0,0,0,.11)' },
+  },
+  {
+    id: 'frank', name: 'Frank', icon: '⬡',
+    desc: 'Futuristic tech. Tight radius, glow shadow, no heavy borders.',
+    preview: ['⬡', '▭', '◻'],
+    vars: { '--s-radius': '4px', '--s-radius-btn': '4px', '--s-radius-sm': '3px', '--s-border-w': '1px', '--s-shadow': '0 0 0 1px rgba(0,240,255,.12)', '--s-shadow-card': '0 0 24px rgba(0,240,255,.08)' },
+  },
+  {
+    id: 'gaspar', name: 'Gaspar', icon: '⊞',
+    desc: 'Gaming platform. Very rounded containers, thick 2px border.',
+    preview: ['⊞', '◍', '●'],
+    vars: { '--s-radius': '20px', '--s-radius-btn': '20px', '--s-radius-sm': '12px', '--s-border-w': '2px', '--s-shadow': 'none', '--s-shadow-card': 'none' },
+  },
+  {
+    id: 'nani', name: 'Nani', icon: '◈',
+    desc: 'Luxury hairline. Zero radius, whisper-thin borders, micro shadow.',
+    preview: ['◈', '□', '▭'],
+    vars: { '--s-radius': '0px', '--s-radius-btn': '0px', '--s-radius-sm': '0px', '--s-border-w': '1px', '--s-shadow': '0 1px 8px rgba(0,0,0,.04)', '--s-shadow-card': '0 2px 16px rgba(0,0,0,.06)' },
+  },
+  {
+    id: 'saira', name: 'Saira', icon: '◉',
+    desc: 'Photo card. Rounded cards, borderless, generous shadow.',
+    preview: ['◉', '▢', '◍'],
+    vars: { '--s-radius': '8px', '--s-radius-btn': '8px', '--s-radius-sm': '6px', '--s-border-w': '0px', '--s-shadow': '0 8px 32px rgba(0,0,0,.12)', '--s-shadow-card': '0 12px 40px rgba(0,0,0,.15)' },
+  },
+  {
+    id: 'vivi', name: 'Vivi', icon: '◫',
+    desc: 'Fashion clean. Sharp edges, hairline borders, card micro shadow.',
+    preview: ['◫', '□', '▭'],
+    vars: { '--s-radius': '0px', '--s-radius-btn': '2px', '--s-radius-sm': '0px', '--s-border-w': '1px', '--s-shadow': 'none', '--s-shadow-card': '0 2px 8px rgba(0,0,0,.07)' },
+  },
+];
+
+// ── Colour palettes ───────────────────────────────────────────────────────────
+const PALETTES = [
+  {
+    id: 'max', name: 'Max', icon: '◈',
+    desc: 'Warm cream, golden amber, dark editorial ink.',
     swatches: ['#efeae0', '#e2a14a', '#1c1a16'],
-    theme: {
-      bg: '#efeae0', accent: '#e2a14a', fg: '#1c1a16',
-      fonts: { titleFamily: 'Cormorant Garamond', bodyFamily: 'DM Sans', accentFamily: 'JetBrains Mono' },
-    },
+    theme: { bg: '#efeae0', accent: '#e2a14a', fg: '#1c1a16' },
   },
   {
-    id: 'bubblegum', name: 'BubbleGum', icon: '◎',
-    desc: 'Pastel pink, playful, bold and fun.',
-    swatches: ['#fff0f5', '#ff85b0', '#3d1f2e'],
-    theme: {
-      bg: '#fff0f5', accent: '#ff85b0', fg: '#3d1f2e',
-      fonts: { titleFamily: 'Pacifico', bodyFamily: 'Nunito', accentFamily: 'Nunito' },
-    },
+    id: 'alexis', name: 'Alexis', icon: '▪',
+    desc: 'Off-white canvas, neon red-orange, solid black.',
+    swatches: ['#F5F5F0', '#FF3E00', '#000000'],
+    theme: { bg: '#F5F5F0', accent: '#FF3E00', fg: '#000000' },
   },
   {
-    id: 'rockstar', name: 'Rockstar', icon: '⚡',
-    desc: 'Dark stage, bold white, electric red.',
-    swatches: ['#111111', '#e8003a', '#f0f0f0'],
-    theme: {
-      bg: '#111111', accent: '#e8003a', fg: '#f0f0f0',
-      fonts: { titleFamily: 'Bebas Neue', bodyFamily: 'Barlow', accentFamily: 'Barlow Condensed' },
-    },
+    id: 'alicia', name: 'Alicia', icon: '◎',
+    desc: 'Deep black, warm amber gold, bright white.',
+    swatches: ['#0d0d0d', '#f39c12', '#f5f5f5'],
+    theme: { bg: '#0d0d0d', accent: '#f39c12', fg: '#f5f5f5' },
   },
   {
-    id: 'neon', name: 'Neon', icon: '⬡',
-    desc: 'Cyber night, electric cyan on deep black.',
-    swatches: ['#0a0a14', '#00ffe7', '#e0e0ff'],
-    theme: {
-      bg: '#0a0a14', accent: '#00ffe7', fg: '#e0e0ff',
-      fonts: { titleFamily: 'Orbitron', bodyFamily: 'Share Tech Mono', accentFamily: 'Share Tech Mono' },
-    },
+    id: 'ciro', name: 'Ciro', icon: '◌',
+    desc: 'Pure white, vibrant orange, near-black.',
+    swatches: ['#ffffff', '#ff7d27', '#1a1a1a'],
+    theme: { bg: '#ffffff', accent: '#ff7d27', fg: '#1a1a1a' },
+  },
+  {
+    id: 'emilse', name: 'Emilse', icon: '◍',
+    desc: 'Blush white, mauve rose, deep plum.',
+    swatches: ['#fdf8f8', '#b94e5e', '#2a1a1f'],
+    theme: { bg: '#fdf8f8', accent: '#b94e5e', fg: '#2a1a1f' },
+  },
+  {
+    id: 'frank', name: 'Frank', icon: '⬡',
+    desc: 'Void black, electric cyan, ghost white.',
+    swatches: ['#0a0a0f', '#00f0ff', '#e8e8ed'],
+    theme: { bg: '#0a0a0f', accent: '#00f0ff', fg: '#e8e8ed' },
+  },
+  {
+    id: 'gaspar', name: 'Gaspar', icon: '⊞',
+    desc: 'Dark charcoal, hot pink, bright white.',
+    swatches: ['#1e1e1e', '#e75e8d', '#ffffff'],
+    theme: { bg: '#1e1e1e', accent: '#e75e8d', fg: '#ffffff' },
+  },
+  {
+    id: 'nani', name: 'Nani', icon: '◈',
+    desc: 'Ivory cream, antique gold, soft charcoal.',
+    swatches: ['#FFFBF5', '#B8860B', '#1C1C1C'],
+    theme: { bg: '#FFFBF5', accent: '#B8860B', fg: '#1C1C1C' },
+  },
+  {
+    id: 'saira', name: 'Saira', icon: '◉',
+    desc: 'Clean white, coral red, dark graphite.',
+    swatches: ['#ffffff', '#FF6B6B', '#333333'],
+    theme: { bg: '#ffffff', accent: '#FF6B6B', fg: '#333333' },
+  },
+  {
+    id: 'vivi', name: 'Vivi', icon: '◫',
+    desc: 'Soft white, warm camel, dark ink.',
+    swatches: ['#f9f9f9', '#C9A96E', '#1a1a1a'],
+    theme: { bg: '#f9f9f9', accent: '#C9A96E', fg: '#1a1a1a' },
   },
 ];
 
-// ── Dashboard styles (CSS vars applied to the dashboard itself) ───────────────
+// ── Dashboard styles (CSS vars applied to the dashboard UI itself) ─────────────
 const DASH_STYLES = {
-  maxcybersolutions: {
+  max: {
     '--accent': '#e2a14a', '--accent-soft': 'rgba(226,161,74,.13)',
     '--cream':  '#efeae0', '--ink':         '#1c1a16',
     '--ink-soft': '#45403a', '--ink-faint': '#7a736a',
     '--rule':   '#d4cdbd', '--rule-soft':   '#e2dccd',
   },
-  bubblegum: {
-    '--accent': '#ff85b0', '--accent-soft': 'rgba(255,133,176,.13)',
-    '--cream':  '#fff0f5', '--ink':         '#3d1f2e',
-    '--ink-soft': '#6b3a52', '--ink-faint': '#a07080',
-    '--rule':   '#f0c8d8', '--rule-soft':   '#f8e0ea',
+  alexis: {
+    '--accent': '#FF3E00', '--accent-soft': 'rgba(255,62,0,.13)',
+    '--cream':  '#F5F5F0', '--ink':         '#000000',
+    '--ink-soft': '#333333', '--ink-faint': '#777777',
+    '--rule':   '#d5d5cc', '--rule-soft':   '#e5e5e0',
   },
-  rockstar: {
-    '--accent': '#e8003a', '--accent-soft': 'rgba(232,0,58,.13)',
-    '--cream':  '#111111', '--ink':         '#f0f0f0',
-    '--ink-soft': '#c8c8c8', '--ink-faint': '#888888',
-    '--rule':   '#333333', '--rule-soft':   '#2a2a2a',
+  alicia: {
+    '--accent': '#f39c12', '--accent-soft': 'rgba(243,156,18,.13)',
+    '--cream':  '#0d0d0d', '--ink':         '#f5f5f5',
+    '--ink-soft': '#c0c0c0', '--ink-faint': '#808080',
+    '--rule':   '#1e1e1e', '--rule-soft':   '#1a1a1a',
   },
-  neon: {
-    '--accent': '#00ffe7', '--accent-soft': 'rgba(0,255,231,.13)',
-    '--cream':  '#0a0a14', '--ink':         '#e0e0ff',
-    '--ink-soft': '#a0a0d0', '--ink-faint': '#6060a0',
-    '--rule':   '#1a1a2e', '--rule-soft':   '#14142a',
+  ciro: {
+    '--accent': '#ff7d27', '--accent-soft': 'rgba(255,125,39,.13)',
+    '--cream':  '#ffffff', '--ink':         '#1a1a1a',
+    '--ink-soft': '#4a4a4a', '--ink-faint': '#888888',
+    '--rule':   '#e0e0e0', '--rule-soft':   '#f0f0f0',
+  },
+  emilse: {
+    '--accent': '#b94e5e', '--accent-soft': 'rgba(185,78,94,.13)',
+    '--cream':  '#fdf8f8', '--ink':         '#2a1a1f',
+    '--ink-soft': '#5a3a44', '--ink-faint': '#907080',
+    '--rule':   '#e8d8d8', '--rule-soft':   '#f5e8e8',
+  },
+  frank: {
+    '--accent': '#00f0ff', '--accent-soft': 'rgba(0,240,255,.13)',
+    '--cream':  '#0a0a0f', '--ink':         '#e8e8ed',
+    '--ink-soft': '#a0a0b0', '--ink-faint': '#606080',
+    '--rule':   '#1a1a2a', '--rule-soft':   '#141420',
+  },
+  gaspar: {
+    '--accent': '#e75e8d', '--accent-soft': 'rgba(231,94,141,.13)',
+    '--cream':  '#1e1e1e', '--ink':         '#ffffff',
+    '--ink-soft': '#c0c0c0', '--ink-faint': '#808080',
+    '--rule':   '#333333', '--rule-soft':   '#282828',
+  },
+  nani: {
+    '--accent': '#B8860B', '--accent-soft': 'rgba(184,134,11,.13)',
+    '--cream':  '#FFFBF5', '--ink':         '#1C1C1C',
+    '--ink-soft': '#4a4040', '--ink-faint': '#8a7870',
+    '--rule':   '#e8e0d0', '--rule-soft':   '#f0e8d8',
+  },
+  saira: {
+    '--accent': '#FF6B6B', '--accent-soft': 'rgba(255,107,107,.13)',
+    '--cream':  '#ffffff', '--ink':         '#333333',
+    '--ink-soft': '#666666', '--ink-faint': '#999999',
+    '--rule':   '#e0e0e0', '--rule-soft':   '#f0f0f0',
+  },
+  vivi: {
+    '--accent': '#C9A96E', '--accent-soft': 'rgba(201,169,110,.13)',
+    '--cream':  '#f9f9f9', '--ink':         '#1a1a1a',
+    '--ink-soft': '#4a4a4a', '--ink-faint': '#888888',
+    '--rule':   '#d8d8d8', '--rule-soft':   '#e8e8e8',
   },
 };
 
@@ -205,10 +548,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   setupConfigTab();
   setupTemplateGallery();
   setupStyleGallery();
+  setupPaletteGallery();
   setupBulkBar();
   setupItemsTab();
   applyDashSize(dashConfig.size);
-  applyDashStyle(dashConfig.dashStyle || 'maxcybersolutions');
+  applyDashStyle(dashConfig.dashStyle || 'max');
   document.addEventListener('keydown', handleKeyboardShortcuts);
 
   document.getElementById('d-logout').addEventListener('click', logout);
@@ -688,26 +1032,10 @@ function renderDesignTab() {
   document.getElementById('d-seo-title').value = seo.title       || '';
   document.getElementById('d-seo-desc').value  = seo.description || '';
 
-  // Hex color inputs — sync both swatch and text field
-  const setHex = (swId, txtId, val) => {
-    const hex = val || '';
-    document.getElementById(swId).value = hexToColorInput(hex);
-    document.getElementById(txtId).value = hex.toUpperCase() || '';
-  };
-  setHex('d-accent-sw', 'd-accent', theme.accent || '#e2a14a');
-  setHex('d-bg-sw',     'd-bg',     theme.bg     || '#efeae0');
-  setHex('d-fg-sw',     'd-fg',     theme.fg     || '#1c1a16');
-
-  setSelectVal('d-catalog-placement', d.catalogPlacement || 'landing-full');
-
-  document.getElementById('d-font-title-family').value  = fonts.titleFamily  || '';
-  document.getElementById('d-font-title-url').value     = fonts.titleUrl     || '';
-  document.getElementById('d-font-body-family').value   = fonts.bodyFamily   || '';
-  document.getElementById('d-font-body-url').value      = fonts.bodyUrl      || '';
-  document.getElementById('d-font-accent-family').value = fonts.accentFamily || '';
-  document.getElementById('d-font-accent-url').value    = fonts.accentUrl    || '';
-  document.getElementById('d-font-slogan-family').value = fonts.sloganFamily || '';
-  document.getElementById('d-font-slogan-url').value    = fonts.sloganUrl    || '';
+  setSelectVal('d-font-title-family',  fonts.titleFamily  || 'System Default');
+  setSelectVal('d-font-body-family',   fonts.bodyFamily   || 'System Default');
+  setSelectVal('d-font-accent-family', fonts.accentFamily || 'System Default');
+  setSelectVal('d-font-slogan-family', fonts.sloganFamily || 'System Default');
 
   renderLogoPicker(d.logo || '');
   renderCustomBtnsList();
@@ -755,26 +1083,20 @@ function setupDesignListeners() {
   watch('d-seo-title', v => { ensureObj('seo'); state.draft.seo.title = v; });
   watch('d-seo-desc',  v => { ensureObj('seo'); state.draft.seo.description = v; });
 
-  // Hex color pairs (swatch + text field kept in sync)
-  setupHexPair('d-accent-sw', 'd-accent', v => { ensureObj('theme'); state.draft.theme.accent = v; });
-  setupHexPair('d-bg-sw',     'd-bg',     v => { ensureObj('theme'); state.draft.theme.bg     = v; });
-  setupHexPair('d-fg-sw',     'd-fg',     v => { ensureObj('theme'); state.draft.theme.fg     = v; });
-
-  document.getElementById('d-catalog-placement')?.addEventListener('change', e => {
-    state.draft.catalogPlacement = e.target.value; markDirty();
-  });
-
-  // Font fields
-  const fontFields = [
-    ['d-font-title-family',  'titleFamily'],  ['d-font-title-url',    'titleUrl'],
-    ['d-font-body-family',   'bodyFamily'],   ['d-font-body-url',     'bodyUrl'],
-    ['d-font-accent-family', 'accentFamily'], ['d-font-accent-url',   'accentUrl'],
-    ['d-font-slogan-family', 'sloganFamily'], ['d-font-slogan-url',   'sloganUrl'],
+  // Font dropdowns — each select auto-resolves the Google Fonts URL from FONT_CATALOG
+  const fontSelects = [
+    ['d-font-title-family',  'titleFamily',  'titleUrl'],
+    ['d-font-body-family',   'bodyFamily',   'bodyUrl'],
+    ['d-font-accent-family', 'accentFamily', 'accentUrl'],
+    ['d-font-slogan-family', 'sloganFamily', 'sloganUrl'],
   ];
-  fontFields.forEach(([id, key]) => {
-    document.getElementById(id)?.addEventListener('input', e => {
+  fontSelects.forEach(([id, familyKey, urlKey]) => {
+    document.getElementById(id)?.addEventListener('change', e => {
+      const family = e.target.value;
+      const url    = FONT_CATALOG[family] ?? '';
       ensureObj('theme'); ensureObj('theme.fonts');
-      state.draft.theme.fonts[key] = e.target.value;
+      state.draft.theme.fonts[familyKey] = family === 'System Default' ? '' : family;
+      state.draft.theme.fonts[urlKey]    = url;
       markDirty();
     });
   });
@@ -797,9 +1119,14 @@ function setupDesignListeners() {
     document.getElementById('tmpl-overlay').classList.add('active');
   });
 
-  // Style gallery button
   document.getElementById('btn-change-style').addEventListener('click', () => {
+    setupStyleGallery();
     document.getElementById('style-overlay').classList.add('active');
+  });
+
+  document.getElementById('btn-change-palette').addEventListener('click', () => {
+    renderPaletteGallery();
+    document.getElementById('palette-overlay').classList.add('active');
   });
 
   // Custom button add
@@ -876,7 +1203,7 @@ window.removeCustomBtn = function(i) {
   markDirty();
 };
 
-// ── Style gallery ─────────────────────────────────────────────────────────────
+// ── Style gallery (visual styles — shapes, borders, shadows) ──────────────────
 function setupStyleGallery() {
   document.getElementById('style-close').addEventListener('click', () => {
     document.getElementById('style-overlay').classList.remove('active');
@@ -885,37 +1212,99 @@ function setupStyleGallery() {
     if (e.target.id === 'style-overlay') document.getElementById('style-overlay').classList.remove('active');
   });
 
-  document.getElementById('style-grid').innerHTML = STYLES.map(s => `
-    <div class="gallery-card" onclick="applyStyle('${esc(s.id)}')">
-      <div class="style-swatches">
-        ${s.swatches.map(c => `<div class="style-swatch" style="background:${esc(c)}"></div>`).join('')}
+  const cur = state.draft?.style || 'max';
+  document.getElementById('style-grid').innerHTML = VISUAL_STYLES.map(s => `
+    <div class="gallery-card${s.id === cur ? ' active' : ''}" onclick="applyStyle('${esc(s.id)}')">
+      <div class="style-shape-preview">
+        <div class="style-shape-preview__btn" style="border-radius:${s.vars['--s-radius-btn']};border-width:${s.vars['--s-border-w']}"></div>
+        <div class="style-shape-preview__card" style="border-radius:${s.vars['--s-radius']};border-width:${s.vars['--s-border-w']}"></div>
       </div>
+      <div class="gallery-card__icon">${esc(s.icon)}</div>
       <div class="gallery-card__name">${esc(s.name)}</div>
       <div class="gallery-card__desc">${esc(s.desc)}</div>
     </div>`).join('');
 }
 
 window.applyStyle = function(id) {
-  const style = STYLES.find(s => s.id === id);
+  const style = VISUAL_STYLES.find(s => s.id === id);
   if (!style) return;
-  if (!confirm(`Apply the "${style.name}" style? This replaces your current theme colors and fonts.`)) return;
   pushUndo();
-  ensureObj('theme');
-  state.draft.theme.bg     = style.theme.bg;
-  state.draft.theme.accent = style.theme.accent;
-  state.draft.theme.fg     = style.theme.fg;
-  if (style.theme.fonts) {
-    ensureObj('theme.fonts');
-    Object.assign(state.draft.theme.fonts, style.theme.fonts);
+  state.draft.style = id;
+  for (const [k, v] of Object.entries(style.vars)) {
+    document.documentElement.style.setProperty(k, v);
   }
-  renderDesignTab();
   markDirty();
   document.getElementById('style-overlay').classList.remove('active');
+  setupStyleGallery();
+};
+
+// ── Palette gallery ───────────────────────────────────────────────────────────
+function setupPaletteGallery() {
+  document.getElementById('palette-close').addEventListener('click', () => {
+    document.getElementById('palette-overlay').classList.remove('active');
+  });
+  document.getElementById('palette-overlay').addEventListener('click', e => {
+    if (e.target.id === 'palette-overlay') document.getElementById('palette-overlay').classList.remove('active');
+  });
+
+  setupHexPair('pal-bg-sw',     'pal-bg',     () => {});
+  setupHexPair('pal-fg-sw',     'pal-fg',     () => {});
+  setupHexPair('pal-accent-sw', 'pal-accent', () => {});
+
+  document.getElementById('btn-apply-custom-pal').addEventListener('click', () => {
+    const bg     = document.getElementById('pal-bg').value.trim();
+    const fg     = document.getElementById('pal-fg').value.trim();
+    const accent = document.getElementById('pal-accent').value.trim();
+    if (!isValidHex(bg) || !isValidHex(fg) || !isValidHex(accent)) {
+      alert('Please enter valid hex colours for all three fields.'); return;
+    }
+    pushUndo();
+    ensureObj('theme');
+    state.draft.theme.bg     = bg;
+    state.draft.theme.fg     = fg;
+    state.draft.theme.accent = accent;
+    markDirty();
+    document.getElementById('palette-overlay').classList.remove('active');
+  });
+}
+
+function renderPaletteGallery() {
+  document.getElementById('palette-grid').innerHTML = PALETTES.map(p => `
+    <div class="gallery-card" onclick="applyPalette('${esc(p.id)}')">
+      <div class="style-swatches">
+        ${p.swatches.map(c => `<div class="style-swatch" style="background:${esc(c)}"></div>`).join('')}
+      </div>
+      <div class="gallery-card__name">${esc(p.name)}</div>
+      <div class="gallery-card__desc">${esc(p.desc)}</div>
+    </div>`).join('');
+
+  const theme = state.draft?.theme || {};
+  const setVal = (swId, txtId, val) => {
+    const sw  = document.getElementById(swId);
+    const txt = document.getElementById(txtId);
+    if (sw)  sw.value  = hexToColorInput(val || '#000000');
+    if (txt) txt.value = (val || '').toUpperCase();
+  };
+  setVal('pal-bg-sw',     'pal-bg',     theme.bg     || '#efeae0');
+  setVal('pal-fg-sw',     'pal-fg',     theme.fg     || '#1c1a16');
+  setVal('pal-accent-sw', 'pal-accent', theme.accent || '#e2a14a');
+}
+
+window.applyPalette = function(id) {
+  const pal = PALETTES.find(p => p.id === id);
+  if (!pal) return;
+  pushUndo();
+  ensureObj('theme');
+  state.draft.theme.bg     = pal.theme.bg;
+  state.draft.theme.fg     = pal.theme.fg;
+  state.draft.theme.accent = pal.theme.accent;
+  markDirty();
+  document.getElementById('palette-overlay').classList.remove('active');
 };
 
 // ── Dashboard style ───────────────────────────────────────────────────────────
 function applyDashStyle(id) {
-  const vars = DASH_STYLES[id] || DASH_STYLES.maxcybersolutions;
+  const vars = DASH_STYLES[id] || DASH_STYLES['max'];
   for (const [k, v] of Object.entries(vars)) {
     document.documentElement.style.setProperty(k, v);
   }
@@ -931,49 +1320,61 @@ window.selectDashStyle = function(id) {
 function renderDashStyleGrid() {
   const grid = document.getElementById('dash-style-grid');
   if (!grid) return;
-  const cur = dashConfig.dashStyle || 'maxcybersolutions';
-  grid.innerHTML = STYLES.map(s => `
-    <button class="dash-style-btn${s.id === cur ? ' active' : ''}" onclick="selectDashStyle('${esc(s.id)}')">
+  const cur = dashConfig.dashStyle || 'max';
+  grid.innerHTML = PALETTES.map(p => `
+    <button class="dash-style-btn${p.id === cur ? ' active' : ''}" onclick="selectDashStyle('${esc(p.id)}')">
       <div class="dash-style-btn__swatch">
-        ${s.swatches.map(c => `<div class="dash-style-btn__dot" style="background:${esc(c)}"></div>`).join('')}
+        ${p.swatches.map(c => `<div class="dash-style-btn__dot" style="background:${esc(c)}"></div>`).join('')}
       </div>
-      <div class="dash-style-btn__name">${esc(s.name)}</div>
+      <div class="dash-style-btn__name">${esc(p.name)}</div>
     </button>`).join('');
 }
 
 // ── Section list ──────────────────────────────────────────────────────────────
+const FIXED_SECTION_TYPES = new Set(['header', 'footer']);
+
 function renderSectionList() {
   const list     = document.getElementById('sec-list');
   const sections = state.draft.sections || [];
 
   if (!sections.length) {
     list.innerHTML = `<p style="padding:16px;font-size:12px;color:var(--fg-faint)">${t('noSections')}</p>`;
-    return;
-  }
-
-  list.innerHTML = sections.map((s, i) => {
-    const def      = SECTION_TYPES[s.type] || { label: s.type, icon: '?' };
-    const isActive = state.editingSection === i;
-    return `
-<div class="sec-item${isActive ? ' active' : ''}" draggable="true" data-index="${i}">
-  <span class="sec-item__drag" title="Drag to reorder">⠿</span>
+  } else {
+    list.innerHTML = sections.map((s, i) => {
+      const def      = SECTION_TYPES[s.type] || { label: s.type, icon: '?' };
+      const isActive = state.editingSection === i;
+      const isFixed  = FIXED_SECTION_TYPES.has(s.type);
+      const isHidden = !!s.hidden;
+      const controls = isFixed
+        ? `<button class="sec-item__btn" onclick="event.stopPropagation();toggleSection(${i})" title="${isHidden ? 'Show' : 'Hide'}" style="opacity:${isHidden ? '.4' : '1'}">${isHidden ? '◎' : '●'}</button>`
+        : `<button class="sec-item__btn sec-item__btn--del" onclick="event.stopPropagation();removeSection(${i})" title="Delete">✕</button>`;
+      const drag = isFixed ? '' : `<span class="sec-item__drag" title="Drag to reorder" onclick="event.stopPropagation()">⠿</span>`;
+      return `
+<div class="sec-item${isActive ? ' active' : ''}${isFixed ? ' sec-item--fixed' : ''}${isHidden ? ' sec-item--hidden' : ''}" ${isFixed ? '' : `draggable="true"`} data-index="${i}" onclick="editSection(${i})">
+  ${drag}
   <span class="sec-item__icon">${def.icon}</span>
   <span class="sec-item__label">${esc(sectionLabel(s, def))}</span>
-  <span class="sec-item__btns">
-    <button class="sec-item__btn" onclick="editSection(${i})" title="Edit">✏</button>
-    <button class="sec-item__btn sec-item__btn--del" onclick="removeSection(${i})" title="Delete">✕</button>
-  </span>
+  <span class="sec-item__btns">${controls}</span>
 </div>`;
-  }).join('');
+    }).join('');
+    setupDragDrop();
+  }
 
-  setupDragDrop();
-
-  document.getElementById('sec-add-menu').innerHTML = Object.entries(SECTION_TYPES).map(([type, def]) =>
+  const ADDABLE = Object.entries(SECTION_TYPES).filter(([type]) => !FIXED_SECTION_TYPES.has(type));
+  document.getElementById('sec-add-menu').innerHTML = ADDABLE.map(([type, def]) =>
     `<div class="sec-add-menu__item" onclick="addSection('${type}')">
       <span class="sec-add-menu__icon">${def.icon}</span>
       <span>${esc(def.label)}</span>
     </div>`).join('');
 }
+
+window.toggleSection = function(i) {
+  const s = state.draft.sections[i];
+  if (!s) return;
+  s.hidden = !s.hidden;
+  markDirty();
+  renderSectionList();
+};
 
 function sectionLabel(s, def) {
   return s.headline || s.title || s.text || s.label || def.label;
@@ -1041,6 +1442,8 @@ function setupDragDrop() {
       e.preventDefault();
       const dropIdx = parseInt(el.dataset.index);
       if (dragIdx === null || dragIdx === dropIdx) return;
+      const dropType = state.draft.sections[dropIdx]?.type;
+      if (FIXED_SECTION_TYPES.has(dropType)) return;
       pushUndo();
       const sections = state.draft.sections;
       const [moved]  = sections.splice(dragIdx, 1);
@@ -1075,65 +1478,298 @@ function closeSectionEditor() {
 
 function buildSectionFields(s, i) {
   switch (s.type) {
+
+    // ── HEADER ────────────────────────────────────────────────────────────────
+    case 'header': return [
+      fieldGroup('Announcement Bar', [
+        fieldToggle('Enable', 'announcementEnabled', !!s.announcementEnabled),
+        fieldSelect('Bar type', 'announcementType', s.announcementType || 'top-bar',
+          ['top-bar','promo-bar','notification-bar'],
+          ['Top Bar','Promo Bar','Notification Bar']),
+        fieldTextarea('Message text', 'announcementText', esc(s.announcementText || '')),
+        fieldToggle('Sticky bar', 'announcementSticky', s.announcementSticky !== false),
+        fieldToggle('Dismissible', 'announcementDismissible', s.announcementDismissible !== false),
+        `<div class="form-row">
+          ${field('color',  'Bar background', 'announcementBg',    s.announcementBg    || '#1c1a16')}
+          ${field('color',  'Bar text color', 'announcementColor', s.announcementColor || '#e2a14a')}
+        </div>`,
+        field('number', 'Height (px)', 'announcementHeight', s.announcementHeight || 40),
+        fieldToggle('Countdown timer', 'countdownEnabled', !!s.countdownEnabled),
+        field('text', 'Countdown end (YYYY-MM-DDTHH:MM)', 'countdownEnd', esc(s.countdownEnd || '')),
+      ]),
+      fieldGroup('Main Header', [
+        fieldSelect('Layout', 'layout', s.layout || 'left-aligned',
+          ['left-aligned','centered-logo','split-nav','minimal','commerce-focused'],
+          ['Left-Aligned Logo','Centered Logo','Split Navigation','Minimal','Commerce-Focused']),
+        fieldSelect('Sticky behavior', 'sticky', s.sticky || 'smart',
+          ['always','smart','shrinking','partial','floating','none'],
+          ['Always Sticky','Smart Sticky','Shrinking Sticky','Partial Sticky','Floating Sticky','None']),
+        fieldSelect('Background style', 'stickyStyle', s.stickyStyle || 'solid',
+          ['solid','transparent','blur'],
+          ['Solid','Transparent','Blur / Glass']),
+        fieldToggle('Border bottom',       'showBorderBottom', s.showBorderBottom !== false),
+      ]),
+      fieldGroup('Header Actions', [
+        fieldToggle('Search',            'showSearch',   s.showSearch   !== false),
+        fieldToggle('Account',           'showAccount',  s.showAccount  !== false),
+        fieldToggle('Wishlist',          'showWishlist', !!s.showWishlist),
+        fieldToggle('Cart',              'showCart',     s.showCart     !== false),
+        fieldToggle('Language selector', 'showLanguage', s.showLanguage !== false),
+        fieldToggle('Currency selector', 'showCurrency', !!s.showCurrency),
+      ]),
+    ].join('');
+
+    // ── HERO BANNER ───────────────────────────────────────────────────────────
     case 'hero': {
       const isCarousel = s.layout === 'carousel';
+      const isVideo    = s.layout === 'video';
       return [
-        field('text', 'Headline', 'headline', esc(s.headline || '')),
-        field('text', 'Subline',  'subline',  esc(s.subline  || '')),
+        fieldTextarea('Headline', 'headline', esc(s.headline || '')),
+        fieldTextarea('Subheadline', 'subline', esc(s.subline || '')),
         fieldSelect('Layout', 'layout', s.layout || 'static',
-          ['static','carousel'], ['Static (single image)','Carousel (multiple images)']),
+          ['static','carousel','video','fullscreen','split'],
+          ['Static Image','Carousel','Video','Fullscreen','Split']),
         isCarousel
           ? buildCarouselImages(s.images || [], i)
-          : fieldImg('Background image', 'image', s.image, i),
-        field('text', 'Overlay opacity (0–1)', 'overlay', s.overlay ?? 0.45),
-        fieldSelect('Alignment', 'align', s.align || 'left', ['left','center','right']),
-        fieldGroup('CTA Button', [
+          : isVideo
+            ? field('text', 'Video URL (mp4 or YouTube embed)', 'videoUrl', esc(s.videoUrl || ''))
+            : fieldImg('Background image', 'image', s.image, i),
+        fieldGroup('Layout & Sizing', [
+          fieldSelect('Height mode', 'heightMode', s.heightMode || 'auto',
+            ['auto','fixed','fullscreen','adaptive'],
+            ['Auto (content)','Fixed height','Fullscreen (100vh)','Adaptive']),
+          field('number', 'Fixed height (px)', 'fixedHeight', s.fixedHeight || 600),
+          `<div class="form-row">
+            ${fieldSelect('H-Align', 'align', s.align || 'left',
+              ['left','center','right'], ['Left','Center','Right'])}
+            ${fieldSelect('V-Align', 'verticalAlign', s.verticalAlign || 'middle',
+              ['top','middle','bottom'], ['Top','Middle','Bottom'])}
+          </div>`,
+          fieldSelect('Text max-width', 'maxWidth', s.maxWidth || 'normal',
+            ['narrow','normal','wide','full'],
+            ['Narrow','Normal','Wide','Full']),
+        ]),
+        fieldGroup('Image Settings', [
+          field('text', 'Overlay opacity (0–1)', 'overlay', s.overlay ?? 0.45),
+          `<div class="form-row">
+            ${fieldSelect('Position', 'imgPosition', s.imgPosition || 'center',
+              ['center','top','bottom','left','right'],
+              ['Center','Top','Bottom','Left','Right'])}
+            ${fieldSelect('Fit', 'imgFit', s.imgFit || 'cover',
+              ['cover','contain'], ['Cover','Contain'])}
+          </div>`,
+        ]),
+        fieldGroup('Primary CTA', [
           field('text', 'Button label', 'cta.label', esc((s.cta||{}).label || '')),
           field('text', 'Button URL',   'cta.url',   esc((s.cta||{}).url   || '')),
+          fieldSelect('Style', 'cta.style', (s.cta||{}).style || 'solid',
+            ['solid','outline','ghost','text'],
+            ['Solid','Outline','Ghost','Text link']),
+        ]),
+        fieldGroup('Secondary CTA', [
+          field('text', 'Label', 'cta2.label', esc((s.cta2||{}).label || '')),
+          field('text', 'URL',   'cta2.url',   esc((s.cta2||{}).url   || '')),
+          fieldSelect('Style', 'cta2.style', (s.cta2||{}).style || 'outline',
+            ['solid','outline','ghost','text'],
+            ['Solid','Outline','Ghost','Text link']),
         ]),
       ].join('');
     }
 
+    // ── PRODUCT GRID ──────────────────────────────────────────────────────────
     case 'product-grid': return [
-      field('text', 'Section title', 'title', esc(s.title || '')),
-      field('text', 'Tag label',     'tag',   esc(s.tag   || '')),
-      fieldSelect('Columns', 'columns', String(s.columns||3), ['2','3','4']),
-      fieldToggle('Show out-of-stock items', 'showOutOfStock', s.showOutOfStock !== false),
+      fieldTextarea('Section title', 'title', esc(s.title || '')),
+      field('text', 'Tag / label', 'tag', esc(s.tag || '')),
+      fieldGroup('Layout', [
+        fieldSelect('Grid layout', 'layout', s.layout || 'classic',
+          ['classic','list','featured','minimal'],
+          ['Classic Grid','List','Featured (first item large)','Minimal (2-col, spacious)']),
+        `<div class="form-row">
+          ${fieldSelect('Desktop cols', 'columns', String(s.columns||3),
+            ['2','3','4','5','6'], ['2','3','4','5','6'])}
+          ${fieldSelect('Mobile cols', 'colsMobile', String(s.colsMobile||1),
+            ['1','2'], ['1','2'])}
+        </div>`,
+        `<div class="form-field">
+          <label>Products shown</label>
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+            <span style="font-size:12px;color:var(--fg-soft)">${Array.isArray(s.selectedProducts) && s.selectedProducts.length ? `${s.selectedProducts.length} product${s.selectedProducts.length===1?'':'s'} selected` : 'All products'}</span>
+            <button class="btn-ghost btn-sm" type="button" onclick="openProductPicker(${i})">Choose products…</button>
+          </div>
+        </div>`,
+        fieldToggle('Show out-of-stock', 'showOutOfStock', s.showOutOfStock !== false),
+      ]),
+      fieldGroup('Card Structure', [
+        fieldToggle('Image',       'cardShowImage',       s.cardShowImage       !== false),
+        fieldToggle('Title',       'cardShowTitle',       s.cardShowTitle       !== false),
+        fieldToggle('Description', 'cardShowDescription', s.cardShowDescription !== false),
+        fieldToggle('Badges',      'cardShowBadge',       s.cardShowBadge       !== false),
+        fieldToggle('Category',    'cardShowCategory',    !!s.cardShowCategory),
+        fieldToggle('Price',       'cardShowPrice',       s.cardShowPrice       !== false),
+        fieldToggle('Rating',      'cardShowRating',      !!s.cardShowRating),
+        fieldToggle('CTA button',  'cardShowCTA',         s.cardShowCTA         !== false),
+      ]),
+      fieldGroup('Image & Hover', [
+        fieldSelect('Image ratio', 'imgRatio', s.imgRatio || '4/3',
+          ['1/1','4/3','4/5','16/9','auto'],
+          ['Square (1:1)','Landscape (4:3)','Portrait (4:5)','Widescreen (16:9)','Auto']),
+        fieldSelect('Hover effect', 'hoverEffect', s.hoverEffect || 'zoom',
+          ['none','zoom','fade','overlay'],
+          ['None','Zoom','Fade','Overlay']),
+      ]),
+      fieldGroup('Filters & Sorting', [
+        fieldToggle('Show filters', 'showFilters', !!s.showFilters),
+        fieldToggle('Show sort', 'showSort', !!s.showSort),
+      ]),
     ].join('');
 
+    // ── TEXT BANNER ───────────────────────────────────────────────────────────
     case 'text-banner': return [
-      field('text',  'Text',             'text',  esc(s.text  || '')),
-      field('color', 'Background color', 'bg',    s.bg    || '#1c1a16'),
-      field('color', 'Text color',       'color', s.color || '#e2a14a'),
+      fieldSelect('Banner type', 'bannerType', s.bannerType || 'promo',
+        ['promo','trust','brand','info'],
+        ['Promotional','Trust / Reassurance','Brand Statement','Informational']),
+      fieldSelect('Layout', 'layout', s.layout || 'single',
+        ['single','multi-column','split','marquee'],
+        ['Single Line','Multi-Column','Split','Scrolling Marquee']),
+      fieldTextarea('Main text', 'text', esc(s.text || '')),
+      fieldTextarea('Subtitle (optional)', 'subtitle', esc(s.subtitle || '')),
+      `<div class="form-row">
+        ${field('color', 'Background', 'bg',    s.bg    || '#1c1a16')}
+        ${field('color', 'Text color', 'color', s.color || '#e2a14a')}
+      </div>`,
       fieldSelect('Alignment', 'align', s.align || 'center', ['left','center','right']),
+      fieldGroup('CTA Button', [
+        field('text', 'Button label', 'ctaLabel', esc(s.ctaLabel || '')),
+        field('text', 'Button URL',   'ctaUrl',   esc(s.ctaUrl   || '')),
+        fieldSelect('Style', 'ctaStyle', s.ctaStyle || 'outline',
+          ['solid','outline','ghost','text'],
+          ['Solid','Outline','Ghost','Text link']),
+      ]),
+      fieldGroup('Behavior', [
+        fieldToggle('Sticky banner', 'sticky', !!s.sticky),
+        fieldToggle('Dismissible',   'dismissible', !!s.dismissible),
+      ]),
     ].join('');
 
+    // ── IMAGE GALLERY ─────────────────────────────────────────────────────────
     case 'image-gallery': return [
-      field('text', 'Title (optional)', 'title', esc(s.title || '')),
-      fieldSelect('Columns', 'columns', String(s.columns||3), ['2','3','4']),
+      fieldTextarea('Title (optional)', 'title', esc(s.title || '')),
+      fieldSelect('Gallery layout', 'layout', s.layout || 'classic',
+        ['classic','list','featured','minimal'],
+        ['Classic Grid','List','Featured (first image large)','Minimal (2-col, spacious)']),
+      `<div class="form-row">
+        ${fieldSelect('Columns', 'columns', String(s.columns||3), ['2','3','4'], ['2','3','4'])}
+        ${fieldSelect('Image ratio', 'ratio', s.ratio || '1/1',
+          ['1/1','4/3','4/5','16/9'],
+          ['Square (1:1)','Landscape (4:3)','Portrait (4:5)','Widescreen (16:9)'])}
+      </div>`,
+      fieldSelect('Hover effect', 'hoverEffect', s.hoverEffect || 'zoom',
+        ['none','zoom','fade','overlay'],
+        ['None','Zoom','Fade','Overlay']),
+      fieldGroup('Colours', [
+        field('color', 'Background', 'bg',    s.bg    || ''),
+        field('color', 'Text',       'color', s.color || ''),
+      ]),
       buildGalleryImages(s.images || [], i),
     ].join('');
 
+    // ── FLOATING BUTTON ───────────────────────────────────────────────────────
     case 'floating-cta': return [
       fieldSelect('Icon', 'icon', s.icon || 'whatsapp',
         ['whatsapp','phone','email','link'],
         ['WhatsApp','Phone','Email','Custom link']),
-      field('text',  'Button label', 'label', esc(s.label || '')),
-      field('text',  'URL / link',   'url',   esc(s.url   || '')),
-      fieldSelect('Position', 'position', s.position || 'bottom-right',
-        ['bottom-right','bottom-left','top-right','top-left'],
-        ['Bottom right','Bottom left','Top right','Top left']),
+      field('text', 'Button label', 'label', esc(s.label || '')),
+      field('text', 'URL / link',   'url',   esc(s.url   || '')),
+      `<div class="form-row">
+        ${fieldSelect('Position', 'position', s.position || 'bottom-right',
+          ['bottom-right','bottom-left','top-right','top-left'],
+          ['Bottom right','Bottom left','Top right','Top left'])}
+        ${fieldSelect('Size', 'size', s.size || 'medium',
+          ['small','medium','large'], ['Small','Medium','Large'])}
+      </div>`,
       field('color', 'Button color', 'color', s.color || '#25D366'),
+      fieldToggle('Pulse animation', 'pulse', !!s.pulse),
     ].join('');
 
+    // ── TEXT BLOCK ────────────────────────────────────────────────────────────
     case 'rich-text': return [
-      `<div class="form-field"><label>HTML content</label>
-        <textarea data-field="content" rows="6"
-          style="resize:vertical;font-family:var(--mono);font-size:11px">${esc(s.content||'')}</textarea>
-      </div>`,
-      fieldSelect('Alignment', 'align', s.align || 'left', ['left','center','right']),
-      fieldSelect('Max width', 'maxWidth', s.maxWidth || 'normal',
-        ['narrow','normal','wide'],['Narrow (60ch)','Normal (80ch)','Full width']),
+      fieldGroup('Content', [
+        `<div class="form-row">
+          ${fieldSelect('Heading level', 'headingLevel', s.headingLevel || 'h2',
+            ['h1','h2','h3','h4'],['H1','H2','H3','H4'])}
+          ${fieldSelect('Layout', 'layout', s.layout || 'simple',
+            ['simple','centered','split','cta'],
+            ['Simple','Centered','Split (text+image)','CTA focus'])}
+        </div>`,
+        fieldTextarea('Heading',    'heading',    esc(s.heading    || '')),
+        fieldTextarea('Subheading', 'subheading', esc(s.subheading || '')),
+        fieldTextarea('Body text',  'body',       esc(s.body       || ''), 4),
+      ]),
+      fieldGroup('CTA Button', [
+        field('text', 'Button label', 'ctaLabel', esc(s.ctaLabel || '')),
+        field('text', 'Button URL',   'ctaUrl',   esc(s.ctaUrl   || '')),
+        fieldSelect('Style', 'ctaStyle', s.ctaStyle || 'solid',
+          ['solid','outline','ghost','text'],
+          ['Solid','Outline','Ghost','Text link']),
+      ]),
+      fieldGroup('Appearance', [
+        `<div class="form-row">
+          ${fieldSelect('Alignment', 'align', s.align || 'left', ['left','center','right'])}
+          ${fieldSelect('Max width', 'maxWidth', s.maxWidth || 'normal',
+            ['narrow','normal','wide','full'],
+            ['Narrow','Normal','Wide','Full width'])}
+        </div>`,
+        fieldSelect('Padding', 'padding', s.padding || 'normal',
+          ['small','normal','large'], ['Small','Normal','Large']),
+        field('color', 'Background color (optional)', 'bgColor', s.bgColor || ''),
+      ]),
+      fieldGroup('Advanced (raw HTML)', [
+        `<div class="form-field"><label>Custom HTML (overrides body above)</label>
+          <textarea data-field="content" rows="4"
+            style="resize:vertical;font-family:var(--mono);font-size:11px">${esc(s.content||'')}</textarea>
+        </div>`,
+      ]),
+    ].join('');
+
+    // ── FOOTER ────────────────────────────────────────────────────────────────
+    case 'footer': return [
+      fieldSelect('Footer layout', 'layout', s.layout || 'multi-column',
+        ['multi-column','minimal','fat'],
+        ['Multi-Column','Minimal','Fat Footer']),
+      fieldGroup('Newsletter', [
+        fieldToggle('Show newsletter signup', 'newsletterEnabled', s.newsletterEnabled !== false),
+        fieldTextarea('Title',     'newsletterTitle', esc(s.newsletterTitle || '')),
+        fieldTextarea('Body text', 'newsletterText',  esc(s.newsletterText  || '')),
+      ]),
+      fieldGroup('Navigation Columns', [
+        `<div class="form-row">
+          ${field('text', 'Column 1 title', 'nav1Title', esc(s.nav1Title || 'Shop'))}
+          ${field('text', 'Column 2 title', 'nav2Title', esc(s.nav2Title || 'Company'))}
+        </div>`,
+        field('text', 'Column 3 title', 'nav3Title', esc(s.nav3Title || 'Support')),
+        fieldTextarea('Column 1 links (Label|URL, one per line)', 'nav1Links', esc(s.nav1Links || ''), 3),
+        fieldTextarea('Column 2 links (Label|URL, one per line)', 'nav2Links', esc(s.nav2Links || ''), 3),
+        fieldTextarea('Column 3 links (Label|URL, one per line)', 'nav3Links', esc(s.nav3Links || ''), 3),
+      ]),
+      fieldGroup('Social Links', [
+        field('text', 'Instagram', 'socialInstagram', esc(s.socialInstagram || '')),
+        field('text', 'TikTok',    'socialTiktok',    esc(s.socialTiktok    || '')),
+        field('text', 'YouTube',   'socialYoutube',   esc(s.socialYoutube   || '')),
+        field('text', 'Facebook',  'socialFacebook',  esc(s.socialFacebook  || '')),
+        field('text', 'Pinterest', 'socialPinterest', esc(s.socialPinterest || '')),
+      ]),
+      fieldGroup('Contact Info', [
+        field('text', 'Email',   'contactEmail',   esc(s.contactEmail   || '')),
+        field('text', 'Phone',   'contactPhone',   esc(s.contactPhone   || '')),
+        fieldTextarea('Address', 'contactAddress', esc(s.contactAddress || '')),
+      ]),
+      fieldGroup('Legal & Compliance', [
+        fieldToggle('Show payment icons', 'showPaymentIcons', s.showPaymentIcons !== false),
+        fieldTextarea('Copyright text', 'copyrightText', esc(s.copyrightText || '')),
+        field('text', 'Privacy Policy URL',   'privacyUrl', esc(s.privacyUrl || '')),
+        field('text', 'Terms of Service URL', 'termsUrl',   esc(s.termsUrl   || '')),
+        field('text', 'Refund Policy URL',    'refundUrl',  esc(s.refundUrl  || '')),
+      ]),
     ].join('');
 
     default: return '<p style="padding:8px;color:var(--fg-faint)">No fields for this section type.</p>';
@@ -1147,6 +1783,13 @@ function field(type, label, fieldPath, value) {
   return `<div class="form-field">
     <label>${esc(label)}</label>
     <input type="${type}" data-field="${esc(fieldPath)}" value="${value}"${styleAttr} />
+  </div>`;
+}
+
+function fieldTextarea(label, fieldPath, value, rows = 2) {
+  return `<div class="form-field">
+    <label>${esc(label)}</label>
+    <textarea data-field="${esc(fieldPath)}" rows="${rows}" style="resize:vertical">${value}</textarea>
   </div>`;
 }
 
@@ -1405,17 +2048,16 @@ function renderItemsList() {
     const isSel = state.bulkSelected.has(p.id);
     const draft = !p.visible;
     return `
-<div class="item-row">
-  <input type="checkbox" class="item-row__check" data-id="${esc(p.id)}" ${isSel?'checked':''} onchange="toggleItemSelect('${esc(p.id)}',this.checked)" />
+<div class="item-row" onclick="editProduct('${esc(p.id)}')" style="cursor:pointer">
+  <input type="checkbox" class="item-row__check" data-id="${esc(p.id)}" ${isSel?'checked':''} onchange="toggleItemSelect('${esc(p.id)}',this.checked)" onclick="event.stopPropagation()" />
   ${p.image
     ? `<img src="${esc(p.image)}" class="item-row__thumb" alt="" onerror="this.style.opacity=0.2" />`
     : `<div class="item-row__thumb"></div>`}
   <span class="item-row__name${draft?' item-row__name--draft':''}" title="${esc(p.name)}">${esc(p.name)}${draft?' [hidden]':''}</span>
   <span class="item-row__price">$${esc((p.price_cents/100).toFixed(2))}</span>
   <span class="item-row__btns">
-    <button class="item-row__btn" onclick="editProduct('${esc(p.id)}')">✏</button>
-    <button class="item-row__btn" onclick="duplicateProduct('${esc(p.id)}')">⊕</button>
-    <button class="item-row__btn item-row__btn--del" onclick="deleteProduct('${esc(p.id)}')">✕</button>
+    <button class="item-row__btn" onclick="event.stopPropagation();duplicateProduct('${esc(p.id)}')" title="Duplicate">⊕</button>
+    <button class="item-row__btn item-row__btn--del" onclick="event.stopPropagation();deleteProduct('${esc(p.id)}')" title="Delete">✕</button>
   </span>
 </div>`;
   }).join('');
@@ -1892,17 +2534,6 @@ function setupConfigTab() {
     document.getElementById(id)?.addEventListener('input', nlSave);
   });
 
-  // Countdown fields
-  const cdSave = () => {
-    ensureObj('features');
-    state.draft.features.countdownEnd      = document.getElementById('cd-end').value;
-    state.draft.features.countdownCategory = document.getElementById('cd-cat').value;
-    markDirty();
-  };
-  ['cd-end','cd-cat'].forEach(id => {
-    document.getElementById(id)?.addEventListener('input', cdSave);
-  });
-
   // Out of stock
   document.getElementById('oos-mode').addEventListener('change', e => {
     ensureObj('features');
@@ -1947,10 +2578,6 @@ function renderConfigTab() {
   document.getElementById('nl-title').value       = f.newsletterTitle || '';
   document.getElementById('nl-text').value        = f.newsletterText  || '';
   document.getElementById('nl-image').value       = f.newsletterImage || '';
-  if (f.countdownEnd) {
-    try { document.getElementById('cd-end').value = new Date(f.countdownEnd).toISOString().slice(0,16); } catch {}
-  }
-  document.getElementById('cd-cat').value = f.countdownCategory || '';
 
   // Feature toggles
   document.querySelectorAll('.tweak-feat').forEach(cb => {
@@ -2004,14 +2631,125 @@ function setupTemplateGallery() {
 window.applyTemplate = function(id) {
   const tmpl = TEMPLATES.find(t => t.id === id);
   if (!tmpl) return;
-  if (!confirm(`Apply the "${tmpl.name}" template? This replaces your current sections.`)) return;
+  if (!confirm(`Apply the "${tmpl.name}" template? This replaces your current sections, palette and style.`)) return;
   pushUndo();
-  state.draft.sections = tmpl.sections();
+  const inner = tmpl.sections().filter(s => !FIXED_SECTION_TYPES.has(s.type));
+  state.draft.sections = [
+    { id: uid(), type: 'header', ...SECTION_TYPES.header.defaults },
+    ...inner,
+    { id: uid(), type: 'footer', ...SECTION_TYPES.footer.defaults },
+  ];
+  // Apply matching palette + visual style
+  if (tmpl.palette) {
+    const pal = PALETTES.find(p => p.id === tmpl.palette);
+    if (pal) {
+      ensureObj('theme');
+      state.draft.theme.bg     = pal.theme.bg;
+      state.draft.theme.fg     = pal.theme.fg;
+      state.draft.theme.accent = pal.theme.accent;
+    }
+  }
+  if (tmpl.style) {
+    const vs = VISUAL_STYLES.find(s => s.id === tmpl.style);
+    if (vs) {
+      state.draft.style = tmpl.style;
+      for (const [k, v] of Object.entries(vs.vars)) {
+        document.documentElement.style.setProperty(k, v);
+      }
+    }
+  }
   state.editingSection = null;
   renderSectionList();
   closeSectionEditor();
   markDirty();
   document.getElementById('tmpl-overlay').classList.remove('active');
+};
+
+// ── Product picker ────────────────────────────────────────────────────────────
+let _ppSectionIdx = null;
+let _ppSelected   = new Set();
+
+window.openProductPicker = function(sectionIdx) {
+  _ppSectionIdx = sectionIdx;
+  const s = state.draft.sections[sectionIdx] || {};
+  _ppSelected   = new Set((s.selectedProducts || []).map(String));
+  _renderPP();
+  document.getElementById('product-picker-overlay').classList.add('active');
+};
+
+function _renderPP() {
+  const products = state.products || [];
+  const sel = _ppSelected;
+  const count = sel.size;
+  document.getElementById('pp-summary').textContent =
+    count === 0 ? `All ${products.length} products` : `${count} of ${products.length} selected`;
+
+  document.getElementById('pp-list').innerHTML = products.map(p => {
+    const pid = String(p.id);
+    const dollars = (p.price_cents / 100).toFixed(2);
+    return `<label class="pp-item">
+      <input type="checkbox" data-pid="${esc(pid)}" ${sel.has(pid) ? 'checked' : ''} onchange="ppToggle(this)" />
+      ${p.image ? `<img src="${esc(p.image)}" class="pp-img" alt="" />` : '<div class="pp-img pp-img--empty"></div>'}
+      <div class="pp-info">
+        <span class="pp-name">${esc(p.name)}</span>
+        <span class="pp-price">$${esc(dollars)}</span>
+        ${!p.in_stock ? '<span class="pp-oos">Out of stock</span>' : ''}
+      </div>
+    </label>`;
+  }).join('');
+}
+
+window.ppSelectAll = function() {
+  (state.products || []).forEach(p => _ppSelected.add(String(p.id)));
+  _renderPP();
+};
+
+window.ppSelectNone = function() {
+  _ppSelected.clear();
+  _renderPP();
+};
+
+window.ppToggle = function(cb) {
+  const pid = String(cb.dataset.pid);
+  if (cb.checked) _ppSelected.add(pid);
+  else            _ppSelected.delete(pid);
+  document.getElementById('pp-summary').textContent =
+    _ppSelected.size === 0
+      ? `All ${(state.products||[]).length} products`
+      : `${_ppSelected.size} of ${(state.products||[]).length} selected`;
+};
+
+window.ppFilterUnder = function() {
+  const val = parseFloat(document.getElementById('pp-price-val').value);
+  if (isNaN(val)) return;
+  (state.products || []).forEach(p => {
+    if (p.price_cents / 100 <= val) _ppSelected.add(String(p.id));
+  });
+  _renderPP();
+};
+
+window.ppFilterOver = function() {
+  const val = parseFloat(document.getElementById('pp-price-val').value);
+  if (isNaN(val)) return;
+  (state.products || []).forEach(p => {
+    if (p.price_cents / 100 >= val) _ppSelected.add(String(p.id));
+  });
+  _renderPP();
+};
+
+window.confirmProductPicker = function() {
+  if (_ppSectionIdx === null) return;
+  const s = state.draft.sections[_ppSectionIdx];
+  if (!s) return;
+  // Empty set = show all (no filter stored)
+  s.selectedProducts = _ppSelected.size === 0 ? [] : [..._ppSelected];
+  markDirty();
+  openSectionEditor(_ppSectionIdx);
+  document.getElementById('product-picker-overlay').classList.remove('active');
+};
+
+window.closeProductPicker = function() {
+  document.getElementById('product-picker-overlay').classList.remove('active');
 };
 
 // ── Screen navigation ─────────────────────────────────────────────────────────

@@ -24,6 +24,8 @@ const HTML = `<!DOCTYPE html>
       --mono:  "JetBrains Mono", monospace;
       --bar-h: 56px;
       --panel-w: 360px;
+      --s-radius: 0px; --s-radius-btn: 0px; --s-radius-sm: 0px;
+      --s-border-w: 1px; --s-shadow: none; --s-shadow-card: none;
     }
     *, *::before, *::after { box-sizing: border-box; }
     html, body { margin: 0; padding: 0; background: var(--bg); color: var(--fg);
@@ -158,7 +160,8 @@ const HTML = `<!DOCTYPE html>
     .new-store-form { border: 1px solid var(--line); padding: 28px; display: flex; flex-direction: column; gap: 16px; max-width: 480px; }
     .new-store-form__title { font-family: var(--serif); font-size: 22px; letter-spacing: -0.01em; margin: 0; }
     .form-row   { display: flex; gap: 10px; }
-    .form-field { display: flex; flex-direction: column; gap: 4px; flex: 1; }
+    .form-field { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 0; }
+    .form-field input, .form-field textarea, .form-field select { word-break: break-word; overflow-wrap: break-word; }
     .status-msg { font-family: var(--mono); font-size: 10px; letter-spacing: 0.1em; padding: 6px 0; min-height: 1.4em; }
     .status-msg.error   { color: #b33; }
     .status-msg.success { color: var(--accent); }
@@ -234,6 +237,9 @@ const HTML = `<!DOCTYPE html>
       border: 1px solid transparent; background: transparent; color: var(--fg-faint); transition: color 160ms, border-color 160ms; }
     .sec-item__btn:hover       { color: var(--fg); border-color: var(--line); }
     .sec-item__btn--del:hover  { color: #b33; border-color: #b33; }
+    .sec-item--fixed           { background: color-mix(in srgb, var(--accent) 4%, transparent); }
+    .sec-item--hidden          { opacity: 0.45; }
+    .sec-item--fixed .sec-item__drag { display: none; }
 
     .sec-add-wrap { padding: 10px 12px; border-bottom: 1px solid var(--line); position: relative; flex-shrink: 0; }
     .sec-add-menu { position: absolute; left: 12px; right: 12px; bottom: calc(100% + 4px);
@@ -402,6 +408,17 @@ const HTML = `<!DOCTYPE html>
       background: rgba(0,0,0,.65); display: flex; align-items: center; justify-content: center;
       padding: 24px; opacity: 0; pointer-events: none; transition: opacity 280ms; }
     .modal-overlay-lg.active { opacity: 1; pointer-events: auto; }
+    .modal-panel { background: var(--bg); border: 1px solid var(--line); border-radius: 8px; width: 100%; overflow: hidden; }
+    .pp-item { display: flex; align-items: center; gap: 12px; padding: 10px 24px;
+      cursor: pointer; transition: background 140ms; }
+    .pp-item:hover { background: var(--accent-soft); }
+    .pp-item input[type=checkbox] { flex-shrink: 0; accent-color: var(--accent); width: 16px; height: 16px; cursor: pointer; }
+    .pp-img { width: 48px; height: 48px; object-fit: cover; border-radius: 4px; flex-shrink: 0; background: var(--line-soft); }
+    .pp-img--empty { background: var(--line-soft); }
+    .pp-info { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+    .pp-name  { font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .pp-price { font-size: 12px; color: var(--fg-faint); font-family: var(--mono); }
+    .pp-oos   { font-size: 10px; color: #b33; font-family: var(--mono); letter-spacing: 0.08em; text-transform: uppercase; }
     .gallery-box { background: var(--bg); border: 1px solid var(--line); width: 100%; max-width: 720px;
       padding: 36px; display: flex; flex-direction: column; gap: 24px;
       max-height: calc(100vh - 48px); overflow-y: auto; }
@@ -416,9 +433,15 @@ const HTML = `<!DOCTYPE html>
     .gallery-card__icon { font-size: 22px; margin-bottom: 8px; }
     .gallery-card__name { font-family: var(--serif); font-size: 17px; letter-spacing: -0.01em; }
     .gallery-card__desc { font-size: 11px; color: var(--fg-faint); margin-top: 3px; }
+    .palette-custom { margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--line); }
+    .palette-custom__label { font-family: var(--mono); font-size: 10px; letter-spacing: 0.13em; text-transform: uppercase; color: var(--fg-faint); margin-bottom: 10px; }
+    .palette-custom__row { display: flex; gap: 12px; flex-wrap: wrap; }
     /* Style card with color swatches */
     .style-swatches { display: flex; gap: 4px; margin-bottom: 8px; }
     .style-swatch { width: 14px; height: 14px; border-radius: 50%; border: 1px solid rgba(0,0,0,.1); }
+    .style-shape-preview { display: flex; gap: 8px; align-items: center; margin-bottom: 10px; }
+    .style-shape-preview__btn { width: 52px; height: 24px; border: 1px solid var(--fg); background: var(--fg); }
+    .style-shape-preview__card { width: 52px; height: 42px; border: 1px solid var(--line); background: transparent; }
 
     @media (max-width: 960px) { :root { --panel-w: 300px; } }
     @media (max-width: 640px) {
@@ -544,6 +567,7 @@ const HTML = `<!DOCTYPE html>
               <span class="pane-section__label">Look &amp; Feel</span>
               <button class="btn-ghost btn-sm" id="btn-change-tmpl" style="width:100%">⊞ Change Template</button>
               <button class="btn-ghost btn-sm" id="btn-change-style" style="width:100%">◈ Change Style</button>
+              <button class="btn-ghost btn-sm" id="btn-change-palette" style="width:100%">⬡ Colour Palette</button>
             </div>
 
             <!-- Logo -->
@@ -577,88 +601,152 @@ const HTML = `<!DOCTYPE html>
               </div>
             </div>
 
-            <!-- Colors -->
-            <div class="pane-section">
-              <span class="pane-section__label">Colors</span>
-              <div class="form-field">
-                <label>Accent</label>
-                <div class="hex-input">
-                  <input type="color" class="hex-input__swatch" id="d-accent-sw" />
-                  <input type="text"  class="hex-input__text"   id="d-accent"    maxlength="9" placeholder="#e2a14a" />
-                </div>
-              </div>
-              <div class="form-field">
-                <label>Background</label>
-                <div class="hex-input">
-                  <input type="color" class="hex-input__swatch" id="d-bg-sw" />
-                  <input type="text"  class="hex-input__text"   id="d-bg"    maxlength="9" placeholder="#efeae0" />
-                </div>
-              </div>
-              <div class="form-field">
-                <label>Text</label>
-                <div class="hex-input">
-                  <input type="color" class="hex-input__swatch" id="d-fg-sw" />
-                  <input type="text"  class="hex-input__text"   id="d-fg"    maxlength="9" placeholder="#1c1a16" />
-                </div>
-              </div>
-            </div>
-
             <!-- Fonts -->
             <div class="pane-section">
               <span class="pane-section__label">Fonts</span>
-              <p style="font-size:11px;color:var(--fg-faint);margin:0">Paste a Google Fonts URL and the family name. Falls back to system font if invalid.</p>
-              <div class="font-row">
+              <div class="form-row">
                 <div class="form-field">
-                  <label for="d-font-title-family">Title family</label>
-                  <input id="d-font-title-family" type="text" placeholder="Cormorant Garamond" />
+                  <label for="d-font-title-family">Title</label>
+                  <select id="d-font-title-family">
+                    <option>System Default</option>
+                    <optgroup label="── Serif ──────────">
+                      <option>Cormorant Garamond</option>
+                      <option>Playfair Display</option>
+                      <option>EB Garamond</option>
+                      <option>Libre Baskerville</option>
+                      <option>Merriweather</option>
+                      <option>Lora</option>
+                    </optgroup>
+                    <optgroup label="── Sans-Serif ──────">
+                      <option>DM Sans</option>
+                      <option>Inter</option>
+                      <option>Nunito</option>
+                      <option>Poppins</option>
+                      <option>Raleway</option>
+                      <option>Outfit</option>
+                      <option>Barlow</option>
+                      <option>Josefin Sans</option>
+                    </optgroup>
+                    <optgroup label="── Monospace ───────">
+                      <option>JetBrains Mono</option>
+                      <option>IBM Plex Mono</option>
+                      <option>Space Mono</option>
+                    </optgroup>
+                    <optgroup label="── Display ─────────">
+                      <option>Bebas Neue</option>
+                      <option>Pacifico</option>
+                      <option>Oswald</option>
+                      <option>Orbitron</option>
+                    </optgroup>
+                  </select>
                 </div>
                 <div class="form-field">
-                  <label for="d-font-title-url">URL</label>
-                  <input id="d-font-title-url" type="text" placeholder="https://fonts.goo…" />
+                  <label for="d-font-body-family">Body</label>
+                  <select id="d-font-body-family">
+                    <option>System Default</option>
+                    <optgroup label="── Serif ──────────">
+                      <option>Cormorant Garamond</option>
+                      <option>Playfair Display</option>
+                      <option>EB Garamond</option>
+                      <option>Libre Baskerville</option>
+                      <option>Merriweather</option>
+                      <option>Lora</option>
+                    </optgroup>
+                    <optgroup label="── Sans-Serif ──────">
+                      <option>DM Sans</option>
+                      <option>Inter</option>
+                      <option>Nunito</option>
+                      <option>Poppins</option>
+                      <option>Raleway</option>
+                      <option>Outfit</option>
+                      <option>Barlow</option>
+                      <option>Josefin Sans</option>
+                    </optgroup>
+                    <optgroup label="── Monospace ───────">
+                      <option>JetBrains Mono</option>
+                      <option>IBM Plex Mono</option>
+                      <option>Space Mono</option>
+                    </optgroup>
+                    <optgroup label="── Display ─────────">
+                      <option>Bebas Neue</option>
+                      <option>Pacifico</option>
+                      <option>Oswald</option>
+                      <option>Orbitron</option>
+                    </optgroup>
+                  </select>
                 </div>
               </div>
-              <div class="font-row">
+              <div class="form-row">
                 <div class="form-field">
-                  <label for="d-font-body-family">Body family</label>
-                  <input id="d-font-body-family" type="text" placeholder="DM Sans" />
+                  <label for="d-font-accent-family">Accent</label>
+                  <select id="d-font-accent-family">
+                    <option>System Default</option>
+                    <optgroup label="── Serif ──────────">
+                      <option>Cormorant Garamond</option>
+                      <option>Playfair Display</option>
+                      <option>EB Garamond</option>
+                      <option>Libre Baskerville</option>
+                      <option>Merriweather</option>
+                      <option>Lora</option>
+                    </optgroup>
+                    <optgroup label="── Sans-Serif ──────">
+                      <option>DM Sans</option>
+                      <option>Inter</option>
+                      <option>Nunito</option>
+                      <option>Poppins</option>
+                      <option>Raleway</option>
+                      <option>Outfit</option>
+                      <option>Barlow</option>
+                      <option>Josefin Sans</option>
+                    </optgroup>
+                    <optgroup label="── Monospace ───────">
+                      <option>JetBrains Mono</option>
+                      <option>IBM Plex Mono</option>
+                      <option>Space Mono</option>
+                    </optgroup>
+                    <optgroup label="── Display ─────────">
+                      <option>Bebas Neue</option>
+                      <option>Pacifico</option>
+                      <option>Oswald</option>
+                      <option>Orbitron</option>
+                    </optgroup>
+                  </select>
                 </div>
                 <div class="form-field">
-                  <label for="d-font-body-url">URL</label>
-                  <input id="d-font-body-url" type="text" placeholder="https://fonts.goo…" />
+                  <label for="d-font-slogan-family">Slogan</label>
+                  <select id="d-font-slogan-family">
+                    <option>System Default</option>
+                    <optgroup label="── Serif ──────────">
+                      <option>Cormorant Garamond</option>
+                      <option>Playfair Display</option>
+                      <option>EB Garamond</option>
+                      <option>Libre Baskerville</option>
+                      <option>Merriweather</option>
+                      <option>Lora</option>
+                    </optgroup>
+                    <optgroup label="── Sans-Serif ──────">
+                      <option>DM Sans</option>
+                      <option>Inter</option>
+                      <option>Nunito</option>
+                      <option>Poppins</option>
+                      <option>Raleway</option>
+                      <option>Outfit</option>
+                      <option>Barlow</option>
+                      <option>Josefin Sans</option>
+                    </optgroup>
+                    <optgroup label="── Monospace ───────">
+                      <option>JetBrains Mono</option>
+                      <option>IBM Plex Mono</option>
+                      <option>Space Mono</option>
+                    </optgroup>
+                    <optgroup label="── Display ─────────">
+                      <option>Bebas Neue</option>
+                      <option>Pacifico</option>
+                      <option>Oswald</option>
+                      <option>Orbitron</option>
+                    </optgroup>
+                  </select>
                 </div>
-              </div>
-              <div class="font-row">
-                <div class="form-field">
-                  <label for="d-font-accent-family">Accent family</label>
-                  <input id="d-font-accent-family" type="text" placeholder="JetBrains Mono" />
-                </div>
-                <div class="form-field">
-                  <label for="d-font-accent-url">URL</label>
-                  <input id="d-font-accent-url" type="text" placeholder="https://fonts.goo…" />
-                </div>
-              </div>
-              <div class="font-row">
-                <div class="form-field">
-                  <label for="d-font-slogan-family">Slogan family</label>
-                  <input id="d-font-slogan-family" type="text" placeholder="Same as title" />
-                </div>
-                <div class="form-field">
-                  <label for="d-font-slogan-url">URL</label>
-                  <input id="d-font-slogan-url" type="text" placeholder="https://fonts.goo…" />
-                </div>
-              </div>
-            </div>
-
-            <!-- Catalog placement -->
-            <div class="pane-section">
-              <span class="pane-section__label">Catalog Placement</span>
-              <div class="form-field">
-                <label for="d-catalog-placement">Where does the catalog appear?</label>
-                <select id="d-catalog-placement">
-                  <option value="landing-full">Landing page — full catalog</option>
-                  <option value="landing-featured">Landing page — featured items</option>
-                  <option value="separate-tab">Separate tab / page</option>
-                </select>
               </div>
             </div>
 
@@ -805,32 +893,6 @@ const HTML = `<!DOCTYPE html>
 
             <div class="config-section">
               <span class="config-section__label">Store Features</span>
-
-              <div class="adv-tweak" id="tweak-countdown">
-                <div class="adv-tweak__head">
-                  <div class="adv-tweak__title-area" onclick="this.closest('.adv-tweak').classList.toggle('open')">
-                    <div class="adv-tweak__title">Countdown Timer</div>
-                    <div class="adv-tweak__desc">24-hour promotional countdown bar.</div>
-                  </div>
-                  <div class="adv-tweak__controls">
-                    <label class="toggle" onclick="event.stopPropagation()">
-                      <input type="checkbox" class="tweak-feat" data-feature="hasDiscountCountdown" />
-                      <span class="toggle__track"></span><span class="toggle__thumb"></span>
-                    </label>
-                    <span class="adv-tweak__arrow" onclick="this.closest('.adv-tweak').classList.toggle('open')">›</span>
-                  </div>
-                </div>
-                <div class="adv-tweak__body">
-                  <div class="form-field">
-                    <label for="cd-end">End date &amp; time</label>
-                    <input id="cd-end" type="datetime-local" />
-                  </div>
-                  <div class="form-field">
-                    <label for="cd-cat">Apply to category (blank = global)</label>
-                    <input id="cd-cat" type="text" placeholder="e.g. Summer Sale" />
-                  </div>
-                </div>
-              </div>
 
               <div class="adv-tweak" id="tweak-newsletter">
                 <div class="adv-tweak__head">
@@ -1108,15 +1170,81 @@ const HTML = `<!DOCTYPE html>
     </div>
   </div>
 
-  <!-- ── Style gallery ── -->
+  <!-- ── Style gallery (shapes/borders/shadows) ── -->
   <div class="modal-overlay-lg" id="style-overlay">
     <div class="gallery-box">
       <div class="gallery-box__head">
-        <h2 class="gallery-box__title">Choose a Style</h2>
+        <h2 class="gallery-box__title">Change Style</h2>
         <button class="modal-close" id="style-close">Close ✕</button>
       </div>
-      <p class="gallery-box__sub">Style sets the visual theme of your storefront (colors, fonts). It does not change the section layout.</p>
+      <p class="gallery-box__sub">Style controls the rounding, border thickness, and shadow depth of your storefront — not colours.</p>
       <div class="gallery-grid" id="style-grid"></div>
+    </div>
+  </div>
+
+  <!-- ── Colour palette gallery ── -->
+  <div class="modal-overlay-lg" id="palette-overlay">
+    <div class="gallery-box">
+      <div class="gallery-box__head">
+        <h2 class="gallery-box__title">Colour Palette</h2>
+        <button class="modal-close" id="palette-close">Close ✕</button>
+      </div>
+      <p class="gallery-box__sub">Choose a preset palette or set custom colours below.</p>
+      <div class="gallery-grid" id="palette-grid"></div>
+      <div class="palette-custom">
+        <div class="palette-custom__label">Custom colours</div>
+        <div class="palette-custom__row">
+          <div class="form-field">
+            <label>Background</label>
+            <div class="hex-input">
+              <input type="color" class="hex-input__swatch" id="pal-bg-sw" />
+              <input type="text"  class="hex-input__text"   id="pal-bg" maxlength="9" placeholder="#efeae0" />
+            </div>
+          </div>
+          <div class="form-field">
+            <label>Text</label>
+            <div class="hex-input">
+              <input type="color" class="hex-input__swatch" id="pal-fg-sw" />
+              <input type="text"  class="hex-input__text"   id="pal-fg" maxlength="9" placeholder="#1c1a16" />
+            </div>
+          </div>
+          <div class="form-field">
+            <label>Accent</label>
+            <div class="hex-input">
+              <input type="color" class="hex-input__swatch" id="pal-accent-sw" />
+              <input type="text"  class="hex-input__text"   id="pal-accent" maxlength="9" placeholder="#e2a14a" />
+            </div>
+          </div>
+        </div>
+        <button class="btn-solid btn-sm" id="btn-apply-custom-pal" style="margin-top:10px">Apply Custom Colours</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Product picker modal -->
+  <div class="modal-overlay-lg" id="product-picker-overlay" onclick="if(event.target===this)closeProductPicker()">
+    <div class="modal-panel" style="max-width:600px;display:flex;flex-direction:column;max-height:85vh">
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:20px 24px;border-bottom:1px solid var(--line-soft)">
+        <h3 style="margin:0;font-size:16px">Choose Products</h3>
+        <button class="btn-ghost btn-sm" onclick="closeProductPicker()">✕</button>
+      </div>
+      <!-- Bulk controls -->
+      <div style="padding:12px 24px;border-bottom:1px solid var(--line-soft);display:flex;flex-wrap:wrap;gap:8px;align-items:center">
+        <button class="btn-ghost btn-sm" onclick="ppSelectAll()">All</button>
+        <button class="btn-ghost btn-sm" onclick="ppSelectNone()">None</button>
+        <span style="font-size:11px;color:var(--fg-faint)">|</span>
+        <input id="pp-price-val" type="number" min="0" step="0.01" placeholder="Price $" style="width:90px;padding:4px 8px;border:1px solid var(--line);background:var(--bg);color:var(--fg);font-size:12px;border-radius:4px" />
+        <button class="btn-ghost btn-sm" onclick="ppFilterUnder()">Under</button>
+        <button class="btn-ghost btn-sm" onclick="ppFilterOver()">Over</button>
+        <span id="pp-summary" style="margin-left:auto;font-size:11px;color:var(--fg-faint)"></span>
+      </div>
+      <!-- Product list -->
+      <div id="pp-list" style="overflow-y:auto;flex:1;padding:8px 0"></div>
+      <!-- Footer -->
+      <div style="padding:14px 24px;border-top:1px solid var(--line-soft);display:flex;justify-content:flex-end;gap:8px">
+        <button class="btn-ghost btn-sm" onclick="closeProductPicker()">Cancel</button>
+        <button class="btn-solid btn-sm" onclick="confirmProductPicker()">Apply selection</button>
+      </div>
     </div>
   </div>
 

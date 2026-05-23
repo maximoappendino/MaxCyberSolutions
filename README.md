@@ -1,3 +1,10 @@
+npm run dev
+npm run migrate:local
+npm run seed:local
+ 
+
+
+
 local test:
 python -m http.server 8000
 
@@ -16,3 +23,5 @@ Tell the user to press x in the dev terminal to stop it, then:
   - http://localhost:8788/store/e-commerce — the storefront
   - http://localhost:8788/dashboard/ — the admin panel (login: admin@maxcybersolutions.com /
   demo1234)
+
+
