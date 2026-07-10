@@ -1,24 +1,15 @@
 #!/usr/bin/env node
 /**
- * Seed the local Miniflare D1 database with a demo owner, a dynamic store,
- * and a set of example products.
+ * Seed the local Miniflare D1 database with a demo owner, the "e-commerce"
+ * store, and a set of example products.
  *
  * Usage (dev server must already be running in another terminal):
- *   node scripts/seed-local.js [email] ["Store Name"] [password]
- * 
- * Example:
- *   node scripts/seed-local.js "newclient@example.com" "My Awesome Shop" "their_password"
+ *   node scripts/seed-local.js
  */
 
 const BASE  = process.env.BASE || 'http://localhost:8788';
-
-// Read arguments from the terminal (fallback to defaults if none provided)
-const EMAIL      = process.argv[2] || 'admin@maxcybersolutions.online';
-const STORE_NAME = process.argv[3] || 'E-Commerce';
-const PASS       = process.argv[4] || 'demo1234';
-
-// Create a URL-safe slug (e.g., "My Awesome Shop" -> "my-awesome-shop")
-const STORE_SLUG = STORE_NAME.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+const EMAIL = 'admin@maxcybersolutions.online';
+const PASS  = 'demo1234';
 
 async function api(method, path, body, cookie) {
   const headers = { 'Content-Type': 'application/json' };
@@ -50,12 +41,12 @@ async function seed() {
 
   // ── 3. Create store (idempotent) ──────────────────────────────────────────
   const storeBody = {
-    slug: STORE_SLUG,
-    name: STORE_NAME,
+    slug: 'e-commerce',
+    name: 'E-Commerce',
     config: {
-      name: STORE_NAME,
+      name: 'E-Commerce',
       seo: {
-        title:       `${STORE_NAME} — Digital Goods & Creative Services`,
+        title:       'E-Commerce — Digital Goods & Creative Services',
         description: 'A curated selection of digital goods, design work, and creative services.',
       },
       theme:    { accent: '#e2a14a', dark: false },
@@ -108,18 +99,16 @@ async function seed() {
   const createRes = await api('POST', '/api/stores', storeBody, cookie);
   if (createRes.ok) {
     store = await createRes.json();
-    console.log(`✓ Store "${STORE_NAME}" created`);
+    console.log('✓ Store "e-commerce" created');
   } else if (createRes.status === 409) {
-    console.log(`· Store "${STORE_NAME}" already exists — fetching...`);
+    console.log('· Store "e-commerce" already exists — fetching...');
     const listRes = await api('GET', '/api/stores', null, cookie);
     const stores  = await listRes.json();
-    store         = stores.find(s => s.slug === STORE_SLUG);
+    store         = stores.find(s => s.slug === 'e-commerce');
     if (!store) { console.error('Could not find existing store'); process.exit(1); }
   } else {
     console.error('Store creation failed:', await createRes.json()); process.exit(1);
   }
-
-/* 
 
   // ── 4. Add products (idempotent — skips existing SKUs) ───────────────────
   const products = [
@@ -185,8 +174,6 @@ async function seed() {
     },
   ];
 
-*/
-
   let added = 0, skipped = 0;
   for (const p of products) {
     const res  = await api('POST', '/api/products', { ...p, store_id: store.id }, cookie);
@@ -203,8 +190,8 @@ async function seed() {
 
   console.log('\n─────────────────────────────────────────');
   console.log('Done! Open these URLs in your browser:\n');
-  console.log(`  Store     →  ${BASE}/store/${STORE_SLUG}`);
-  console.log(`  Dashboard →  ${BASE}/dashboard/`);
+  console.log('  Store     →  http://localhost:8788/store/e-commerce');
+  console.log('  Dashboard →  http://localhost:8788/dashboard/');
   console.log(`\n  Email:    ${EMAIL}`);
   console.log(`  Password: ${PASS}`);
   console.log('─────────────────────────────────────────\n');
