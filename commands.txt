@@ -1,0 +1,1 @@
+BASE="https://maxcybersolutions.online" node scripts/seed-local.js "email@example.com" "StoreName" "password"
