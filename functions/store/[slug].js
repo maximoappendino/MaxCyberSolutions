@@ -313,6 +313,106 @@ function renderStorefront(store, config, products, isPreview = false) {
     .s-card__cta:hover  { color: var(--accent); }
     .s-card__cta::after { content: "→"; }
 
+    /* ── Named grid layout variants ── */
+
+    /* nani — editorial magazine grid */
+    .s-grid--nani { border: none; gap: 2px; }
+    .s-grid--nani .s-card { border: 1px solid var(--line); border-radius: 0; box-shadow: none; overflow: hidden; }
+    .s-grid--nani .s-card:nth-child(1) { grid-column: 1 / 6; grid-row: 1 / 3; }
+    .s-grid--nani .s-card:nth-child(2) { grid-column: 6 / 10; }
+    .s-grid--nani .s-card:nth-child(3) { grid-column: 10 / 13; }
+    .s-grid--nani .s-card:nth-child(4) { grid-column: 6 / 9; }
+    .s-grid--nani .s-card:nth-child(5) { grid-column: 9 / 13; }
+    .s-grid--nani .s-card:nth-child(n+6) { grid-column: span 4; }
+    .s-grid--nani .s-card:nth-child(1) .s-card__img { flex: 1; aspect-ratio: unset; min-height: 420px; }
+    @media (max-width: 700px) {
+      .s-grid--nani { grid-template-columns: 1fr 1fr !important; }
+      .s-grid--nani .s-card:nth-child(n) { grid-column: auto !important; grid-row: auto !important; }
+      .s-grid--nani .s-card:nth-child(1) .s-card__img { min-height: auto; flex: none; }
+    }
+
+    /* alicia — full-bleed overlay cards */
+    .s-grid--alicia { border: none; gap: 12px; }
+    .s-grid--alicia .s-card {
+      position: relative; min-height: 340px; background: #0d0d0d;
+      border: none; border-radius: var(--s-radius); overflow: hidden; gap: 0;
+    }
+    .s-grid--alicia .s-card:hover { background: #0d0d0d; }
+    .s-grid--alicia .s-card__img {
+      position: absolute; inset: 0; width: 100%; height: 100%; aspect-ratio: unset;
+      z-index: 0; transition: transform 500ms ease;
+    }
+    .s-grid--alicia .s-card:hover .s-card__img { transform: scale(1.07); }
+    .s-grid--alicia .s-card::before {
+      content: ''; position: absolute; inset: 0; z-index: 1;
+      background: linear-gradient(to top, rgba(0,0,0,.92) 0%, rgba(0,0,0,.35) 55%, rgba(0,0,0,.05) 100%);
+    }
+    .s-grid--alicia .s-card__body {
+      position: absolute; bottom: 0; left: 0; right: 0; z-index: 2;
+      flex: none; padding: 24px 28px 28px;
+    }
+    .s-grid--alicia .s-card__sku   { color: rgba(255,255,255,.4); }
+    .s-grid--alicia .s-card__name  { color: #fff; }
+    .s-grid--alicia .s-card__price { color: var(--accent); font-size: 26px; }
+    .s-grid--alicia .s-card__desc  { color: rgba(255,255,255,.6); }
+    .s-grid--alicia .s-card__badge { border-color: rgba(255,255,255,.2); color: rgba(255,255,255,.45); }
+    .s-grid--alicia .s-card__badge--oos { border-color: #c44; color: #c44; }
+    .s-grid--alicia .s-card__cta   { border-top-color: rgba(255,255,255,.15); color: rgba(255,255,255,.7); }
+    .s-grid--alicia .s-card__cta:hover { color: var(--accent); }
+    .s-grid--alicia .s-card--noimg { min-height: auto; }
+    .s-grid--alicia .s-card--noimg .s-card__body { position: relative; }
+
+    /* frank — bento asymmetric grid */
+    .s-grid--frank { border: none; gap: 10px; }
+    .s-grid--frank .s-card { overflow: hidden; border: none; }
+    .s-grid--frank .s-card:nth-child(1) { grid-column: span 2; grid-row: span 2; }
+    .s-grid--frank .s-card:nth-child(1) .s-card__img { flex: 1; aspect-ratio: unset; min-height: 260px; }
+    .s-grid--frank .s-card:nth-child(5) { grid-column: span 2; }
+    .s-grid--frank .s-card:nth-child(8) { grid-column: span 2; }
+
+    /* vivi — horizontal scroll carousel */
+    .s-grid--vivi {
+      display: flex !important; overflow-x: auto; flex-wrap: nowrap; border: none;
+      gap: 16px; padding-bottom: 16px; scrollbar-width: thin; scroll-snap-type: x mandatory;
+    }
+    .s-grid--vivi .s-card { flex: 0 0 260px; scroll-snap-align: start; border: 1px solid var(--line); }
+
+    /* emilse — alternating horizontal rows */
+    .s-grid--emilse { border: none; gap: 0; }
+    .s-grid--emilse .s-card {
+      flex-direction: row; min-height: 220px; border: none; border-radius: 0;
+      border-bottom: 1px solid var(--line);
+    }
+    .s-grid--emilse .s-card:nth-child(even) { flex-direction: row-reverse; }
+    .s-grid--emilse .s-card__img { width: 300px; min-width: 300px; aspect-ratio: unset; flex-shrink: 0; }
+    .s-grid--emilse .s-card__body { padding: 32px 44px; justify-content: center; }
+
+    /* gaspar — neon glow cards */
+    .s-grid--gaspar { border: none; gap: 12px; }
+    .s-grid--gaspar .s-card {
+      border: 2px solid var(--accent); border-radius: var(--s-radius); overflow: hidden;
+      transition: box-shadow 300ms ease, transform 300ms ease, background 200ms ease;
+    }
+    .s-grid--gaspar .s-card:hover {
+      background: color-mix(in srgb, var(--accent) 8%, var(--bg));
+      box-shadow: 0 0 24px color-mix(in srgb, var(--accent) 35%, transparent), 0 8px 32px rgba(0,0,0,.2);
+      transform: translateY(-3px);
+    }
+    .s-grid--gaspar .s-card__name  { color: var(--accent); }
+    .s-grid--gaspar .s-card__cta   { border-top-color: var(--accent); color: var(--accent); }
+    .s-grid--gaspar .s-card__cta:hover { opacity: 0.75; }
+
+    /* saira — clean cards with accent price pill */
+    .s-grid--saira { border: none; gap: 20px; }
+    .s-grid--saira .s-card { border: none; border-radius: var(--s-radius); box-shadow: 0 6px 28px rgba(0,0,0,.08); overflow: hidden; }
+    .s-grid--saira .s-card:hover { background: var(--bg); box-shadow: 0 12px 40px rgba(0,0,0,.13); }
+    .s-grid--saira .s-card__price {
+      display: inline-flex; align-self: flex-start;
+      background: var(--accent); color: #fff; font-size: 14px;
+      padding: 5px 14px; border-radius: 999px;
+      font-family: var(--mono); letter-spacing: 0.01em;
+    }
+
     /* ── Image gallery ── */
     .s-gallery { padding: 64px var(--pad); }
     .s-gallery__title { font-family: var(--serif);
@@ -540,7 +640,7 @@ function renderStorefront(store, config, products, isPreview = false) {
 
   ${!hasFooterSection ? `<footer class="s-foot">
     <span class="s-foot__brand">Powered by MaxCyberSolutions</span>
-    <a href="/" class="s-foot__link">maxcybersolutions.com ↗</a>
+    <a href="/" class="s-foot__link">maxcybersolutions.online ↗</a>
   </footer>` : ''}
 
   ${features.hasDiscountCountdown && !hasHeaderSection ? countdownScript() : ''}
@@ -786,7 +886,18 @@ function renderProductGrid(s, products) {
     hoverEffect:     s.hoverEffect || 'none',
   };
 
-  const gridCols    = layout === 'list' ? '1fr' : `repeat(${cols}, 1fr)`;
+  let gridCols;
+  if (layout === 'list' || layout === 'emilse') {
+    gridCols = '1fr';
+  } else if (layout === 'nani') {
+    gridCols = 'repeat(12, 1fr)';
+  } else if (layout === 'frank') {
+    gridCols = 'repeat(4, 1fr)';
+  } else if (layout === 'vivi') {
+    gridCols = '';
+  } else {
+    gridCols = `repeat(${cols}, 1fr)`;
+  }
   const showFilters = !!s.showFilters;
   const showSort    = !!s.showSort;
   const gridId      = `sg-${Math.random().toString(36).slice(2,7)}`;
@@ -859,7 +970,7 @@ function renderProductGrid(s, products) {
   </div>
   ${toolbar}
   ${filtered.length
-    ? `<div class="s-grid s-grid--${esc(layout)}" style="grid-template-columns:${gridCols}">
+    ? `<div class="s-grid s-grid--${esc(layout)}"${gridCols ? ` style="grid-template-columns:${gridCols}"` : ''}>
         ${filtered.map(p => renderCard(p, cardOpts)).join('')}
        </div>`
     : `<div class="s-empty"><p class="s-empty__text">No products yet &mdash; check back soon.</p></div>`}

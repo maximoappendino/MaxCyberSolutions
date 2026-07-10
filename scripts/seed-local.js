@@ -7,8 +7,8 @@
  *   node scripts/seed-local.js
  */
 
-const BASE  = 'http://localhost:8788';
-const EMAIL = 'admin@maxcybersolutions.com';
+const BASE  = process.env.BASE || 'http://localhost:8788';
+const EMAIL = 'admin@maxcybersolutions.online';
 const PASS  = 'demo1234';
 
 async function api(method, path, body, cookie) {
@@ -87,7 +87,7 @@ async function seed() {
           type:     'floating-cta',
           icon:     '💬',
           label:    'Chat with us',
-          url:      'mailto:hello@maxcybersolutions.com',
+          url:      'mailto:hello@maxcybersolutions.online',
           position: 'bottom-right',
           color:    '#e2a14a',
         },

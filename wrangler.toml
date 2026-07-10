@@ -8,7 +8,7 @@ pages_build_output_dir = "."
 [[d1_databases]]
 binding      = "DB"
 database_name = "maxcybersolutions-db"
-database_id  = "PASTE_DATABASE_ID_HERE"
+database_id  = "556d54dd-e2de-4c18-bfd4-8b5ba82b4c99"
 
 # ── R2 Object Storage ─────────────────────────────────────────────────────────
 # 1. Run: wrangler r2 bucket create maxcybersolutions-assets
