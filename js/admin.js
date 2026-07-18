@@ -242,15 +242,20 @@ function renderDetail() {
 
     <div class="dsection">
       <div class="dsection__title">Websites (${(c.stores || []).length})</div>
-      ${(c.stores || []).length === 0
-        ? '<div class="empty-msg">No stores yet</div>'
-        : (c.stores || []).map(s => `
-        <div class="store-row">
+      <div id="d-stores-list">
+        ${(c.stores || []).map(s => `
+        <div class="store-row" data-store-id="${esc(s.id)}">
           <span class="store-slug">/${esc(s.slug)}</span>
           <span class="store-name">${esc(s.name || s.slug)}</span>
           <a class="store-link" href="/${esc(s.slug)}" target="_blank" rel="noopener">↗</a>
-        </div>`).join('')
-      }
+          <button class="store-remove-btn" onclick="removeStore('${esc(c.id)}','${esc(s.id)}')" title="Remove website">−</button>
+        </div>`).join('') || '<div class="empty-msg">No stores yet</div>'}
+      </div>
+      <div class="store-add-row">
+        <input class="store-add-input" id="d-new-slug" type="text" placeholder="new-slug" oninput="checkNewSlug()" autocomplete="off"/>
+        <span class="store-add-hint" id="d-slug-hint"></span>
+        <button class="store-add-btn" onclick="addStore('${esc(c.id)}')" title="Add website">+</button>
+      </div>
     </div>
 
     ${!c.is_admin ? `
@@ -360,5 +365,53 @@ function flashDetailMsg(msg, type) {
   el.style.display = '';
   setTimeout(() => { if (el) el.style.display = 'none'; }, 3000);
 }
+
+window.removeStore = async function(ownerId, storeId) {
+  if (!confirm('Remove this website?\n\nAll its products and images will be permanently deleted.')) return;
+  const res  = await api('DELETE', `/api/admin/owners/${ownerId}/stores/${storeId}`);
+  const data = await safeJson(res);
+  if (!res.ok) { flashDetailMsg(data.error || 'Remove failed', 'err'); return; }
+  if (state.selected) {
+    state.selected.stores = (state.selected.stores || []).filter(s => s.id !== storeId);
+    renderDetail();
+    renderSidebar();
+  }
+};
+
+window.addStore = async function(ownerId) {
+  const slugEl = document.getElementById('d-new-slug');
+  const slug   = (slugEl?.value || '').trim().toLowerCase();
+  if (!slug) { flashDetailMsg('Enter a slug first', 'err'); return; }
+  const res  = await api('POST', `/api/admin/owners/${ownerId}/stores`, { slug });
+  const data = await safeJson(res);
+  if (!res.ok) { flashDetailMsg(data.error || 'Failed to add website', 'err'); return; }
+  if (state.selected) {
+    state.selected.stores = [...(state.selected.stores || []), { id: data.id, slug: data.slug, name: data.name }];
+    renderDetail();
+    renderSidebar();
+  }
+};
+
+let _slugCheckTimer = null;
+window.checkNewSlug = function() {
+  const slugEl = document.getElementById('d-new-slug');
+  const hintEl = document.getElementById('d-slug-hint');
+  const raw    = (slugEl?.value || '').trim().toLowerCase();
+  if (hintEl) { hintEl.textContent = ''; hintEl.className = 'store-add-hint'; }
+  clearTimeout(_slugCheckTimer);
+  if (!raw || raw.length < 2) return;
+  _slugCheckTimer = setTimeout(async () => {
+    const res  = await fetch(`/api/public/slug-check?slug=${encodeURIComponent(raw)}`, { credentials: 'include' });
+    const data = await res.json().catch(() => ({}));
+    if (!hintEl) return;
+    if (data.available) {
+      hintEl.textContent = '✓ available';
+      hintEl.className   = 'store-add-hint store-add-hint--ok';
+    } else {
+      hintEl.textContent = data.error || '✗ taken';
+      hintEl.className   = 'store-add-hint store-add-hint--err';
+    }
+  }, 400);
+};
 
 document.addEventListener('DOMContentLoaded', boot);

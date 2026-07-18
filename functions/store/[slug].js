@@ -638,6 +638,7 @@ function renderStorefront(store, config, products, isPreview = false) {
       text-transform: uppercase; cursor: pointer; display: flex; align-items: center; gap: 8px;
       box-shadow: 0 4px 18px rgba(0,0,0,.22); transition: transform 120ms, box-shadow 120ms; }
     .s-cart-fab:hover { transform: translateY(-2px); box-shadow: 0 6px 22px rgba(0,0,0,.28); }
+    .s-cart-fab--up   { bottom: 96px; }
     .s-cart-badge { background: var(--accent); color: #fff; border-radius: 999px;
       font-size: 9px; font-weight: 500; min-width: 16px; height: 16px; padding: 0 4px;
       display: inline-flex; align-items: center; justify-content: center; }
@@ -729,7 +730,7 @@ function renderStorefront(store, config, products, isPreview = false) {
 
   ${features.hasDiscountCountdown && !hasHeaderSection ? countdownScript() : ''}
   ${features.hasNewsletterPopup && !isPreview ? newsletterScript() : ''}
-  ${!isPreview ? cartHtml(store.slug, store.cbu_cvu, store.mp_access_token, store.whatsapp_number, store.whatsapp_message) : ''}
+  ${!isPreview ? cartHtml(store.slug, store.cbu_cvu, store.mp_access_token, store.whatsapp_number, store.whatsapp_message, floaters.length > 0 || customBtns.length > 0) : ''}
 </body>
 </html>`;
 }
@@ -1303,7 +1304,7 @@ function newsletterScript() {
 </script>`;
 }
 
-function cartHtml(slug, cbuCvu, mpToken, waNumber, waMessage) {
+function cartHtml(slug, cbuCvu, mpToken, waNumber, waMessage, hasFloaters = false) {
   const hasCheckout = !!(cbuCvu || mpToken);
   const hasWA       = !!(waNumber);
   const waDefault   = 'Hola! Me gustaría hacer el siguiente pedido:';
@@ -1336,7 +1337,7 @@ function cartHtml(slug, cbuCvu, mpToken, waNumber, waMessage) {
       : ''}
   </div>
 </aside>
-<button class="s-cart-fab" id="s-cart-fab" onclick="sCartOpen()" aria-label="Open cart">
+<button class="s-cart-fab${hasFloaters ? ' s-cart-fab--up' : ''}" id="s-cart-fab" onclick="sCartOpen()" aria-label="Open cart">
   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>
   <span class="s-cart-badge" id="s-cart-badge" data-count="0">0</span>
   Cart
@@ -1345,10 +1346,10 @@ function cartHtml(slug, cbuCvu, mpToken, waNumber, waMessage) {
 
 <script>
 (function(){
-  const SLUG      = '${esc(slug)}';
+  const SLUG      = ${JSON.stringify(slug)};
   const CART_KEY  = 'cart_' + SLUG;
-  const WA_NUMBER = '${esc(waNumber || '')}';
-  const WA_MSG    = '${esc(waMessage || waDefault)}';
+  const WA_NUMBER = ${JSON.stringify(waNumber || '')};
+  const WA_MSG    = ${JSON.stringify(waMessage || waDefault)};
   const fmtPrice  = c => '$' + (c/100).toLocaleString('es-AR',{minimumFractionDigits:2,maximumFractionDigits:2});
 
   var cart = [];

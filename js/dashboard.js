@@ -682,7 +682,7 @@ function renderStoresGrid() {
       <div class="store-card__name">${esc(s.name || s.slug)}</div>
       <div class="store-card__actions">
         <button class="btn-ghost btn-sm" onclick="openStore('${esc(s.id)}')">Edit →</button>
-        <button class="btn-ghost btn-sm btn-ghost--danger" onclick="deleteStore('${esc(s.id)}')">Delete</button>
+        ${state.owner?.is_admin ? `<button class="btn-ghost btn-sm btn-ghost--danger" onclick="deleteStore('${esc(s.id)}')">Delete</button>` : ''}
       </div>
     </div>`).join('');
 }
@@ -2333,7 +2333,14 @@ function openNewProductModal() {
   renderProductImgPreview('');
   setMsg('pm-msg', '', '');
   document.getElementById('product-modal').classList.add('active');
-  document.getElementById('pm-sku').readOnly = false;
+  const skuEl = document.getElementById('pm-sku');
+  if (!state.allowEditIds) {
+    skuEl.value    = 'SKU-' + Date.now().toString(36).toUpperCase();
+    skuEl.readOnly = true;
+  } else {
+    skuEl.value    = '';
+    skuEl.readOnly = false;
+  }
 }
 
 window.editProduct = function(productId) {

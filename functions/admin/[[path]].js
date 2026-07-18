@@ -187,6 +187,19 @@ const HTML = `<!DOCTYPE html>
     .store-name { flex: 1; font-size: 13px; }
     .store-link { font-family: var(--mono); font-size: 11px; color: var(--accent); text-decoration: none; }
     .store-link:hover { text-decoration: underline; }
+    .store-remove-btn { background: none; border: none; color: var(--ink-faint);
+      font-size: 20px; line-height: 1; padding: 0 2px; cursor: pointer; transition: color 150ms; }
+    .store-remove-btn:hover { color: var(--red); }
+    .store-add-row { display: flex; align-items: center; gap: 8px; margin-top: 12px; }
+    .store-add-input { flex: 1; padding: 7px 10px; font-size: 12px; }
+    .store-add-hint { font-family: var(--mono); font-size: 9px; letter-spacing: 0.1em;
+      white-space: nowrap; min-width: 70px; }
+    .store-add-hint--ok  { color: #1c6b3a; }
+    .store-add-hint--err { color: var(--red); }
+    .store-add-btn { flex-shrink: 0; width: 34px; height: 34px; background: var(--ink); color: var(--cream);
+      border: none; font-size: 22px; cursor: pointer; transition: opacity 150ms;
+      display: flex; align-items: center; justify-content: center; line-height: 1; }
+    .store-add-btn:hover { opacity: 0.75; }
 
     /* Danger zone */
     .dsection--danger .dsection__title { color: var(--red); }
