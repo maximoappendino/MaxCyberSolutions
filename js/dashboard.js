@@ -1,4 +1,4 @@
-/* MaxCyberSolutions — Dashboard SPA */
+/* MaxCyberSolutions — Dashboard SPA v2 */
 
 // ── Translations ──────────────────────────────────────────────────────────────
 const I18N = {
