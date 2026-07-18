@@ -211,18 +211,58 @@ const HTML = `<!DOCTYPE html>
     .empty-msg { font-family: var(--serif); font-style: italic; font-size: 18px; color: var(--fg-soft); padding: 32px 0; }
 
     /* ══════════════════════ EDITOR LAYOUT ══════════════════════ */
-    .editor-wrap { display: flex; height: 100vh; padding-top: var(--bar-h); overflow: hidden; }
+    .editor-wrap { display: flex; flex-direction: column; height: 100vh; padding-top: var(--bar-h); overflow: hidden; }
+
+    /* Control Panel tabs */
+    .cp-tabbar { display: flex; align-items: center; border-bottom: 1px solid var(--line); flex-shrink: 0; background: var(--bg); }
+    .cp-tab { font-family: var(--mono); font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase; padding: 9px 16px; border: none; background: transparent; color: var(--fg-faint); border-bottom: 2px solid transparent; margin-bottom: -1px; transition: color 160ms; cursor: pointer; }
+    .cp-tab:hover { color: var(--fg); }
+    .cp-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+    .cp-panel { display: none; flex: 1; overflow: hidden; }
+    .cp-panel.active { display: flex; }
+    #cp-dashboard { flex-direction: row; }
+    #cp-gallery { flex-direction: column; align-items: stretch; }
+    #cp-wip { align-items: center; justify-content: center; }
+
+    /* Gallery panel */
+    .gallery-pane { display: flex; flex-direction: column; width: 100%; }
+    .gallery-pane__toolbar { display: flex; align-items: center; gap: 8px; padding: 10px 16px; border-bottom: 1px solid var(--line); flex-shrink: 0; }
+    .gallery-pane__title { font-family: var(--mono); font-size: 9px; letter-spacing: .16em; text-transform: uppercase; color: var(--fg-faint); flex: 1; }
+    .gallery-pane__grid { flex: 1; overflow-y: auto; padding: 16px; display: grid; grid-template-columns: repeat(auto-fill, minmax(140px,1fr)); gap: 12px; align-content: start; }
+    .gallery-item { position: relative; border: 1px solid var(--line); overflow: hidden; }
+    .gallery-item__img { width: 100%; aspect-ratio: 1; object-fit: cover; display: block; background: var(--line-soft); }
+    .gallery-item__actions { position: absolute; inset: 0; background: rgba(0,0,0,.55); display: none; align-items: center; justify-content: center; gap: 8px; }
+    .gallery-item:hover .gallery-item__actions { display: flex; }
+    .gallery-item__btn { font-family: var(--mono); font-size: 10px; padding: 5px 10px; border: 1px solid rgba(255,255,255,.4); background: rgba(0,0,0,.4); color: #fff; cursor: pointer; transition: background 150ms; }
+    .gallery-item__btn:hover { background: rgba(0,0,0,.7); }
+    .gallery-item__size { font-family: var(--mono); font-size: 8px; letter-spacing: .08em; color: var(--fg-faint); padding: 4px 6px; text-align: right; }
+    .gallery-empty { grid-column: 1/-1; color: var(--fg-faint); font-size: 13px; text-align: center; padding: 40px; }
+
+    /* Canvas Image Editor */
+    .img-editor-overlay { position: fixed; inset: 0; z-index: 600; background: rgba(0,0,0,.75); display: none; align-items: center; justify-content: center; }
+    .img-editor-overlay.active { display: flex; }
+    .img-editor-box { background: var(--bg); width: min(900px, 96vw); max-height: 94vh; display: flex; flex-direction: column; overflow: hidden; }
+    .img-editor-head { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-bottom: 1px solid var(--line); flex-shrink: 0; }
+    .img-editor-head__title { font-family: var(--mono); font-size: 10px; letter-spacing: .14em; text-transform: uppercase; flex: 1; }
+    .img-editor-body { display: flex; flex: 1; overflow: hidden; gap: 0; }
+    .img-editor-canvas-wrap { flex: 1; display: flex; align-items: center; justify-content: center; background: #111; overflow: hidden; padding: 16px; }
+    .img-editor-canvas-wrap canvas { max-width: 100%; max-height: 100%; object-fit: contain; }
+    .img-editor-tools { width: 220px; flex-shrink: 0; border-left: 1px solid var(--line); display: flex; flex-direction: column; overflow-y: auto; }
+    .img-editor-tabs { display: flex; border-bottom: 1px solid var(--line); flex-shrink: 0; }
+    .img-editor-tab { flex: 1; font-family: var(--mono); font-size: 9px; letter-spacing: .1em; text-transform: uppercase; padding: 8px 4px; border: none; background: transparent; color: var(--fg-faint); border-bottom: 2px solid transparent; margin-bottom: -1px; cursor: pointer; }
+    .img-editor-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+    .img-editor-panel { display: none; padding: 14px 12px; flex-direction: column; gap: 12px; }
+    .img-editor-panel.active { display: flex; }
+    .img-editor-slider { display: flex; flex-direction: column; gap: 4px; }
+    .img-editor-slider label { font-family: var(--mono); font-size: 9px; letter-spacing: .1em; text-transform: uppercase; color: var(--fg-faint); display: flex; justify-content: space-between; }
+    .img-editor-slider input[type=range] { width: 100%; }
+    .img-editor-foot { display: flex; gap: 8px; padding: 12px 16px; border-top: 1px solid var(--line); flex-shrink: 0; justify-content: flex-end; }
+    .palette-swatch { width: 16px; height: 16px; border: 1px solid var(--line); border-radius: 50%; flex-shrink: 0; }
 
     /* Left panel */
     .editor-left { width: var(--panel-w); flex-shrink: 0; border-right: 1px solid var(--line);
       display: flex; flex-direction: column; overflow: hidden; background: var(--bg); }
 
-    /* Store at a Glance */
-    .glance { display: flex; gap: 0; flex-shrink: 0; border-bottom: 1px solid var(--line); }
-    .glance__stat { flex: 1; padding: 10px 12px; text-align: center; border-right: 1px solid var(--line-soft); }
-    .glance__stat:last-child { border-right: none; }
-    .glance__val { font-family: var(--serif); font-size: 22px; letter-spacing: -0.02em; line-height: 1; }
-    .glance__lbl { font-family: var(--mono); font-size: 8px; letter-spacing: 0.15em; text-transform: uppercase; color: var(--fg-faint); margin-top: 2px; }
 
     /* Editor tabs */
     .etabs { display: flex; border-bottom: 1px solid var(--line); flex-shrink: 0; }
@@ -668,10 +708,18 @@ const HTML = `<!DOCTYPE html>
   <div class="screen" id="screen-editor">
     <div class="editor-wrap">
 
+      <!-- Control Panel top tabs -->
+      <div class="cp-tabbar">
+        <button class="cp-tab active" data-cp-tab="dashboard">Dashboard</button>
+        <button class="cp-tab" data-cp-tab="gallery">Gallery</button>
+        <button class="cp-tab" data-cp-tab="wip">(Under Development)</button>
+      </div>
+
+      <!-- Dashboard panel (left + right split) -->
+      <div class="cp-panel active" id="cp-dashboard">
+
       <!-- Left panel -->
       <div class="editor-left" id="editor-left">
-
-        <div class="glance" id="glance"></div>
 
         <div class="etabs">
           <button class="etab active" data-tab="design">Design</button>
@@ -684,14 +732,6 @@ const HTML = `<!DOCTYPE html>
         <!-- Design tab -->
         <div class="etab-pane active" id="etab-design">
           <div class="design-pane">
-
-            <!-- Templates & Style (top) -->
-            <div class="pane-section">
-              <span class="pane-section__label">Look &amp; Feel</span>
-              <button class="btn-ghost btn-sm" id="btn-change-tmpl" style="width:100%">⊞ Change Template</button>
-              <button class="btn-ghost btn-sm" id="btn-change-style" style="width:100%">◈ Change Style</button>
-              <button class="btn-ghost btn-sm" id="btn-change-palette" style="width:100%">⬡ Colour Palette</button>
-            </div>
 
             <!-- Logo -->
             <div class="pane-section">
@@ -721,6 +761,17 @@ const HTML = `<!DOCTYPE html>
               <div class="form-field">
                 <label for="d-seo-desc">SEO description</label>
                 <textarea id="d-seo-desc" rows="2" style="resize:vertical"></textarea>
+              </div>
+            </div>
+
+            <!-- Look & Feel -->
+            <div class="pane-section">
+              <span class="pane-section__label">Look &amp; Feel</span>
+              <button class="btn-ghost btn-sm" id="btn-change-tmpl" style="width:100%">⊞ Change Template</button>
+              <button class="btn-ghost btn-sm" id="btn-change-style" style="width:100%">◈ Change Style</button>
+              <div style="display:flex;align-items:center;gap:8px">
+                <button class="btn-ghost btn-sm" id="btn-change-palette" style="flex:1">⬡ Colour Palette</button>
+                <div id="palette-swatches" style="display:flex;gap:4px;flex-shrink:0"></div>
               </div>
             </div>
 
@@ -1304,8 +1355,115 @@ const HTML = `<!DOCTYPE html>
           <iframe class="editor-iframe" id="preview-iframe" src="about:blank" title="Store preview"></iframe>
         </div>
       </div>
+
+      </div><!-- /cp-dashboard -->
+
+      <!-- Gallery panel -->
+      <div class="cp-panel" id="cp-gallery">
+        <div class="gallery-pane">
+          <div class="gallery-pane__toolbar">
+            <span class="gallery-pane__title">Image Gallery</span>
+            <button class="btn-ghost btn-sm" id="btn-gallery-upload">+ Upload</button>
+            <button class="btn-ghost btn-sm" id="btn-gallery-refresh">↻</button>
+          </div>
+          <div class="gallery-pane__grid" id="gallery-pane-grid">
+            <p style="color:var(--fg-faint);font-size:12px;padding:20px">Loading images…</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Under Development panel -->
+      <div class="cp-panel" id="cp-wip">
+        <div style="text-align:center;padding:60px 20px;max-width:480px">
+          <div style="font-size:48px;margin-bottom:20px">🔬</div>
+          <div style="font-family:var(--mono);font-size:9px;letter-spacing:.2em;text-transform:uppercase;color:var(--fg-faint);margin-bottom:12px">Under Development</div>
+          <div style="font-family:var(--serif);font-size:28px;letter-spacing:-0.01em;margin-bottom:16px">Something's brewing.</div>
+          <div style="font-size:13px;color:var(--fg-soft);line-height:1.6">New tools for your store are on the way. Stay tuned.</div>
+        </div>
+      </div>
+
+    </div><!-- /editor-wrap -->
+  </div><!-- /screen-editor -->
+
+  <!-- ── Canvas Image Editor ── -->
+  <div class="img-editor-overlay" id="img-editor-overlay">
+    <div class="img-editor-box">
+      <div class="img-editor-head">
+        <span class="img-editor-head__title">Edit Image</span>
+        <button class="btn-ghost btn-sm" id="img-editor-reset">Reset</button>
+        <button class="modal-close" id="img-editor-close">✕</button>
+      </div>
+      <div class="img-editor-body">
+        <div class="img-editor-canvas-wrap">
+          <canvas id="img-editor-canvas"></canvas>
+        </div>
+        <div class="img-editor-tools">
+          <div class="img-editor-tabs">
+            <button class="img-editor-tab active" data-etab="filters">Filters</button>
+            <button class="img-editor-tab" data-etab="resize">Resize</button>
+            <button class="img-editor-tab" data-etab="crop">Crop</button>
+          </div>
+          <!-- Filters panel -->
+          <div class="img-editor-panel active" id="iet-filters">
+            <div class="img-editor-slider">
+              <label>Brightness <span id="ie-brightness-val">100%</span></label>
+              <input type="range" id="ie-brightness" min="0" max="200" value="100" />
+            </div>
+            <div class="img-editor-slider">
+              <label>Contrast <span id="ie-contrast-val">100%</span></label>
+              <input type="range" id="ie-contrast" min="0" max="200" value="100" />
+            </div>
+            <div class="img-editor-slider">
+              <label>Saturation <span id="ie-saturation-val">100%</span></label>
+              <input type="range" id="ie-saturation" min="0" max="200" value="100" />
+            </div>
+            <div class="img-editor-slider">
+              <label>Sepia <span id="ie-sepia-val">0%</span></label>
+              <input type="range" id="ie-sepia" min="0" max="100" value="0" />
+            </div>
+            <div class="img-editor-slider">
+              <label>Grayscale <span id="ie-grayscale-val">0%</span></label>
+              <input type="range" id="ie-grayscale" min="0" max="100" value="0" />
+            </div>
+          </div>
+          <!-- Resize panel -->
+          <div class="img-editor-panel" id="iet-resize">
+            <div class="form-field">
+              <label for="ie-rw">Width (px)</label>
+              <input type="number" id="ie-rw" min="1" max="4000" />
+            </div>
+            <div class="form-field">
+              <label for="ie-rh">Height (px)</label>
+              <input type="number" id="ie-rh" min="1" max="4000" />
+            </div>
+            <label class="toggle" style="flex-direction:row;align-items:center;gap:8px;font-size:12px">
+              <input type="checkbox" id="ie-ratio-lock" checked />
+              <span class="toggle__track"></span><span class="toggle__thumb"></span>
+              Lock ratio
+            </label>
+            <button class="btn-ghost btn-sm" id="ie-apply-resize">Apply resize</button>
+          </div>
+          <!-- Crop panel -->
+          <div class="img-editor-panel" id="iet-crop">
+            <div class="form-row">
+              <div class="form-field"><label for="ie-cx">X</label><input type="number" id="ie-cx" min="0" value="0" /></div>
+              <div class="form-field"><label for="ie-cy">Y</label><input type="number" id="ie-cy" min="0" value="0" /></div>
+            </div>
+            <div class="form-row">
+              <div class="form-field"><label for="ie-cw">Width</label><input type="number" id="ie-cw" min="1" /></div>
+              <div class="form-field"><label for="ie-ch">Height</label><input type="number" id="ie-ch" min="1" /></div>
+            </div>
+            <button class="btn-ghost btn-sm" id="ie-apply-crop">Apply crop</button>
+          </div>
+        </div>
+      </div>
+      <div class="img-editor-foot">
+        <button class="btn-ghost btn-sm" id="img-editor-cancel">Cancel</button>
+        <button class="btn-solid btn-sm" id="img-editor-save">Save &amp; Upload</button>
+      </div>
     </div>
   </div>
+  <input type="file" id="gallery-upload-input" accept="image/*" style="display:none" />
 
   <!-- ── Product / item modal ── -->
   <div class="modal-overlay" id="product-modal">

@@ -547,6 +547,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   setupLoginTabs();
   setupLoginForm();
   setupNewStoreForm();
+  setupCpTabs();
+  setupGallery();
+  setupImgEditor();
   setupEditorTabs();
   setupDesignListeners();
   setupSectionControls();
@@ -752,13 +755,275 @@ window.openStore = async function(storeId) {
   renderDesignTab();
   renderSectionList();
   renderItemsList();
-  renderGlance();
   renderConfigTab();
   updateDirty();
   updateUndoRedoBtns();
   updatePreview();
   document.getElementById('etab-design').scrollTop = 0;
 };
+
+// ── Control Panel tabs (Dashboard / Gallery / WIP) ────────────────────────────
+function setupCpTabs() {
+  document.querySelectorAll('.cp-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('.cp-tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.cp-panel').forEach(p => p.classList.remove('active'));
+      tab.classList.add('active');
+      const panelId = { dashboard: 'cp-dashboard', gallery: 'cp-gallery', wip: 'cp-wip' }[tab.dataset.cpTab];
+      document.getElementById(panelId)?.classList.add('active');
+      if (tab.dataset.cpTab === 'gallery') loadGallery();
+    });
+  });
+}
+
+// ── Gallery ───────────────────────────────────────────────────────────────────
+let _galleryImages = [];
+
+async function loadGallery() {
+  const grid = document.getElementById('gallery-pane-grid');
+  if (!state.activeStore) return;
+  grid.innerHTML = '<p class="gallery-empty">Loading…</p>';
+  const res = await api('GET', `/api/stores/${state.activeStore.id}/images`);
+  if (!res.ok) { grid.innerHTML = '<p class="gallery-empty">Failed to load images.</p>'; return; }
+  const data = await res.json();
+  _galleryImages = data.images || [];
+  renderGalleryGrid();
+}
+
+function renderGalleryGrid() {
+  const grid = document.getElementById('gallery-pane-grid');
+  if (!_galleryImages.length) {
+    grid.innerHTML = '<p class="gallery-empty">No images uploaded yet. Click "+ Upload" to add one.</p>';
+    return;
+  }
+  grid.innerHTML = _galleryImages.map((img, i) => `
+<div class="gallery-item" data-idx="${i}">
+  <img class="gallery-item__img" src="${esc(img.url)}" alt="" loading="lazy" onerror="this.src=''" />
+  <div class="gallery-item__actions">
+    <button class="gallery-item__btn" onclick="openImgEditor(${i})">Edit</button>
+    <button class="gallery-item__btn" onclick="copyImgUrl(${i})" title="Copy URL">Copy</button>
+    <button class="gallery-item__btn" onclick="deleteGalleryImg(${i})">Delete</button>
+  </div>
+  <div class="gallery-item__size">${formatBytes(img.size)}</div>
+</div>`).join('');
+}
+
+function formatBytes(b) {
+  if (!b) return '';
+  if (b < 1024) return `${b}B`;
+  if (b < 1048576) return `${(b/1024).toFixed(0)}KB`;
+  return `${(b/1048576).toFixed(1)}MB`;
+}
+
+window.copyImgUrl = function(i) {
+  const img = _galleryImages[i];
+  if (!img) return;
+  navigator.clipboard.writeText(img.url).then(() => alert('URL copied to clipboard.')).catch(() => alert(img.url));
+};
+
+window.deleteGalleryImg = async function(i) {
+  const img = _galleryImages[i];
+  if (!img) return;
+  if (!askConfirm('Delete this image? This cannot be undone.')) return;
+  const res = await api('DELETE', `/api/stores/${state.activeStore.id}/images`, { key: img.key });
+  if (!res.ok) { const d = await safeJson(res); alert(d.error || 'Delete failed'); return; }
+  _galleryImages.splice(i, 1);
+  renderGalleryGrid();
+};
+
+function setupGallery() {
+  document.getElementById('btn-gallery-upload').addEventListener('click', () => {
+    document.getElementById('gallery-upload-input').click();
+  });
+  document.getElementById('btn-gallery-refresh').addEventListener('click', loadGallery);
+  document.getElementById('gallery-upload-input').addEventListener('change', async e => {
+    const file = e.target.files[0]; e.target.value = '';
+    if (!file || !state.activeStore) return;
+    const fd = new FormData();
+    fd.append('file', file);
+    fd.append('store_id', state.activeStore.id);
+    const res = await fetch('/api/upload', { method: 'POST', body: fd });
+    const data = await safeJson(res);
+    if (!res.ok) { alert(data.error || 'Upload failed'); return; }
+    await loadGallery();
+  });
+}
+
+// ── Image editor (canvas-based) ───────────────────────────────────────────────
+const _ie = {
+  sourceImg: null, key: null, url: null,
+  brightness: 100, contrast: 100, saturation: 100, sepia: 0, grayscale: 0,
+  origW: 0, origH: 0,
+};
+
+function setupImgEditor() {
+  ['brightness','contrast','saturation','sepia','grayscale'].forEach(f => {
+    const slider = document.getElementById(`ie-${f}`);
+    const label  = document.getElementById(`ie-${f}-val`);
+    slider.addEventListener('input', () => {
+      _ie[f] = Number(slider.value);
+      label.textContent = slider.value + '%';
+      drawEditorCanvas();
+    });
+  });
+
+  document.querySelectorAll('.img-editor-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('.img-editor-tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.img-editor-panel').forEach(p => p.classList.remove('active'));
+      tab.classList.add('active');
+      document.getElementById(`iet-${tab.dataset.etab}`)?.classList.add('active');
+    });
+  });
+
+  document.getElementById('img-editor-close').addEventListener('click', closeImgEditor);
+  document.getElementById('img-editor-cancel').addEventListener('click', closeImgEditor);
+  document.getElementById('img-editor-reset').addEventListener('click', resetImgEditor);
+  document.getElementById('img-editor-overlay').addEventListener('click', e => {
+    if (e.target.id === 'img-editor-overlay') closeImgEditor();
+  });
+
+  document.getElementById('ie-apply-resize').addEventListener('click', () => {
+    const canvas = document.getElementById('img-editor-canvas');
+    const nw = parseInt(document.getElementById('ie-rw').value, 10);
+    const nh = parseInt(document.getElementById('ie-rh').value, 10);
+    if (!nw || !nh) return;
+    const tmp = document.createElement('canvas');
+    tmp.width = nw; tmp.height = nh;
+    const ctx2 = tmp.getContext('2d');
+    applyFiltersToCtx(ctx2, tmp.width, tmp.height, canvas);
+    canvas.width  = nw;
+    canvas.height = nh;
+    canvas.getContext('2d').drawImage(tmp, 0, 0);
+    _ie.sourceImg = null; // use canvas as new source
+  });
+
+  document.getElementById('ie-apply-crop').addEventListener('click', () => {
+    const canvas = document.getElementById('img-editor-canvas');
+    const cx = parseInt(document.getElementById('ie-cx').value, 10) || 0;
+    const cy = parseInt(document.getElementById('ie-cy').value, 10) || 0;
+    let   cw = parseInt(document.getElementById('ie-cw').value, 10) || canvas.width;
+    let   ch = parseInt(document.getElementById('ie-ch').value, 10) || canvas.height;
+    cw = Math.min(cw, canvas.width  - cx);
+    ch = Math.min(ch, canvas.height - cy);
+    if (cw <= 0 || ch <= 0) return;
+    const tmp = document.createElement('canvas');
+    tmp.width = cw; tmp.height = ch;
+    tmp.getContext('2d').drawImage(canvas, cx, cy, cw, ch, 0, 0, cw, ch);
+    canvas.width  = cw;
+    canvas.height = ch;
+    canvas.getContext('2d').drawImage(tmp, 0, 0);
+    _ie.sourceImg = null;
+  });
+
+  // Ratio lock for resize
+  document.getElementById('ie-rw').addEventListener('input', () => {
+    if (!document.getElementById('ie-ratio-lock').checked) return;
+    const canvas = document.getElementById('img-editor-canvas');
+    const ratio = canvas.height / canvas.width;
+    document.getElementById('ie-rh').value = Math.round(Number(document.getElementById('ie-rw').value) * ratio);
+  });
+  document.getElementById('ie-rh').addEventListener('input', () => {
+    if (!document.getElementById('ie-ratio-lock').checked) return;
+    const canvas = document.getElementById('img-editor-canvas');
+    const ratio = canvas.width / canvas.height;
+    document.getElementById('ie-rw').value = Math.round(Number(document.getElementById('ie-rh').value) * ratio);
+  });
+
+  document.getElementById('img-editor-save').addEventListener('click', saveEditedImg);
+}
+
+window.openImgEditor = function(i) {
+  const img = _galleryImages[i];
+  if (!img) return;
+  _ie.key = img.key;
+  _ie.url = img.url;
+  _ie.brightness = 100; _ie.contrast = 100; _ie.saturation = 100;
+  _ie.sepia = 0; _ie.grayscale = 0;
+  ['brightness','contrast','saturation'].forEach(f => {
+    document.getElementById(`ie-${f}`).value = 100;
+    document.getElementById(`ie-${f}-val`).textContent = '100%';
+  });
+  ['sepia','grayscale'].forEach(f => {
+    document.getElementById(`ie-${f}`).value = 0;
+    document.getElementById(`ie-${f}-val`).textContent = '0%';
+  });
+  const canvas  = document.getElementById('img-editor-canvas');
+  const srcImg  = new Image();
+  srcImg.crossOrigin = 'anonymous';
+  srcImg.onload = () => {
+    _ie.sourceImg = srcImg;
+    _ie.origW = srcImg.naturalWidth;
+    _ie.origH = srcImg.naturalHeight;
+    canvas.width  = _ie.origW;
+    canvas.height = _ie.origH;
+    document.getElementById('ie-rw').value = _ie.origW;
+    document.getElementById('ie-rh').value = _ie.origH;
+    document.getElementById('ie-cw').value = _ie.origW;
+    document.getElementById('ie-ch').value = _ie.origH;
+    document.getElementById('ie-cx').value = 0;
+    document.getElementById('ie-cy').value = 0;
+    drawEditorCanvas();
+  };
+  srcImg.onerror = () => alert('Could not load image for editing.');
+  srcImg.src = img.url;
+  document.getElementById('img-editor-overlay').classList.add('active');
+};
+
+function drawEditorCanvas() {
+  const canvas = document.getElementById('img-editor-canvas');
+  const ctx    = canvas.getContext('2d');
+  const src    = _ie.sourceImg;
+  if (!src && !canvas.width) return;
+  if (src) {
+    applyFiltersToCtx(ctx, canvas.width, canvas.height, src);
+  }
+}
+
+function applyFiltersToCtx(ctx, w, h, src) {
+  ctx.filter = `brightness(${_ie.brightness}%) contrast(${_ie.contrast}%) saturate(${_ie.saturation}%) sepia(${_ie.sepia}%) grayscale(${_ie.grayscale}%)`;
+  ctx.clearRect(0, 0, w, h);
+  ctx.drawImage(src, 0, 0, w, h);
+  ctx.filter = 'none';
+}
+
+function resetImgEditor() {
+  if (!_ie.url) return;
+  openImgEditor(_galleryImages.findIndex(img => img.url === _ie.url));
+}
+
+function closeImgEditor() {
+  document.getElementById('img-editor-overlay').classList.remove('active');
+  _ie.sourceImg = null;
+}
+
+async function saveEditedImg() {
+  const canvas = document.getElementById('img-editor-canvas');
+  if (!canvas.width || !state.activeStore) return;
+  const btn = document.getElementById('img-editor-save');
+  btn.disabled = true; btn.textContent = 'Uploading…';
+  try {
+    const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.92));
+    const ext  = (_ie.key || '').split('.').pop() || 'jpg';
+    const file = new File([blob], `edited.${ext}`, { type: blob.type });
+    const fd   = new FormData();
+    fd.append('file', file);
+    fd.append('store_id', state.activeStore.id);
+    const res  = await fetch('/api/upload', { method: 'POST', body: fd });
+    const data = await safeJson(res);
+    if (!res.ok) { alert(data.error || 'Upload failed'); return; }
+    const newUrl = data.url;
+    // Replace old URL in draft sections
+    if (_ie.url && newUrl) {
+      const s = JSON.stringify(state.draft).replaceAll(_ie.url, newUrl);
+      try { state.draft = JSON.parse(s); markDirty(); } catch {}
+    }
+    closeImgEditor();
+    await loadGallery();
+  } finally {
+    btn.disabled = false; btn.textContent = 'Save & Upload';
+  }
+}
 
 // ── Editor tabs ───────────────────────────────────────────────────────────────
 function setupEditorTabs() {
@@ -1034,34 +1299,7 @@ function setPreviewMode(mode) {
 }
 
 // ── Store at a Glance ─────────────────────────────────────────────────────────
-function renderGlance() {
-  const total    = state.products.length;
-  const oos      = state.products.filter(p => !p.in_stock).length;
-  const tagCounts = {};
-  state.products.forEach(p => {
-    if (p.category) {
-      p.category.split(',').forEach(t => {
-        const s = t.trim();
-        if (s) tagCounts[s] = (tagCounts[s] || 0) + 1;
-      });
-    }
-  });
-  const topTag = Object.entries(tagCounts).sort((a,b) => b[1]-a[1])[0]?.[0] || '—';
-
-  document.getElementById('glance').innerHTML = `
-    <div class="glance__stat">
-      <div class="glance__val">${total}</div>
-      <div class="glance__lbl">Items</div>
-    </div>
-    <div class="glance__stat">
-      <div class="glance__val">${oos}</div>
-      <div class="glance__lbl">Out of stock</div>
-    </div>
-    <div class="glance__stat">
-      <div class="glance__val" style="font-size:13px;line-height:1.3">${esc(topTag)}</div>
-      <div class="glance__lbl">Top tag</div>
-    </div>`;
-}
+function renderGlance() { /* removed — stats replaced by CP tabs */ }
 
 // ── Design tab ────────────────────────────────────────────────────────────────
 function renderDesignTab() {
@@ -1081,6 +1319,19 @@ function renderDesignTab() {
 
   renderLogoPicker(d.logo || '');
   renderCustomBtnsList();
+  renderPaletteSwatches();
+}
+
+function renderPaletteSwatches() {
+  const el = document.getElementById('palette-swatches');
+  if (!el) return;
+  const theme = state.draft?.theme || {};
+  const bg     = theme.bg     || '#efeae0';
+  const fg     = theme.fg     || '#1c1a16';
+  const accent = theme.accent || '#e2a14a';
+  el.innerHTML = [bg, fg, accent].map(c =>
+    `<div class="palette-swatch" style="background:${esc(c)}" title="${esc(c)}"></div>`
+  ).join('');
 }
 
 // ── Hex color helpers ─────────────────────────────────────────────────────────
@@ -1307,6 +1558,7 @@ function setupPaletteGallery() {
     state.draft.theme.fg     = fg;
     state.draft.theme.accent = accent;
     markDirty();
+    renderPaletteSwatches();
     document.getElementById('palette-overlay').classList.remove('active');
   });
 }
@@ -1342,6 +1594,7 @@ window.applyPalette = function(id) {
   state.draft.theme.fg     = pal.theme.fg;
   state.draft.theme.accent = pal.theme.accent;
   markDirty();
+  renderPaletteSwatches();
   document.getElementById('palette-overlay').classList.remove('active');
 };
 
@@ -1594,19 +1847,15 @@ function buildSectionFields(s, i) {
 
     // ── HERO BANNER ───────────────────────────────────────────────────────────
     case 'hero': {
-      const isCarousel = s.layout === 'carousel';
-      const isVideo    = s.layout === 'video';
+      const isVideo = s.layout === 'video';
       return [
         fieldTextarea('Headline', 'headline', esc(s.headline || '')),
         fieldTextarea('Subheadline', 'subline', esc(s.subline || '')),
         fieldSelect('Layout', 'layout', s.layout || 'static',
           ['static','carousel','video','fullscreen','split'],
           ['Static Image','Carousel','Video','Fullscreen','Split']),
-        isCarousel
-          ? buildCarouselImages(s.images || [], i)
-          : isVideo
-            ? field('text', 'Video URL (mp4 or YouTube embed)', 'videoUrl', esc(s.videoUrl || ''))
-            : fieldImg('Background image', 'image', s.image, i),
+        buildCarouselImages(s.images || [], i),
+        isVideo ? field('text', 'Video URL (mp4 or YouTube embed)', 'videoUrl', esc(s.videoUrl || '')) : '',
         fieldGroup('Layout & Sizing', [
           fieldSelect('Height mode', 'heightMode', s.heightMode || 'auto',
             ['auto','fixed','fullscreen','adaptive'],
@@ -1794,7 +2043,13 @@ function buildSectionFields(s, i) {
         </div>`,
         fieldSelect('Padding', 'padding', s.padding || 'normal',
           ['small','normal','large'], ['Small','Normal','Large']),
-        field('color', 'Background color (optional)', 'bgColor', s.bgColor || ''),
+        `<div class="form-field">
+          <label>Background color (optional)</label>
+          <div style="display:flex;align-items:center;gap:8px">
+            <input type="color" data-field="bgColor" value="${esc(s.bgColor || '#ffffff')}" style="height:32px;padding:2px 4px;flex:1" />
+            <button type="button" class="btn-ghost btn-sm" onclick="clearRichTextBg(${i})">Clear</button>
+          </div>
+        </div>`,
       ]),
       fieldGroup('Advanced (raw HTML)', [
         `<div class="form-field"><label>Custom HTML (overrides body above)</label>
@@ -1987,6 +2242,12 @@ window.removeCarouselImg = function(sectionIdx, imgIdx) {
   openSectionEditor(sectionIdx);
   markDirty();
 };
+window.clearRichTextBg = function(sectionIdx) {
+  state.draft.sections[sectionIdx].bgColor = '';
+  openSectionEditor(sectionIdx);
+  markDirty();
+};
+
 window.triggerSecImgUpload = function(sectionIdx, fld) {
   state.imgUploadTarget = { type: 'section', sectionIdx, field: fld };
   document.getElementById('img-upload-input').click();
