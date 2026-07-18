@@ -688,13 +688,15 @@ function renderStoresGrid() {
 }
 
 function setupNewStoreForm() {
-  document.getElementById('ns-submit').addEventListener('click', async () => {
+  const nsBtn = document.getElementById('ns-submit');
+  if (!nsBtn) return;
+  nsBtn.addEventListener('click', async () => {
     const slug = document.getElementById('ns-slug').value.trim().toLowerCase();
     const name = document.getElementById('ns-name').value.trim();
     const desc = document.getElementById('ns-desc').value.trim();
     if (!slug) { setMsg('ns-msg', 'Slug is required', 'error'); return; }
 
-    document.getElementById('ns-submit').disabled = true;
+    nsBtn.disabled = true;
     const res  = await api('POST', '/api/stores', {
       slug, name, config: {
         sections: [],
@@ -711,7 +713,7 @@ function setupNewStoreForm() {
     } else {
       setMsg('ns-msg', data.error || 'Failed', 'error');
     }
-    document.getElementById('ns-submit').disabled = false;
+    nsBtn.disabled = false;
   });
 }
 
