@@ -5,7 +5,8 @@ import { json } from '../../../_lib/helpers.js';
 export async function onRequestGet({ params, data, env }) {
   const row = await env.DB.prepare(`
     SELECT mp_public_key, mp_access_token, cbu_cvu, bank_name, bank_holder,
-           store_address, store_zip, store_city, store_province
+           store_address, store_zip, store_city, store_province,
+           whatsapp_number, whatsapp_message
     FROM stores WHERE id = ? AND owner_id = ?
   `).bind(params.id, data.owner_id).first();
 
@@ -25,7 +26,8 @@ export async function onRequestPut({ params, request, data, env }) {
   if (!store) return json({ error: 'Not found' }, 404);
 
   const allowed = ['mp_public_key', 'mp_access_token', 'cbu_cvu', 'bank_name', 'bank_holder',
-                   'store_address', 'store_zip', 'store_city', 'store_province'];
+                   'store_address', 'store_zip', 'store_city', 'store_province',
+                   'whatsapp_number', 'whatsapp_message'];
   const sets = [];
   const vals = [];
 

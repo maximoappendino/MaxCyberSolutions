@@ -2942,6 +2942,8 @@ async function loadPaymentSettings(storeId) {
   setV('cfg-s-zip',      data.store_zip        || '');
   setV('cfg-s-city',     data.store_city       || '');
   setV('cfg-s-prov',     data.store_province   || '');
+  setV('cfg-wa-number',  data.whatsapp_number  || '');
+  setV('cfg-wa-message', data.whatsapp_message || '');
 }
 
 async function savePaymentSettings() {
@@ -2952,14 +2954,16 @@ async function savePaymentSettings() {
 
   const getV = id => (document.getElementById(id)?.value.trim() || '');
   const body = {
-    mp_public_key:  getV('cfg-mp-pub'),
-    cbu_cvu:        getV('cfg-cbu'),
-    bank_name:      getV('cfg-bank-name'),
-    bank_holder:    getV('cfg-bank-holder'),
-    store_address:  getV('cfg-s-addr'),
-    store_zip:      getV('cfg-s-zip'),
-    store_city:     getV('cfg-s-city'),
-    store_province: getV('cfg-s-prov'),
+    mp_public_key:    getV('cfg-mp-pub'),
+    cbu_cvu:          getV('cfg-cbu'),
+    bank_name:        getV('cfg-bank-name'),
+    bank_holder:      getV('cfg-bank-holder'),
+    store_address:    getV('cfg-s-addr'),
+    store_zip:        getV('cfg-s-zip'),
+    store_city:       getV('cfg-s-city'),
+    store_province:   getV('cfg-s-prov'),
+    whatsapp_number:  getV('cfg-wa-number').replace(/\D/g, ''),
+    whatsapp_message: document.getElementById('cfg-wa-message')?.value.trim() || '',
   };
 
   const tok = getV('cfg-mp-tok');

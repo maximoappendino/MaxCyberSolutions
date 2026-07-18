@@ -1139,8 +1139,6 @@ const HTML = `<!DOCTYPE html>
                     <input id="cfg-mp-tok" type="password" placeholder="APP_USR-…" autocomplete="new-password" />
                     <p style="font-size:10px;color:var(--fg-faint);margin-top:3px">Get these from your Mercado Pago developer dashboard.</p>
                   </div>
-                  <button class="btn-ghost btn-sm" id="btn-save-payment" style="margin-top:6px">Save payment settings</button>
-                  <p class="status-msg" id="payment-msg" style="font-size:10px;padding:4px 0"></p>
                 </div>
               </div>
 
@@ -1200,6 +1198,35 @@ const HTML = `<!DOCTYPE html>
                     <input id="cfg-s-prov" type="text" placeholder="CABA" />
                   </div>
                 </div>
+              </div>
+
+              <div class="adv-tweak" id="tweak-whatsapp">
+                <div class="adv-tweak__head">
+                  <div class="adv-tweak__title-area" onclick="this.closest('.adv-tweak').classList.toggle('open')">
+                    <div class="adv-tweak__title">WhatsApp Contact</div>
+                    <div class="adv-tweak__desc">Cart button that sends order details via WhatsApp.</div>
+                  </div>
+                  <div class="adv-tweak__controls">
+                    <span class="adv-tweak__arrow" onclick="this.closest('.adv-tweak').classList.toggle('open')">›</span>
+                  </div>
+                </div>
+                <div class="adv-tweak__body">
+                  <div class="form-field">
+                    <label for="cfg-wa-number">WhatsApp number</label>
+                    <input id="cfg-wa-number" type="text" placeholder="5491112345678" />
+                    <p style="font-size:10px;color:var(--fg-faint);margin-top:3px">Country code + number, digits only. E.g. 5491112345678 for Argentina.</p>
+                  </div>
+                  <div class="form-field">
+                    <label for="cfg-wa-message">Custom message prefix</label>
+                    <textarea id="cfg-wa-message" rows="3" placeholder="Hola! Me gustaría hacer el siguiente pedido:" style="width:100%;resize:vertical;padding:6px 8px;font-size:12px;border:1px solid var(--line);background:var(--bg);color:var(--fg);border-radius:var(--s-radius)"></textarea>
+                    <p style="font-size:10px;color:var(--fg-faint);margin-top:3px">Sent before the cart item list. Leave blank for a default message.</p>
+                  </div>
+                </div>
+              </div>
+
+              <div style="padding:10px 0 4px">
+                <button class="btn-ghost btn-sm" id="btn-save-payment">Save payment settings</button>
+                <p class="status-msg" id="payment-msg" style="font-size:10px;padding:4px 0"></p>
               </div>
 
             </div>
