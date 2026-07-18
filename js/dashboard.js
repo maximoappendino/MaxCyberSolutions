@@ -18,12 +18,16 @@ const I18N = {
 function t(key) { return (I18N[dashConfig.lang] || I18N.en)[key] || key; }
 
 // ── Dashboard config (localStorage, UI only) ──────────────────────────────────
-let dashConfig = { lang: 'en', size: 'medium', preview: 'desktop', autoRefresh: true, dashStyle: 'warm-linen' };
+let dashConfig = { lang: 'en', size: 'medium', preview: 'desktop', autoRefresh: true, dashStyle: 'warm-linen', skipConfirm: false, inspectMode: false };
 
 function loadDashConfig() {
   try { Object.assign(dashConfig, JSON.parse(localStorage.getItem('dash_config') || '{}')); } catch {}
-  if (dashConfig.autoRefresh === undefined) dashConfig.autoRefresh = true;
+  if (dashConfig.autoRefresh  === undefined) dashConfig.autoRefresh  = true;
+  if (dashConfig.skipConfirm  === undefined) dashConfig.skipConfirm  = false;
+  if (dashConfig.inspectMode  === undefined) dashConfig.inspectMode  = false;
 }
+
+function askConfirm(msg) { return dashConfig.skipConfirm || confirm(msg); }
 function saveDashConfig() {
   localStorage.setItem('dash_config', JSON.stringify(dashConfig));
 }
@@ -719,7 +723,7 @@ function setupNewStoreForm() {
 
 window.deleteStore = async function(id) {
   const store = state.stores.find(s => s.id === id);
-  if (!store || !confirm(`Delete store "${store.slug}"? This also removes all its products.`)) return;
+  if (!store || !askConfirm(`Delete store "${store.slug}"? This also removes all its products.`)) return;
   const res = await api('DELETE', `/api/stores/${id}`);
   if (res.ok) await loadStores();
 };
@@ -793,7 +797,7 @@ function setupTopBarActions() {
     reader.onload = ev => {
       try {
         const imported = JSON.parse(ev.target.result);
-        if (!confirm('Replace current draft with imported config?')) return;
+        if (!askConfirm('Replace current draft with imported config?')) return;
         pushUndo();
         state.draft = imported;
         if (!Array.isArray(state.draft.sections)) state.draft.sections = [];
@@ -811,12 +815,24 @@ function setupTopBarActions() {
   });
 
   document.getElementById('btn-push-live').addEventListener('click', pushLive);
-  document.getElementById('btn-preview-refresh').addEventListener('click', updatePreview);
+  document.getElementById('btn-preview-reload').addEventListener('click', updatePreview);
   document.getElementById('btn-preview-open').addEventListener('click', () => {
     window.open(`/store/${state.activeStore.slug}`, '_blank');
   });
   document.getElementById('btn-preview-desktop').addEventListener('click', () => setPreviewMode('desktop'));
   document.getElementById('btn-preview-mobile').addEventListener('click', ()  => setPreviewMode('mobile'));
+  document.getElementById('btn-live-preview').addEventListener('click', toggleLivePreview);
+  document.getElementById('btn-inspect-toggle').addEventListener('click', toggleInspectMode);
+
+  window.addEventListener('message', e => {
+    if (e.data?.type === 'sec-inspect') {
+      const idx = e.data.idx;
+      if (typeof idx === 'number' && state.draft.sections?.[idx]) {
+        window.editSection(idx);
+        document.querySelector('[data-tab="sections"]')?.click();
+      }
+    }
+  });
 }
 
 function showEditorBar() {
@@ -908,7 +924,7 @@ function updateUndoRedoBtns() {
 
 // ── Discard changes ───────────────────────────────────────────────────────────
 function discardChanges() {
-  if (!confirm('Discard all unsaved changes and revert to the last published version?')) return;
+  if (!askConfirm('Discard all unsaved changes and revert to the last published version?')) return;
   state.draft        = deepClone(state.activeStore.config || {});
   if (!Array.isArray(state.draft.sections)) state.draft.sections = [];
   state.history      = [];
@@ -946,7 +962,7 @@ function exportDraft() {
 
 // ── Push live ─────────────────────────────────────────────────────────────────
 async function pushLive() {
-  if (!confirm('Push changes to the live site?\nThis updates the public storefront immediately.')) return;
+  if (!askConfirm('Push changes to the live site?\nThis updates the public storefront immediately.')) return;
   const btn = document.getElementById('btn-push-live');
   btn.disabled = true; btn.textContent = 'Publishing…';
 
@@ -991,16 +1007,28 @@ function updatePreview() {
   const iframe = document.getElementById('preview-iframe');
   const slug   = state.activeStore?.slug;
   if (!slug) return;
-  iframe.src = `/store/${slug}?preview=1&t=${Date.now()}`;
+  const inspectParam = dashConfig.inspectMode ? '&inspect=1' : '';
+  iframe.src = `/store/${slug}?preview=1${inspectParam}&t=${Date.now()}`;
+}
+
+function toggleLivePreview() {
+  dashConfig.autoRefresh = !dashConfig.autoRefresh;
+  saveDashConfig();
+  document.getElementById('btn-live-preview').classList.toggle('active', dashConfig.autoRefresh);
+}
+
+function toggleInspectMode() {
+  dashConfig.inspectMode = !dashConfig.inspectMode;
+  saveDashConfig();
+  document.getElementById('btn-inspect-toggle').classList.toggle('active', dashConfig.inspectMode);
+  updatePreview();
 }
 
 function setPreviewMode(mode) {
   dashConfig.preview = mode;
   saveDashConfig();
   const wrap = document.getElementById('preview-frame-wrap');
-  const label = document.getElementById('preview-label');
   wrap.className = `preview-frame-wrap${mode === 'mobile' ? ' preview-frame-wrap--mobile' : ''}`;
-  label.textContent = mode === 'mobile' ? 'Mobile Preview' : 'Live Preview';
   document.getElementById('btn-preview-desktop').classList.toggle('active', mode === 'desktop');
   document.getElementById('btn-preview-mobile').classList.toggle('active',  mode === 'mobile');
 }
@@ -1144,9 +1172,9 @@ function setupDesignListeners() {
   });
 
   // Custom button add
-  document.getElementById('btn-add-custom-btn').addEventListener('click', () => {
+  document.getElementById('btn-add-custom-btn')?.addEventListener('click', () => {
     if (!Array.isArray(state.draft.buttons)) state.draft.buttons = [];
-    if (state.draft.buttons.length >= 3) { alert('Maximum 3 custom buttons.'); return; }
+    if (state.draft.buttons.length >= 10) { alert('Maximum 10 custom buttons.'); return; }
     state.draft.buttons.push({ text: 'Button', image: '', url: '#', sticky: false, color: '#e2a14a' });
     renderCustomBtnsList();
     markDirty();
@@ -1167,6 +1195,7 @@ function renderLogoPicker(url) {
 
 function renderCustomBtnsList() {
   const list = document.getElementById('custom-btns-list');
+  if (!list) return;
   const btns = Array.isArray(state.draft.buttons) ? state.draft.buttons : [];
   if (!btns.length) { list.innerHTML = ''; return; }
 
@@ -1350,11 +1379,13 @@ const FIXED_SECTION_TYPES = new Set(['header', 'footer']);
 function renderSectionList() {
   const list     = document.getElementById('sec-list');
   const sections = state.draft.sections || [];
+  const mainSecs = sections.filter(s => s.type !== 'floating-cta');
 
-  if (!sections.length) {
+  if (!mainSecs.length) {
     list.innerHTML = `<p style="padding:16px;font-size:12px;color:var(--fg-faint)">${t('noSections')}</p>`;
   } else {
     list.innerHTML = sections.map((s, i) => {
+      if (s.type === 'floating-cta') return '';
       const def      = SECTION_TYPES[s.type] || { label: s.type, icon: '?' };
       const isActive = state.editingSection === i;
       const isFixed  = FIXED_SECTION_TYPES.has(s.type);
@@ -1374,12 +1405,14 @@ function renderSectionList() {
     setupDragDrop();
   }
 
-  const ADDABLE = Object.entries(SECTION_TYPES).filter(([type]) => !FIXED_SECTION_TYPES.has(type));
+  const ADDABLE = Object.entries(SECTION_TYPES).filter(([type]) => !FIXED_SECTION_TYPES.has(type) && type !== 'floating-cta');
   document.getElementById('sec-add-menu').innerHTML = ADDABLE.map(([type, def]) =>
     `<div class="sec-add-menu__item" onclick="addSection('${type}')">
       <span class="sec-add-menu__icon">${def.icon}</span>
       <span>${esc(def.label)}</span>
     </div>`).join('');
+
+  renderFloatBtnsPanel();
 }
 
 window.toggleSection = function(i) {
@@ -1404,6 +1437,32 @@ function setupSectionControls() {
   });
   document.addEventListener('click', () => { menu.style.display = 'none'; });
   document.getElementById('sec-editor-close').addEventListener('click', closeSectionEditor);
+  document.getElementById('btn-add-float-btn').addEventListener('click', addFloatBtn);
+}
+
+function renderFloatBtnsPanel() {
+  const list  = document.getElementById('float-btn-list');
+  const secs  = state.draft.sections || [];
+  const floats = secs.map((s, i) => ({ s, i })).filter(({ s }) => s.type === 'floating-cta');
+  if (!floats.length) { list.innerHTML = '<p style="font-size:11px;color:var(--fg-faint);padding:4px 0">No floating buttons yet.</p>'; return; }
+  list.innerHTML = floats.map(({ s, i }) => `
+<div class="float-item" onclick="editSection(${i})">
+  <span class="float-item__icon">◎</span>
+  <span class="float-item__label">${esc(s.label || 'Floating Button')}</span>
+  <button class="float-item__btn" onclick="event.stopPropagation();removeSection(${i})" title="Remove">✕</button>
+</div>`).join('');
+}
+
+function addFloatBtn() {
+  if (!Array.isArray(state.draft.sections)) state.draft.sections = [];
+  pushUndo();
+  const def = SECTION_TYPES['floating-cta'];
+  const section = { id: uid(), type: 'floating-cta', ...deepClone(def.defaults) };
+  state.draft.sections.push(section);
+  state.editingSection = state.draft.sections.length - 1;
+  renderSectionList();
+  openSectionEditor(state.editingSection);
+  markDirty();
 }
 
 window.addSection = function(type) {
@@ -1420,7 +1479,7 @@ window.addSection = function(type) {
 };
 
 window.removeSection = function(i) {
-  if (!confirm('Remove this section?')) return;
+  if (!askConfirm('Remove this section?')) return;
   pushUndo();
   state.draft.sections.splice(i, 1);
   if (state.editingSection === i) closeSectionEditor();
@@ -2112,7 +2171,7 @@ async function bulkApply() {
   const visS   = document.getElementById('bulk-vis-input').value;
   if (!tags && !priceS && visS === '') return;
 
-  if (!confirm(`Apply changes to ${state.bulkSelected.size} item(s)?`)) return;
+  if (!askConfirm(`Apply changes to ${state.bulkSelected.size} item(s)?`)) return;
 
   const payload = {};
   if (tags)   payload.category    = tags;
@@ -2199,7 +2258,7 @@ async function importItems(e) {
   if (!file) return;
   e.target.value = '';
 
-  if (!confirm('Import items? Existing items with the same SKU will not be overwritten.')) return;
+  if (!askConfirm('Import items? Existing items with the same SKU will not be overwritten.')) return;
 
   const text = await file.text();
   let items  = [];
@@ -2497,7 +2556,7 @@ window.updateVariation = function(i, key, val) { state.variations[i][key] = val;
 window.removeVariation  = function(i) { state.variations.splice(i, 1); renderVariationsList(); };
 
 window.deleteProduct = async function(productId) {
-  if (!confirm('Delete this item? This cannot be undone.')) return;
+  if (!askConfirm('Delete this item? This cannot be undone.')) return;
   const res = await api('DELETE', `/api/products/${productId}`);
   if (res.ok) {
     await loadProducts();
@@ -2543,6 +2602,13 @@ function setupConfigTab() {
   // Auto-refresh toggle
   document.getElementById('cfg-auto-refresh').addEventListener('change', e => {
     dashConfig.autoRefresh = e.target.checked;
+    document.getElementById('btn-live-preview').classList.toggle('active', dashConfig.autoRefresh);
+    saveDashConfig();
+  });
+
+  // Skip confirm toggle
+  document.getElementById('cfg-skip-confirm').addEventListener('change', e => {
+    dashConfig.skipConfirm = e.target.checked;
     saveDashConfig();
   });
 
@@ -2588,7 +2654,7 @@ function setupConfigTab() {
   document.getElementById('btn-start-over').addEventListener('click', async () => {
     const input = document.getElementById('reset-confirm-input').value.trim();
     if (input !== 'RESET') { alert('Type RESET to confirm.'); return; }
-    if (!confirm('This will wipe all sections and config on the live store. Are you absolutely sure?')) return;
+    if (!askConfirm('This will wipe all sections and config on the live store. Are you absolutely sure?')) return;
     const empty = { sections: [], features: {}, theme: {}, seo: {} };
     await api('PUT', `/api/stores/${state.activeStore.id}`, { name: state.activeStore.name, config: empty });
     state.draft = deepClone(empty);
@@ -2608,7 +2674,10 @@ function setupConfigTab() {
 function renderConfigTab() {
   const f = state.draft.features || {};
   document.getElementById('cfg-lang').value       = dashConfig.lang || 'en';
-  document.getElementById('cfg-auto-refresh').checked = dashConfig.autoRefresh !== false;
+  document.getElementById('cfg-auto-refresh').checked  = dashConfig.autoRefresh !== false;
+  document.getElementById('cfg-skip-confirm').checked  = !!dashConfig.skipConfirm;
+  document.getElementById('btn-live-preview').classList.toggle('active', dashConfig.autoRefresh !== false);
+  document.getElementById('btn-inspect-toggle').classList.toggle('active', !!dashConfig.inspectMode);
   document.getElementById('oos-mode').value       = f.oosMode || 'show';
   document.getElementById('stock-public').checked = !!f.stockPublic;
   document.getElementById('nl-title').value       = f.newsletterTitle || '';
@@ -2667,7 +2736,7 @@ function setupTemplateGallery() {
 window.applyTemplate = function(id) {
   const tmpl = TEMPLATES.find(t => t.id === id);
   if (!tmpl) return;
-  if (!confirm(`Apply the "${tmpl.name}" template? This replaces your current sections, palette and style.`)) return;
+  if (!askConfirm(`Apply the "${tmpl.name}" template? This replaces your current sections, palette and style.`)) return;
   pushUndo();
   const inner = tmpl.sections().filter(s => !FIXED_SECTION_TYPES.has(s.type));
   state.draft.sections = [

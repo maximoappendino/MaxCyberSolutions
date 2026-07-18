@@ -293,6 +293,17 @@ const HTML = `<!DOCTYPE html>
     .sec-add-menu__item:hover { background: var(--accent-soft); }
     .sec-add-menu__icon { font-size: 15px; }
 
+    /* Floating Buttons panel */
+    .float-panel { border-top: 1px solid var(--line); padding: 10px 12px; flex-shrink: 0; }
+    .float-panel__head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+    .float-panel__label { font-family: var(--mono); font-size: 9px; letter-spacing: .16em; text-transform: uppercase; color: var(--fg-faint); }
+    .float-item { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-bottom: 1px solid var(--line-soft); cursor: pointer; }
+    .float-item:last-child { border-bottom: none; }
+    .float-item__icon { font-size: 14px; flex-shrink: 0; }
+    .float-item__label { flex: 1; font-size: 12px; }
+    .float-item__btn { background: none; border: none; color: var(--fg-faint); cursor: pointer; padding: 2px 6px; font-size: 13px; }
+    .float-item__btn:hover { color: #b33; }
+
     /* Section editor */
     .sec-editor { border-top: 2px solid var(--accent); background: var(--bg); display: flex; flex-direction: column; overflow: hidden; max-height: 55%; }
     .sec-editor__head { display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; border-bottom: 1px solid var(--line); flex-shrink: 0; }
@@ -358,13 +369,21 @@ const HTML = `<!DOCTYPE html>
     .editor-right { flex: 1; display: flex; flex-direction: column; background: #111; overflow: hidden; }
     .preview-bar { display: flex; align-items: center; justify-content: space-between;
       padding: 8px 14px; background: #1a1a1a; border-bottom: 1px solid #333; flex-shrink: 0; }
-    .preview-label { font-family: var(--mono); font-size: 9px; letter-spacing: 0.16em; text-transform: uppercase; color: #888; }
     .preview-actions { display: flex; align-items: center; gap: 8px; }
     .preview-actions .btn-ghost { border-color: #444; color: #aaa; }
     .preview-actions .btn-ghost:hover { border-color: #888; color: #eee; }
     .preview-mode-btn { font-family: var(--mono); font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase;
       padding: 5px 10px; border: 1px solid #555; background: transparent; color: #888; transition: color 160ms, border-color 160ms; }
     .preview-mode-btn.active { color: var(--accent); border-color: var(--accent); }
+    .preview-live-btn { font-family: var(--mono); font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase;
+      padding: 5px 10px; border: 1px solid #555; background: transparent; color: #555; cursor: pointer;
+      transition: color 160ms, border-color 160ms; }
+    .preview-live-btn.active { color: #4caf50; border-color: #4caf50; }
+    .preview-icon-btn { width: 28px; height: 28px; padding: 0; border: 1px solid #555; background: transparent;
+      color: #888; cursor: pointer; font-size: 13px; display: flex; align-items: center; justify-content: center;
+      transition: color 160ms, border-color 160ms; }
+    .preview-icon-btn:hover { color: #eee; border-color: #888; }
+    .preview-icon-btn.active { color: var(--accent); border-color: var(--accent); }
     .preview-frame-wrap { flex: 1; display: flex; align-items: flex-start; justify-content: center; overflow: hidden; background: #111; }
     .preview-frame-wrap--mobile { padding: 20px; align-items: center; }
     .preview-frame-wrap--mobile .editor-iframe { width: 390px; max-width: 100%; border: 2px solid #444; border-radius: 8px; height: calc(100% - 40px); flex: none; }
@@ -854,13 +873,6 @@ const HTML = `<!DOCTYPE html>
               </div>
             </div>
 
-            <!-- Custom buttons -->
-            <div class="pane-section">
-              <span class="pane-section__label">Custom Buttons (up to 3)</span>
-              <div id="custom-btns-list"></div>
-              <button class="btn-ghost btn-sm" id="btn-add-custom-btn" style="margin-top:4px">+ Add button</button>
-            </div>
-
           </div>
         </div>
 
@@ -871,6 +883,13 @@ const HTML = `<!DOCTYPE html>
             <div class="sec-add-wrap">
               <button class="btn-solid btn-sm" id="sec-add-trigger" style="width:100%">+ Add Section ▾</button>
               <div class="sec-add-menu" id="sec-add-menu" style="display:none"></div>
+            </div>
+            <div class="float-panel" id="float-panel">
+              <div class="float-panel__head">
+                <span class="float-panel__label">Floating Buttons</span>
+                <button class="btn-ghost btn-sm" id="btn-add-float-btn">+ Add</button>
+              </div>
+              <div class="float-btn-list" id="float-btn-list"></div>
             </div>
             <div class="sec-editor" id="sec-editor" style="display:none">
               <div class="sec-editor__head">
@@ -985,6 +1004,17 @@ const HTML = `<!DOCTYPE html>
                 </div>
                 <label class="toggle">
                   <input type="checkbox" id="cfg-auto-refresh" checked />
+                  <span class="toggle__track"></span>
+                  <span class="toggle__thumb"></span>
+                </label>
+              </div>
+              <div class="flag-row">
+                <div class="flag-row__info">
+                  <span class="flag-row__name">Skip confirmation prompts</span>
+                  <span class="flag-row__desc">Don't ask "Are you sure?" before deleting.</span>
+                </div>
+                <label class="toggle">
+                  <input type="checkbox" id="cfg-skip-confirm" />
                   <span class="toggle__track"></span>
                   <span class="toggle__thumb"></span>
                 </label>
@@ -1259,11 +1289,14 @@ const HTML = `<!DOCTYPE html>
       <!-- Right: preview -->
       <div class="editor-right">
         <div class="preview-bar">
-          <span class="preview-label" id="preview-label">Live Preview</span>
+          <div class="preview-actions">
+            <button class="preview-live-btn active" id="btn-live-preview" title="Toggle live updates">⬤ LIVE</button>
+            <button class="preview-icon-btn" id="btn-preview-reload" title="Reload preview">↻</button>
+            <button class="preview-icon-btn" id="btn-inspect-toggle" title="Inspect sections">⊹</button>
+          </div>
           <div class="preview-actions">
             <button class="preview-mode-btn active" id="btn-preview-desktop">Desktop</button>
             <button class="preview-mode-btn" id="btn-preview-mobile">Mobile</button>
-            <button class="btn-ghost btn-sm" id="btn-preview-refresh">↻ Refresh</button>
             <a class="btn-ghost btn-sm" id="btn-preview-open" target="_blank" rel="noopener">↗ Open</a>
           </div>
         </div>

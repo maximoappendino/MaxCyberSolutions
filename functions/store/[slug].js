@@ -6,6 +6,7 @@ export async function onRequestGet({ params, env, request }) {
   const { slug }    = params;
   const url         = new URL(request.url);
   const isPreview   = url.searchParams.get('preview') === '1';
+  const isInspect   = isPreview && url.searchParams.get('inspect') === '1';
 
   if (!isPreview) {
     const cache    = caches.default;
@@ -49,7 +50,7 @@ export async function onRequestGet({ params, env, request }) {
     'SELECT * FROM products WHERE store_id = ? AND visible = 1 ORDER BY created_at DESC'
   ).bind(store.id).all();
 
-  const html = renderStorefront(store, config, products || [], isPreview);
+  const html = renderStorefront(store, config, products || [], isPreview, isInspect);
   const response = new Response(html, {
     headers: {
       'Content-Type':  'text/html;charset=UTF-8',
@@ -80,7 +81,7 @@ const STYLE_VARS = {
   vivi:   { r: '0px',  rb: '2px',  bw: '1px', sh: 'none',                             shc: '0 2px 8px rgba(0,0,0,.07)' },
 };
 
-function renderStorefront(store, config, products, isPreview = false) {
+function renderStorefront(store, config, products, isPreview = false, isInspect = false) {
   const name     = config.name  || store.name || store.slug;
   const theme    = config.theme    || {};
   const seo      = config.seo      || {};
@@ -100,7 +101,14 @@ function renderStorefront(store, config, products, isPreview = false) {
   const floaters    = sections ? sections.filter(s => s.type === 'floating-cta') : [];
   const customBtns  = Array.isArray(config.buttons) ? config.buttons.filter(b => b.text && b.url) : [];
   const body        = sections
-    ? sections.filter(s => s.type !== 'floating-cta').map(s => renderSection(s, products, config)).join('\n')
+    ? sections.map((s, idx) => {
+        if (s.type === 'floating-cta') return '';
+        const rendered = renderSection(s, products, config);
+        if (!rendered) return '';
+        return isInspect
+          ? `<div class="s-inspect-wrap" data-sec-idx="${idx}" data-sec-type="${esc(s.type)}">${rendered}</div>`
+          : rendered;
+      }).join('\n')
     : renderLegacyBody(store, config, products);
 
   // Custom font links (onerror falls through to CSS fallback stack)
@@ -691,6 +699,17 @@ function renderStorefront(store, config, products, isPreview = false) {
       cursor: pointer; transition: background 150ms, color 150ms; }
     .s-cart-wa:hover { background: #25d366; color: #fff; }
     .s-atc-btn { cursor: pointer; width: 100%; }
+    .s-search-overlay { position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.45);
+      display:none;align-items:flex-start;justify-content:center;padding-top:80px; }
+    .s-search-overlay.active { display:flex; }
+    .s-search-modal { width:min(640px,92vw);background:var(--bg);padding:14px; }
+    .s-search-bar { display:flex;align-items:center;gap:10px;border:1px solid var(--line);padding:10px 14px; }
+    .s-search-icon { font-size:18px;color:var(--fg-faint); }
+    .s-search-input { flex:1;background:none;border:none;outline:none;font-size:16px;color:var(--fg);font-family:var(--sans); }
+    .s-search-input::placeholder { color:var(--fg-faint); }
+    .s-search-close { background:none;border:none;font-size:16px;color:var(--fg-faint);cursor:pointer;padding:2px 6px;transition:color 150ms; }
+    .s-search-close:hover { color:var(--fg); }
+    .s-search-hint { font-family:var(--mono);font-size:10px;letter-spacing:.1em;color:var(--fg-faint);padding:10px 14px 4px; }
     .s-atc-feedback { position: fixed; top: 80px; right: 24px; z-index: 400;
       background: var(--fg); color: var(--bg); font-family: var(--mono); font-size: 10px;
       letter-spacing: 0.1em; padding: 10px 16px; opacity: 0;
@@ -731,6 +750,7 @@ function renderStorefront(store, config, products, isPreview = false) {
   ${features.hasDiscountCountdown && !hasHeaderSection ? countdownScript() : ''}
   ${features.hasNewsletterPopup && !isPreview ? newsletterScript() : ''}
   ${!isPreview ? cartHtml(store.slug, store.cbu_cvu, store.mp_access_token, store.whatsapp_number, store.whatsapp_message, floaters.length > 0 || customBtns.length > 0) : ''}
+  ${isInspect ? inspectScript() : ''}
 </body>
 </html>`;
 }
@@ -799,11 +819,11 @@ function renderHeader(s, config) {
   }
 
   const actions = [];
-  if (s.showSearch  !== false) actions.push('<button class="s-header__action" title="Search" aria-label="Search">⌕</button>');
-  if (s.showAccount !== false) actions.push('<button class="s-header__action" title="Account" aria-label="Account">◎</button>');
+  if (s.showSearch  !== false) actions.push('<button class="s-header__action" onclick="sSearchOpen()" title="Search" aria-label="Search">⌕</button>');
+  if (s.showAccount !== false) actions.push('<button class="s-header__action" title="Account" aria-label="Account" style="opacity:.4;cursor:default">◎</button>');
   if (s.showWishlist)          actions.push('<button class="s-header__action" title="Wishlist" aria-label="Wishlist">♡</button>');
-  if (s.showCart    !== false) actions.push('<button class="s-header__action" title="Cart" aria-label="Cart">⊞</button>');
-  if (s.showLanguage !== false) actions.push('<span class="s-header__lang">EN</span>');
+  if (s.showCart    !== false) actions.push('<button class="s-header__action" onclick="sCartOpen()" title="Cart" aria-label="Cart">⊞<span class="s-cart-badge" data-count="0">0</span></button>');
+  if (s.showLanguage !== false) actions.push('<span class="s-header__lang" style="opacity:.4;cursor:default">EN</span>');
   if (s.showCurrency)          actions.push('<span class="s-header__lang">USD</span>');
 
   const countdownJs = s.countdownEnabled && s.countdownEnd
@@ -1264,6 +1284,32 @@ function renderCountdown() {
 </div>`;
 }
 
+function inspectScript() {
+  return `
+<style>
+.s-inspect-wrap { position: relative; cursor: pointer; }
+.s-inspect-wrap:hover { outline: 2px solid var(--accent); outline-offset: -2px; }
+.s-inspect-wrap:hover::before {
+  content: attr(data-sec-type); position: absolute; top: 6px; left: 6px; z-index: 9999;
+  background: var(--accent); color: #fff;
+  font-size: 9px; font-family: monospace; letter-spacing: .1em; text-transform: uppercase;
+  padding: 2px 8px; pointer-events: none;
+}
+</style>
+<script>(function(){
+  document.querySelectorAll('.s-inspect-wrap').forEach(function(el) {
+    el.addEventListener('click', function(e) {
+      e.preventDefault(); e.stopPropagation();
+      var idx = parseInt(el.dataset.secIdx, 10);
+      var stype = el.dataset.secType;
+      el.style.outline = '3px solid var(--accent)';
+      el.style.outlineOffset = '-3px';
+      window.parent.postMessage({ type: 'sec-inspect', idx: idx, stype: stype }, '*');
+    });
+  });
+})();<\/script>`;
+}
+
 function countdownScript() {
   return `<script>
 (function(){
@@ -1344,8 +1390,21 @@ function cartHtml(slug, cbuCvu, mpToken, waNumber, waMessage, hasFloaters = fals
 </button>
 <div class="s-atc-feedback" id="s-atc-feedback">Added to cart</div>
 
+<div class="s-search-overlay" id="s-search-overlay" onclick="if(event.target===this)sSearchClose()">
+  <div class="s-search-modal">
+    <div class="s-search-bar">
+      <span class="s-search-icon">⌕</span>
+      <input class="s-search-input" id="s-search-input" type="search" placeholder="Search products…"
+        oninput="sSearchFilter(this.value)" autocomplete="off" />
+      <button class="s-search-close" onclick="sSearchClose()">✕</button>
+    </div>
+    <div class="s-search-hint" id="s-search-hint">Type to search</div>
+  </div>
+</div>
+
 <script>
 (function(){
+  var _err = function(e){ try{console.warn('[Cart]',e);}catch(x){} };
   const SLUG      = ${JSON.stringify(slug)};
   const CART_KEY  = 'cart_' + SLUG;
   const WA_NUMBER = ${JSON.stringify(waNumber || '')};
@@ -1396,15 +1455,46 @@ function cartHtml(slug, cbuCvu, mpToken, waNumber, waMessage, hasFloaters = fals
   }
 
   window.sCartOpen = function() {
-    document.getElementById('s-cart-drawer').classList.add('open');
-    document.getElementById('s-cart-overlay').classList.add('open');
-    document.body.style.overflow = 'hidden';
-    renderItems();
+    try {
+      var drawer  = document.getElementById('s-cart-drawer');
+      var overlay = document.getElementById('s-cart-overlay');
+      if (!drawer) { _err('s-cart-drawer not found'); return; }
+      drawer.classList.add('open');
+      if (overlay) overlay.classList.add('open');
+      document.body.style.overflow = 'hidden';
+      renderItems();
+    } catch(e) { _err(e); }
   };
   window.sCartClose = function() {
     document.getElementById('s-cart-drawer').classList.remove('open');
     document.getElementById('s-cart-overlay').classList.remove('open');
     document.body.style.overflow = '';
+  };
+
+  window.sSearchOpen  = function() {
+    var el = document.getElementById('s-search-overlay');
+    if (el) { el.classList.add('active'); document.getElementById('s-search-input')?.focus(); }
+  };
+  window.sSearchClose = function() {
+    var el = document.getElementById('s-search-overlay');
+    if (el) el.classList.remove('active');
+    document.querySelectorAll('.s-card').forEach(function(c){ c.style.display=''; });
+    var h = document.getElementById('s-search-hint');
+    if (h) h.textContent = 'Type to search';
+  };
+  window.sSearchFilter = function(val) {
+    var q = val.toLowerCase().trim();
+    var shown = 0;
+    document.querySelectorAll('.s-card').forEach(function(c) {
+      var hit = !q
+        || (c.dataset.name||'').toLowerCase().includes(q)
+        || (c.dataset.tags||'').toLowerCase().includes(q)
+        || (c.dataset.sku ||'').toLowerCase().includes(q);
+      c.style.display = hit ? '' : 'none';
+      if (hit) shown++;
+    });
+    var h = document.getElementById('s-search-hint');
+    if (h) h.textContent = q ? shown+' result'+(shown===1?'':'s') : 'Type to search';
   };
 
   window.sCartAdd = function(btn) {
@@ -1457,7 +1547,7 @@ function cartHtml(slug, cbuCvu, mpToken, waNumber, waMessage, hasFloaters = fals
     window.open('https://wa.me/' + WA_NUMBER + '?text=' + encodeURIComponent(msg), '_blank');
   };
 
-  updateBadge();
+  try { updateBadge(); } catch(e) { _err(e); }
 })();
 </script>`;
 }
