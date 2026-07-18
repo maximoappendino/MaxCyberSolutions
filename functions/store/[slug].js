@@ -631,6 +631,13 @@ function renderStorefront(store, config, products, isPreview = false) {
       color: var(--fg); cursor: pointer; display: flex; align-items: center; gap: 6px;
       transition: border-color 150ms, color 150ms; }
     .s-cart-btn:hover { border-color: var(--accent); color: var(--accent); }
+    /* Floating cart button — always visible regardless of header section */
+    .s-cart-fab { position: fixed; bottom: 24px; right: 24px; z-index: 290;
+      background: var(--fg); color: var(--bg); border: none; border-radius: 999px;
+      padding: 13px 20px; font-family: var(--mono); font-size: 11px; letter-spacing: 0.1em;
+      text-transform: uppercase; cursor: pointer; display: flex; align-items: center; gap: 8px;
+      box-shadow: 0 4px 18px rgba(0,0,0,.22); transition: transform 120ms, box-shadow 120ms; }
+    .s-cart-fab:hover { transform: translateY(-2px); box-shadow: 0 6px 22px rgba(0,0,0,.28); }
     .s-cart-badge { background: var(--accent); color: #fff; border-radius: 999px;
       font-size: 9px; font-weight: 500; min-width: 16px; height: 16px; padding: 0 4px;
       display: inline-flex; align-items: center; justify-content: center; }
@@ -697,8 +704,8 @@ function renderStorefront(store, config, products, isPreview = false) {
       <span class="s-bar__name">${esc(name)}</span>
     </div>
     <div style="display:flex;align-items:center;gap:14px">
-      ${!isPreview ? `<button class="s-cart-btn" id="s-cart-btn" onclick="sCartOpen()" aria-label="Cart">
-        <span class="s-cart-badge" id="s-cart-badge" data-count="0">0</span>Cart
+      ${!isPreview ? `<button class="s-cart-btn" onclick="sCartOpen()" aria-label="Cart">
+        <span class="s-cart-badge" data-count="0">0</span>Cart
       </button>` : ''}
       <a href="/" class="s-bar__back">← MaxCyberSolutions</a>
     </div>
@@ -1329,6 +1336,11 @@ function cartHtml(slug, cbuCvu, mpToken, waNumber, waMessage) {
       : ''}
   </div>
 </aside>
+<button class="s-cart-fab" id="s-cart-fab" onclick="sCartOpen()" aria-label="Open cart">
+  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>
+  <span class="s-cart-badge" id="s-cart-badge" data-count="0">0</span>
+  Cart
+</button>
 <div class="s-atc-feedback" id="s-atc-feedback">Added to cart</div>
 
 <script>
@@ -1346,11 +1358,10 @@ function cartHtml(slug, cbuCvu, mpToken, waNumber, waMessage) {
 
   function updateBadge() {
     var total = cart.reduce(function(s,i){ return s+i.quantity; }, 0);
-    var b = document.getElementById('s-cart-badge');
-    if (!b) return;
-    b.textContent = total;
-    b.dataset.count = String(total);
-    b.style.display = total ? '' : 'none';
+    document.querySelectorAll('.s-cart-badge').forEach(function(b) {
+      b.textContent = total;
+      b.dataset.count = String(total);
+    });
   }
 
   function renderItems() {

@@ -519,7 +519,7 @@ const HTML = `<!DOCTYPE html>
     </div>
     <div class="d-bar__right">
       <button class="btn-push" id="btn-push-live" style="display:none">🚀 Push Live</button>
-      <a class="d-bar__admin-link" id="d-admin-link" href="/admin/" style="display:none">Admin ↗</a>
+      <a class="d-bar__admin-link" id="d-admin-link" href="/admin/" style="display:none;font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;padding:5px 10px;border:1px solid var(--accent);color:var(--accent);text-decoration:none">Admin Panel ↗</a>
       <span class="d-bar__email" id="d-email"></span>
       <button class="d-bar__logout" id="d-logout">Sign out</button>
     </div>
