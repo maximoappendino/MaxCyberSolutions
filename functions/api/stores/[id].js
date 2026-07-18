@@ -1,4 +1,5 @@
 import { json } from '../../_lib/helpers.js';
+import { deleteStoreImages } from '../../_lib/storage.js';
 
 export async function onRequestGet({ params, data, env }) {
   const store = await env.DB.prepare(
@@ -25,8 +26,6 @@ export async function onRequestPut({ params, request, data, env }) {
   if (!row) return json({ error: 'Not found' }, 404);
 
   const isDraft = body._draft === true;
-
-  // Drafts layer on top of the current preview_config (or live config if no draft yet)
   const baseStr = isDraft && row.preview_config ? row.preview_config : row.config;
   let current;
   try { current = JSON.parse(baseStr || '{}'); } catch { current = {}; }
@@ -39,7 +38,6 @@ export async function onRequestPut({ params, request, data, env }) {
     features: { ...(current.features || {}), ...(config.features || {}) },
     theme:    { ...(current.theme    || {}), ...(config.theme    || {}) },
     seo:      { ...(current.seo      || {}), ...(config.seo      || {}) },
-    // sections replaces entirely — no merge
     sections: config.sections !== undefined ? config.sections : (current.sections || []),
   } : current;
 
@@ -52,7 +50,6 @@ export async function onRequestPut({ params, request, data, env }) {
     return json({ id: params.id, draft: true, config: updated });
   }
 
-  // Push live: save to config, wipe preview_config
   const updatedName = name ?? (current.name || '');
   await env.DB.prepare(
     'UPDATE stores SET name = ?, config = ?, preview_config = NULL WHERE id = ? AND owner_id = ?'
@@ -62,10 +59,17 @@ export async function onRequestPut({ params, request, data, env }) {
 }
 
 export async function onRequestDelete({ params, data, env }) {
-  const result = await env.DB.prepare(
+  const store = await env.DB.prepare(
+    'SELECT id FROM stores WHERE id = ? AND owner_id = ?'
+  ).bind(params.id, data.owner_id).first();
+  if (!store) return json({ error: 'Not found' }, 404);
+
+  // Delete all R2 images for this store before removing the DB record
+  await deleteStoreImages(params.id, data.owner_id, env);
+
+  await env.DB.prepare(
     'DELETE FROM stores WHERE id = ? AND owner_id = ?'
   ).bind(params.id, data.owner_id).run();
 
-  if (!result.meta?.changes) return json({ error: 'Not found' }, 404);
   return json({ ok: true });
 }

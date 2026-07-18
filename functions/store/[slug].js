@@ -14,11 +14,19 @@ export async function onRequestGet({ params, env, request }) {
     if (cached) return cached;
   }
 
-  const store = await env.DB.prepare('SELECT * FROM stores WHERE slug = ?')
-    .bind(slug).first();
+  const store = await env.DB.prepare(`
+    SELECT s.*, o.status AS owner_status
+    FROM stores s
+    JOIN owners o ON o.id = s.owner_id
+    WHERE s.slug = ?
+  `).bind(slug).first();
 
   if (!store) {
     return new Response('Store not found', { status: 404, headers: { 'Content-Type': 'text/plain' } });
+  }
+
+  if (!isPreview && store.owner_status !== 'active') {
+    return maintenancePage(store.name || slug);
   }
 
   let config;
@@ -616,6 +624,65 @@ function renderStorefront(store, config, products, isPreview = false) {
       .s-gallery__grid--3, .s-gallery__grid--4 { grid-template-columns: repeat(2, 1fr); }
       .s-foot { flex-direction: column; text-align: center; }
     }
+
+    /* ── Cart ─────────────────────────────────────────────────────────────── */
+    .s-cart-btn { background: none; border: 1px solid var(--line); padding: 6px 14px;
+      font-family: var(--mono); font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase;
+      color: var(--fg); cursor: pointer; display: flex; align-items: center; gap: 6px;
+      transition: border-color 150ms, color 150ms; }
+    .s-cart-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .s-cart-badge { background: var(--accent); color: #fff; border-radius: 999px;
+      font-size: 9px; font-weight: 500; min-width: 16px; height: 16px; padding: 0 4px;
+      display: inline-flex; align-items: center; justify-content: center; }
+    .s-cart-badge[data-count="0"] { display: none; }
+    .s-cart-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.35); z-index: 299;
+      opacity: 0; pointer-events: none; transition: opacity 250ms; }
+    .s-cart-overlay.open { opacity: 1; pointer-events: all; }
+    .s-cart-drawer { position: fixed; top: 0; right: 0; bottom: 0; width: min(400px, 100vw);
+      background: var(--bg); z-index: 300; display: flex; flex-direction: column;
+      transform: translateX(100%); transition: transform 300ms cubic-bezier(.4,0,.2,1);
+      border-left: 1px solid var(--line); }
+    .s-cart-drawer.open { transform: translateX(0); }
+    .s-cart-head { display: flex; align-items: center; justify-content: space-between;
+      padding: 18px 20px; border-bottom: 1px solid var(--line); flex-shrink: 0; }
+    .s-cart-head__title { font-family: var(--serif); font-size: 22px; letter-spacing: -0.01em; }
+    .s-cart-head__close { background: none; border: none; font-size: 18px; color: var(--fg-faint);
+      cursor: pointer; padding: 4px 8px; line-height: 1; transition: color 150ms; }
+    .s-cart-head__close:hover { color: var(--fg); }
+    .s-cart-items { flex: 1; overflow-y: auto; padding: 12px 20px; }
+    .s-cart-empty { font-family: var(--serif); font-style: italic; font-size: 18px;
+      color: var(--fg-faint); text-align: center; padding: 40px 0; }
+    .s-ci { display: flex; align-items: center; gap: 12px; padding: 12px 0;
+      border-bottom: 1px solid var(--line-soft); }
+    .s-ci__img { width: 54px; height: 54px; object-fit: cover; background: var(--line-soft); flex-shrink: 0; }
+    .s-ci__info { flex: 1; min-width: 0; }
+    .s-ci__name { font-size: 13px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .s-ci__price { font-family: var(--mono); font-size: 11px; color: var(--fg-soft); margin-top: 2px; }
+    .s-ci__qty { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
+    .s-ci__qbtn { background: none; border: 1px solid var(--line); width: 22px; height: 22px;
+      font-size: 14px; display: flex; align-items: center; justify-content: center; cursor: pointer;
+      color: var(--fg); transition: border-color 150ms; }
+    .s-ci__qbtn:hover { border-color: var(--accent); }
+    .s-ci__qval { font-family: var(--mono); font-size: 12px; width: 24px; text-align: center; }
+    .s-ci__remove { background: none; border: none; color: var(--fg-faint); cursor: pointer;
+      font-size: 14px; padding: 2px 4px; margin-left: auto; transition: color 150ms; }
+    .s-ci__remove:hover { color: #b33; }
+    .s-cart-foot { padding: 16px 20px; border-top: 1px solid var(--line); flex-shrink: 0; }
+    .s-cart-total { display: flex; justify-content: space-between; align-items: baseline;
+      margin-bottom: 14px; }
+    .s-cart-total__label { font-family: var(--mono); font-size: 10px; letter-spacing: 0.1em;
+      text-transform: uppercase; color: var(--fg-faint); }
+    .s-cart-total__amount { font-family: var(--serif); font-size: 24px; letter-spacing: -0.01em; }
+    .s-cart-checkout { display: block; width: 100%; text-align: center; text-decoration: none;
+      font-family: var(--mono); font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase;
+      padding: 14px; background: var(--fg); color: var(--bg); transition: opacity 150ms; }
+    .s-cart-checkout:hover { opacity: 0.85; }
+    .s-atc-btn { cursor: pointer; width: 100%; }
+    .s-atc-feedback { position: fixed; top: 80px; right: 24px; z-index: 400;
+      background: var(--fg); color: var(--bg); font-family: var(--mono); font-size: 10px;
+      letter-spacing: 0.1em; padding: 10px 16px; opacity: 0;
+      transition: opacity 200ms; pointer-events: none; }
+    .s-atc-feedback.show { opacity: 1; }
   </style>
 </head>
 <body>
@@ -624,7 +691,12 @@ function renderStorefront(store, config, products, isPreview = false) {
       ${logo ? `<img src="${esc(logo)}" alt="${esc(name)}" class="s-bar__logo" />` : ''}
       <span class="s-bar__name">${esc(name)}</span>
     </div>
-    <a href="/" class="s-bar__back">← MaxCyberSolutions</a>
+    <div style="display:flex;align-items:center;gap:14px">
+      ${!isPreview ? `<button class="s-cart-btn" id="s-cart-btn" onclick="sCartOpen()" aria-label="Cart">
+        <span class="s-cart-badge" id="s-cart-badge" data-count="0">0</span>Cart
+      </button>` : ''}
+      <a href="/" class="s-bar__back">← MaxCyberSolutions</a>
+    </div>
   </nav>` : ''}
 
   ${features.hasDiscountCountdown && !hasHeaderSection ? renderCountdown() : ''}
@@ -645,6 +717,7 @@ function renderStorefront(store, config, products, isPreview = false) {
 
   ${features.hasDiscountCountdown && !hasHeaderSection ? countdownScript() : ''}
   ${features.hasNewsletterPopup && !isPreview ? newsletterScript() : ''}
+  ${!isPreview ? cartHtml(store.slug, store.cbu_cvu, store.mp_access_token) : ''}
 </body>
 </html>`;
 }
@@ -1119,7 +1192,10 @@ function renderCard(p, opts = {}) {
   const hoverClass = hoverEffect && hoverEffect !== 'none' ? ` s-card--${esc(hoverEffect)}` : '';
 
   return `<article class="s-card${hasImg ? '' : ' s-card--noimg'}${hoverClass}"
-  data-price="${p.price_cents / 100}" data-name="${esc(p.name)}" data-instock="${p.in_stock ? 1 : 0}" data-tags="${esc(p.category || '')}">
+  data-price="${p.price_cents / 100}" data-name="${esc(p.name)}" data-instock="${p.in_stock ? 1 : 0}" data-tags="${esc(p.category || '')}"
+  data-id="${esc(p.id)}" data-sku="${esc(p.sku)}" data-price-cents="${p.price_cents}"
+  data-image="${esc(p.image || '')}" data-weight="${p.weight_grams || 0}"
+  data-width="${p.width_cm || 0}" data-height="${p.height_cm || 0}" data-depth="${p.depth_cm || 0}">
   ${hasImg ? `<div class="s-card__img" style="background-image:url('${esc(p.image)}');aspect-ratio:${esc(imgRatio)}"></div>` : ''}
   <div class="s-card__body">
     <div class="s-card__sku">SKU ${esc(p.sku)}</div>
@@ -1132,7 +1208,10 @@ function renderCard(p, opts = {}) {
       ${!p.in_stock ? '<span class="s-card__badge s-card__badge--oos">Out of stock</span>' : ''}
       ${badges}
     </div>` : ''}
-    ${showCTA ? `<button class="s-card__cta">Inquire</button>` : ''}
+    ${showCTA ? (p.in_stock
+      ? `<button class="s-card__cta s-atc-btn" onclick="sCartAdd(this)">Add to cart</button>`
+      : `<span class="s-card__cta" style="opacity:.4;pointer-events:none;cursor:default">Out of stock</span>`)
+    : ''}
   </div>
 </article>`;
 }
@@ -1210,4 +1289,169 @@ function newsletterScript() {
   f.addEventListener('submit',function(e){e.preventDefault();o.classList.remove('active');});
 })();
 </script>`;
+}
+
+function cartHtml(slug, cbuCvu, mpToken) {
+  const hasCheckout = !!(cbuCvu || mpToken);
+  return `
+<div class="s-cart-overlay" id="s-cart-overlay" onclick="sCartClose()"></div>
+<aside class="s-cart-drawer" id="s-cart-drawer" aria-label="Shopping cart">
+  <div class="s-cart-head">
+    <span class="s-cart-head__title">Cart</span>
+    <button class="s-cart-head__close" onclick="sCartClose()" aria-label="Close cart">✕</button>
+  </div>
+  <div class="s-cart-items" id="s-cart-items">
+    <p class="s-cart-empty">Your cart is empty.</p>
+  </div>
+  <div class="s-cart-foot" id="s-cart-foot" style="display:none">
+    <div class="s-cart-total">
+      <span class="s-cart-total__label">Total</span>
+      <span class="s-cart-total__amount" id="s-cart-total-amt">$0</span>
+    </div>
+    ${hasCheckout
+      ? `<a class="s-cart-checkout" id="s-cart-go" href="/checkout/${esc(slug)}">Checkout →</a>`
+      : `<p style="font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-align:center;color:var(--fg-faint)">Checkout not configured yet.</p>`}
+  </div>
+</aside>
+<div class="s-atc-feedback" id="s-atc-feedback">Added to cart</div>
+
+<script>
+(function(){
+  const SLUG      = '${esc(slug)}';
+  const CART_KEY  = 'cart_' + SLUG;
+  const fmtPrice  = c => '$' + (c/100).toLocaleString('es-AR',{minimumFractionDigits:2,maximumFractionDigits:2});
+
+  var cart = [];
+  try { cart = JSON.parse(localStorage.getItem(CART_KEY) || '[]'); } catch {}
+
+  function save() { localStorage.setItem(CART_KEY, JSON.stringify(cart)); }
+
+  function updateBadge() {
+    var total = cart.reduce(function(s,i){ return s+i.quantity; }, 0);
+    var b = document.getElementById('s-cart-badge');
+    if (!b) return;
+    b.textContent = total;
+    b.dataset.count = String(total);
+    b.style.display = total ? '' : 'none';
+  }
+
+  function renderItems() {
+    var el = document.getElementById('s-cart-items');
+    var ft = document.getElementById('s-cart-foot');
+    if (!el) return;
+    if (!cart.length) {
+      el.innerHTML = '<p class="s-cart-empty">Your cart is empty.</p>';
+      if (ft) ft.style.display = 'none';
+      return;
+    }
+    if (ft) ft.style.display = '';
+    el.innerHTML = cart.map(function(item, idx){
+      return '<div class="s-ci">' +
+        (item.image ? '<img class="s-ci__img" src="'+item.image+'" alt=""/>' : '<div class="s-ci__img"></div>') +
+        '<div class="s-ci__info">' +
+          '<div class="s-ci__name">'+item.name+'</div>' +
+          '<div class="s-ci__price">'+fmtPrice(item.price_cents)+' × '+item.quantity+'</div>' +
+          '<div class="s-ci__qty">' +
+            '<button class="s-ci__qbtn" onclick="sCartQty('+idx+',-1)">−</button>' +
+            '<span class="s-ci__qval">'+item.quantity+'</span>' +
+            '<button class="s-ci__qbtn" onclick="sCartQty('+idx+',1)">+</button>' +
+          '</div>' +
+        '</div>' +
+        '<button class="s-ci__remove" onclick="sCartRemove('+idx+')" title="Remove">✕</button>' +
+      '</div>';
+    }).join('');
+    var sub = cart.reduce(function(s,i){ return s+(i.price_cents*i.quantity); }, 0);
+    var ta = document.getElementById('s-cart-total-amt');
+    if (ta) ta.textContent = fmtPrice(sub);
+  }
+
+  window.sCartOpen = function() {
+    document.getElementById('s-cart-drawer').classList.add('open');
+    document.getElementById('s-cart-overlay').classList.add('open');
+    document.body.style.overflow = 'hidden';
+    renderItems();
+  };
+  window.sCartClose = function() {
+    document.getElementById('s-cart-drawer').classList.remove('open');
+    document.getElementById('s-cart-overlay').classList.remove('open');
+    document.body.style.overflow = '';
+  };
+
+  window.sCartAdd = function(btn) {
+    var card = btn.closest('[data-id]');
+    if (!card) return;
+    var id      = card.dataset.id;
+    var existing = cart.find(function(i){ return i.id === id; });
+    if (existing) {
+      existing.quantity++;
+    } else {
+      cart.push({
+        id:           id,
+        sku:          card.dataset.sku          || '',
+        name:         card.dataset.name         || '',
+        image:        card.dataset.image        || '',
+        price_cents:  parseInt(card.dataset.priceCents || '0', 10),
+        quantity:     1,
+        weight_grams: parseInt(card.dataset.weight || '0', 10),
+        width_cm:     parseInt(card.dataset.width  || '0', 10),
+        height_cm:    parseInt(card.dataset.height || '0', 10),
+        depth_cm:     parseInt(card.dataset.depth  || '0', 10),
+      });
+    }
+    save();
+    updateBadge();
+    var fb = document.getElementById('s-atc-feedback');
+    if (fb) {
+      fb.classList.add('show');
+      setTimeout(function(){ fb.classList.remove('show'); }, 1500);
+    }
+  };
+
+  window.sCartQty = function(idx, delta) {
+    if (!cart[idx]) return;
+    cart[idx].quantity = Math.max(1, cart[idx].quantity + delta);
+    save(); renderItems(); updateBadge();
+  };
+  window.sCartRemove = function(idx) {
+    cart.splice(idx, 1);
+    save(); renderItems(); updateBadge();
+  };
+
+  updateBadge();
+})();
+</script>`;
+}
+
+function maintenancePage(storeName) {
+  return new Response(`<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>${esc(storeName)} — Temporarily Unavailable</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { min-height: 100vh; display: flex; align-items: center; justify-content: center;
+      background: #efeae0; font-family: Georgia, serif; color: #1c1a16; }
+    .wrap { text-align: center; padding: 48px 32px; max-width: 480px; }
+    .name { font-size: clamp(28px, 6vw, 48px); letter-spacing: -0.02em; margin-bottom: 16px; }
+    .msg  { font-style: italic; color: #7a736a; font-size: 17px; line-height: 1.6; }
+    .rule { width: 48px; height: 1px; background: #d4cdbd; margin: 24px auto; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1 class="name">${esc(storeName)}</h1>
+    <div class="rule"></div>
+    <p class="msg">This store is temporarily unavailable.<br/>Please check back soon.</p>
+  </div>
+</body>
+</html>`, {
+    status: 503,
+    headers: {
+      'Content-Type':  'text/html;charset=UTF-8',
+      'Cache-Control': 'no-store',
+      'Retry-After':   '3600',
+    },
+  });
 }

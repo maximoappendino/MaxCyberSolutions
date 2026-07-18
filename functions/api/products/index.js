@@ -1,11 +1,11 @@
 import { json, uuid } from '../../_lib/helpers.js';
+import { checkProductLimit } from '../../_lib/storage.js';
 
 export async function onRequestGet({ request, data, env }) {
   const url     = new URL(request.url);
   const storeId = url.searchParams.get('store_id');
   if (!storeId) return json({ error: 'store_id query parameter is required' }, 400);
 
-  // Ownership check — prevent cross-tenant data leaks
   const store = await env.DB.prepare(
     'SELECT id FROM stores WHERE id = ? AND owner_id = ?'
   ).bind(storeId, data.owner_id).first();
@@ -24,7 +24,9 @@ export async function onRequestPost({ request, data, env }) {
   catch { return json({ error: 'Invalid JSON' }, 400); }
 
   const { store_id, sku, name, description = '', price_cents, metadata = {},
-          in_stock = true, category = '', visible = true } = body ?? {};
+          in_stock = true, category = '', visible = true, image = '',
+          weight_grams = 0, width_cm = 0, height_cm = 0, depth_cm = 0 } = body ?? {};
+
   if (!store_id || !sku || !name || price_cents === undefined) {
     return json({ error: 'store_id, sku, name, and price_cents are required' }, 400);
   }
@@ -32,25 +34,31 @@ export async function onRequestPost({ request, data, env }) {
     return json({ error: 'price_cents must be a non-negative integer' }, 400);
   }
 
-  // Ownership check — UPDATE products WHERE store_id IN (SELECT id FROM stores WHERE owner_id = ?)
   const store = await env.DB.prepare(
     'SELECT id FROM stores WHERE id = ? AND owner_id = ?'
   ).bind(store_id, data.owner_id).first();
   if (!store) return json({ error: 'Store not found or access denied' }, 404);
 
+  const limitCheck = await checkProductLimit(data.owner_id, env);
+  if (!limitCheck.ok) return json({ error: limitCheck.error }, 403);
+
   const id = uuid();
   try {
     await env.DB.prepare(
-      'INSERT INTO products (id, store_id, sku, name, description, price_cents, metadata, in_stock, category, visible) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+      'INSERT INTO products (id, store_id, sku, name, description, price_cents, metadata, in_stock, category, visible, image, weight_grams, width_cm, height_cm, depth_cm) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
     ).bind(id, store_id, sku, name, description, price_cents, JSON.stringify(metadata),
-           in_stock ? 1 : 0, category, visible ? 1 : 0).run();
+           in_stock ? 1 : 0, category, visible ? 1 : 0, image,
+           parseInt(weight_grams) || 0, parseInt(width_cm) || 0,
+           parseInt(height_cm) || 0, parseInt(depth_cm) || 0).run();
   } catch (e) {
     if (e.message?.includes('UNIQUE')) return json({ error: 'SKU already exists in this store' }, 409);
     throw e;
   }
 
   return json({ id, store_id, sku, name, description, price_cents, metadata,
-                in_stock: !!in_stock, category, visible: !!visible }, 201);
+                in_stock: !!in_stock, category, visible: !!visible, image,
+                weight_grams: parseInt(weight_grams) || 0, width_cm: parseInt(width_cm) || 0,
+                height_cm: parseInt(height_cm) || 0, depth_cm: parseInt(depth_cm) || 0 }, 201);
 }
 
 function parseMeta(row) {

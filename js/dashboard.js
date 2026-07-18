@@ -583,7 +583,14 @@ async function checkAuth() {
 function onAuthenticated() {
   document.getElementById('d-bar').style.display    = '';
   document.getElementById('d-email').textContent    = state.owner.email;
-  showStoresScreen();
+  const adminLink = document.getElementById('d-admin-link');
+  if (adminLink) adminLink.style.display = state.owner.is_admin ? '' : 'none';
+  if (state.owner.onboarded === 0) {
+    setupOnboarding();
+    showScreen('onboard');
+  } else {
+    showStoresScreen();
+  }
 }
 
 async function logout() {
@@ -732,6 +739,7 @@ window.openStore = async function(storeId) {
   state.bulkSelected   = new Set();
 
   await loadProducts();
+  loadPaymentSettings(storeId);
 
   showScreen('editor');
   showEditorBar();
@@ -754,6 +762,7 @@ function setupEditorTabs() {
       document.querySelectorAll('.etab-pane').forEach(p => p.classList.remove('active'));
       tab.classList.add('active');
       document.getElementById(`etab-${tab.dataset.tab}`).classList.add('active');
+      if (tab.dataset.tab === 'orders') loadOrders();
     });
   });
 }
@@ -2306,7 +2315,9 @@ function openNewProductModal() {
   state.editingProduct = null;
   state.variations     = [];
   document.getElementById('pm-title').textContent = 'New item';
-  ['pm-sku','pm-name','pm-desc','pm-meta','pm-tags'].forEach(id => document.getElementById(id).value = '');
+  ['pm-sku','pm-name','pm-desc','pm-meta','pm-tags','pm-weight','pm-width','pm-height','pm-depth'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.value = '';
+  });
   document.getElementById('pm-price').value    = '';
   document.getElementById('pm-stock').checked  = true;
   document.getElementById('pm-visible').checked = true;
@@ -2359,6 +2370,11 @@ window.editProduct = function(productId) {
   renderVariationsList();
 
   document.getElementById('pm-sku').readOnly = !state.allowEditIds;
+  const setV = (id, v) => { const el = document.getElementById(id); if (el) el.value = v || ''; };
+  setV('pm-weight', p.weight_grams || '');
+  setV('pm-width',  p.width_cm     || '');
+  setV('pm-height', p.height_cm    || '');
+  setV('pm-depth',  p.depth_cm     || '');
 
   renderProductImgPreview(p.image || '');
   setMsg('pm-msg', '', '');
@@ -2398,16 +2414,21 @@ async function saveProduct(e) {
   else { delete metadata.discountType; delete metadata.discountAmount; }
   if (badge) metadata.badge = badge; else delete metadata.badge;
 
+  const getInt = id => { const e = document.getElementById(id); return e ? (parseInt(e.value, 10) || 0) : 0; };
   const payload = {
     sku,
-    name:        document.getElementById('pm-name').value.trim(),
-    description: document.getElementById('pm-desc').value.trim(),
-    price_cents: parseInt(document.getElementById('pm-price').value, 10),
-    in_stock:    document.getElementById('pm-stock').checked,
-    visible:     document.getElementById('pm-visible').checked,
-    category:    document.getElementById('pm-tags').value.trim(),
-    image:       document.getElementById('pm-image').value,
+    name:         document.getElementById('pm-name').value.trim(),
+    description:  document.getElementById('pm-desc').value.trim(),
+    price_cents:  parseInt(document.getElementById('pm-price').value, 10),
+    in_stock:     document.getElementById('pm-stock').checked,
+    visible:      document.getElementById('pm-visible').checked,
+    category:     document.getElementById('pm-tags').value.trim(),
+    image:        document.getElementById('pm-image').value,
     metadata,
+    weight_grams: getInt('pm-weight'),
+    width_cm:     getInt('pm-width'),
+    height_cm:    getInt('pm-height'),
+    depth_cm:     getInt('pm-depth'),
   };
 
   btn.disabled = true;
@@ -2570,6 +2591,9 @@ function setupConfigTab() {
     document.getElementById('reset-confirm-input').value = '';
     document.getElementById('tmpl-overlay').classList.add('active');
   });
+
+  document.getElementById('btn-save-payment').addEventListener('click', savePaymentSettings);
+  document.getElementById('btn-refresh-orders').addEventListener('click', loadOrders);
 }
 
 function renderConfigTab() {
@@ -2834,3 +2858,186 @@ function download(content, filename, type) {
   a.click();
   URL.revokeObjectURL(url);
 }
+
+// ── Onboarding wizard ─────────────────────────────────────────────────────────
+let _obStoreId  = null;
+let _obSlugOk   = false;
+
+function setupOnboarding() {
+  const slugIn      = document.getElementById('ob-slug');
+  const slugStatus  = document.getElementById('ob-slug-status');
+  const slugPreview = document.getElementById('ob-slug-preview');
+
+  if (slugIn) {
+    slugIn.addEventListener('input', () => {
+      const v = slugIn.value.toLowerCase().replace(/[^a-z0-9-]/g, '');
+      slugIn.value = v;
+      if (slugPreview) slugPreview.textContent = v || 'your-brand';
+      slugStatus.textContent = '';
+      _obSlugOk = false;
+    });
+  }
+
+  document.getElementById('btn-check-slug')?.addEventListener('click', async () => {
+    const slug = (slugIn?.value || '').trim();
+    if (!slug) { slugStatus.textContent = 'Enter a slug first.'; return; }
+    const res  = await fetch(`/api/public/slug-check?slug=${encodeURIComponent(slug)}`);
+    const data = await safeJson(res);
+    _obSlugOk  = !!data.available;
+    slugStatus.textContent  = data.available ? '✓ Available!' : (data.error || '✗ Already taken');
+    slugStatus.style.color  = data.available ? '#1c6b3a' : '#b33';
+  });
+
+  document.getElementById('btn-ob-next-1')?.addEventListener('click', async () => {
+    const name = document.getElementById('ob-store-name')?.value.trim();
+    const slug = slugIn?.value.trim();
+    const msg  = document.getElementById('ob-msg-1');
+    if (!name || !slug) { if (msg) msg.textContent = 'Please fill in both fields.'; return; }
+    if (!_obSlugOk) { if (msg) msg.textContent = 'Check slug availability first.'; return; }
+
+    const res  = await api('POST', '/api/stores', { name, slug });
+    const data = await safeJson(res);
+    if (!res.ok) { if (msg) msg.textContent = data.error || 'Failed to create store.'; return; }
+
+    _obStoreId = data.id;
+    document.getElementById('ob-step-1').style.display = 'none';
+    document.getElementById('ob-step-2').style.display = '';
+  });
+
+  document.getElementById('btn-ob-skip-2')?.addEventListener('click', completeOnboarding);
+  document.getElementById('btn-ob-finish')?.addEventListener('click', async () => {
+    const cbu    = document.getElementById('ob-cbu')?.value.trim();
+    const bname  = document.getElementById('ob-bank-name')?.value.trim();
+    const holder = document.getElementById('ob-bank-holder')?.value.trim();
+    if (cbu && _obStoreId) {
+      await api('PUT', `/api/stores/${_obStoreId}/payment`, {
+        cbu_cvu: cbu, bank_name: bname, bank_holder: holder,
+      });
+    }
+    await completeOnboarding();
+  });
+}
+
+async function completeOnboarding() {
+  await api('POST', '/api/me/onboard');
+  if (state.owner) state.owner.onboarded = 1;
+  await showStoresScreen();
+}
+
+// ── Payment settings ──────────────────────────────────────────────────────────
+async function loadPaymentSettings(storeId) {
+  const res  = await api('GET', `/api/stores/${storeId}/payment`);
+  if (!res.ok) return;
+  const data = await safeJson(res);
+
+  const setV = (id, v) => { const el = document.getElementById(id); if (el) el.value = v || ''; };
+  setV('cfg-mp-pub',     data.mp_public_key   || '');
+  setV('cfg-mp-tok',     data.mp_access_token === '••••••••' ? '' : '');  // never pre-fill tokens
+  setV('cfg-cbu',        data.cbu_cvu         || '');
+  setV('cfg-bank-name',  data.bank_name        || '');
+  setV('cfg-bank-holder',data.bank_holder      || '');
+  setV('cfg-s-addr',     data.store_address    || '');
+  setV('cfg-s-zip',      data.store_zip        || '');
+  setV('cfg-s-city',     data.store_city       || '');
+  setV('cfg-s-prov',     data.store_province   || '');
+}
+
+async function savePaymentSettings() {
+  const storeId = state.activeStore?.id;
+  if (!storeId) return;
+  const btn = document.getElementById('btn-save-payment');
+  if (btn) { btn.disabled = true; btn.textContent = 'Saving…'; }
+
+  const getV = id => (document.getElementById(id)?.value.trim() || '');
+  const body = {
+    mp_public_key:  getV('cfg-mp-pub'),
+    cbu_cvu:        getV('cfg-cbu'),
+    bank_name:      getV('cfg-bank-name'),
+    bank_holder:    getV('cfg-bank-holder'),
+    store_address:  getV('cfg-s-addr'),
+    store_zip:      getV('cfg-s-zip'),
+    store_city:     getV('cfg-s-city'),
+    store_province: getV('cfg-s-prov'),
+  };
+
+  const tok = getV('cfg-mp-tok');
+  if (tok) body.mp_access_token = tok;
+
+  const res  = await api('PUT', `/api/stores/${storeId}/payment`, body);
+  const msg  = document.getElementById('payment-msg');
+  if (msg) {
+    msg.textContent = res.ok ? 'Saved ✓' : 'Save failed.';
+    msg.style.color = res.ok ? '#1c6b3a' : '#b33';
+    setTimeout(() => { msg.textContent = ''; }, 2500);
+  }
+  if (btn) { btn.disabled = false; btn.textContent = 'Save payment settings'; }
+}
+
+// ── Orders tab ────────────────────────────────────────────────────────────────
+async function loadOrders() {
+  const storeId = state.activeStore?.id;
+  if (!storeId) return;
+
+  const status = document.getElementById('orders-status-filter')?.value || '';
+  const qs     = status ? `?status=${encodeURIComponent(status)}` : '';
+  const res    = await api('GET', `/api/stores/${storeId}/orders${qs}`);
+  const orders = res.ok ? await safeJson(res) : [];
+  renderOrders(orders);
+}
+
+function renderOrders(orders) {
+  const list = document.getElementById('orders-list');
+  if (!list) return;
+  if (!orders.length) {
+    list.innerHTML = '<p class="status-msg" style="padding:12px">No orders yet.</p>';
+    return;
+  }
+
+  const fmtARS = c => '$' + (c/100).toLocaleString('es-AR',{minimumFractionDigits:2,maximumFractionDigits:2});
+
+  list.innerHTML = orders.map(o => {
+    const date = new Date(o.created_at).toLocaleDateString('es-AR', { day:'2-digit', month:'short' });
+    return `
+    <div class="order-row" id="ord-${esc(o.id)}">
+      <div class="order-row__head">
+        <span class="order-name">${esc(o.customer_name)}</span>
+        <span class="order-badge order-badge--${esc(o.status)}">${esc(o.status.replace('_',' '))}</span>
+        <span class="order-amt">${fmtARS(o.total_cents)}</span>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <span class="order-ref">#${esc(o.id.slice(0,8).toUpperCase())}</span>
+        <span class="order-date">${esc(date)}</span>
+        <span class="order-ref">${esc(o.payment_method || '')}</span>
+      </div>
+      <div class="order-detail" id="ord-detail-${esc(o.id)}">
+        <div class="order-detail__row"><span class="order-detail__key">Email</span><span>${esc(o.customer_email)}</span></div>
+        <div class="order-detail__row"><span class="order-detail__key">Phone</span><span>${esc(o.customer_phone || '—')}</span></div>
+        <div class="order-detail__row"><span class="order-detail__key">Address</span><span>${esc([o.shipping_address,o.shipping_city,o.shipping_province,o.shipping_zip].filter(Boolean).join(', ') || '—')}</span></div>
+        <div class="order-detail__row"><span class="order-detail__key">Shipping</span><span>${esc(o.shipping_method || '—')} ${o.shipping_cost_cents ? fmtARS(o.shipping_cost_cents) : ''}</span></div>
+        <div class="order-detail__row"><span class="order-detail__key">Subtotal</span><span>${fmtARS(o.subtotal_cents)}</span></div>
+        <div class="order-detail__row"><span class="order-detail__key">Total</span><span>${fmtARS(o.total_cents)}</span></div>
+        ${o.payment_id ? `<div class="order-detail__row"><span class="order-detail__key">Payment ID</span><span style="font-family:var(--mono);font-size:10px">${esc(o.payment_id)}</span></div>` : ''}
+        <select class="order-status-sel" onchange="updateOrderStatus('${esc(o.id)}', this.value)">
+          ${['pending','awaiting_transfer','paid','processing','shipped','delivered','cancelled'].map(s =>
+            `<option value="${s}"${s === o.status ? ' selected' : ''}>${s.replace('_',' ')}</option>`
+          ).join('')}
+        </select>
+      </div>
+    </div>`;
+  }).join('');
+
+  list.querySelectorAll('.order-row').forEach(row => {
+    row.addEventListener('click', e => {
+      if (e.target.closest('select')) return;
+      const detail = row.querySelector('.order-detail');
+      if (detail) detail.classList.toggle('open');
+    });
+  });
+}
+
+window.updateOrderStatus = async function(orderId, status) {
+  const res = await api('PUT', `/api/orders/${orderId}`, { status });
+  if (!res.ok) { alert('Failed to update order status.'); return; }
+  const badge = document.querySelector(`#ord-${orderId} .order-badge`);
+  if (badge) { badge.textContent = status.replace('_', ' '); badge.className = `order-badge order-badge--${status}`; }
+};

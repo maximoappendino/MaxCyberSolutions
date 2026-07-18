@@ -4,8 +4,10 @@ export async function onRequest(context) {
   const { request, env, next } = context;
   const url = new URL(request.url);
 
-  // Auth endpoints are public — skip session check
-  if (url.pathname.startsWith('/api/auth/')) {
+  // Public paths — skip session check
+  if (url.pathname.startsWith('/api/auth/') ||
+      url.pathname.startsWith('/api/public/') ||
+      url.pathname.startsWith('/api/webhooks/')) {
     return next();
   }
 

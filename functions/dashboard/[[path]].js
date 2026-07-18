@@ -114,11 +114,54 @@ const HTML = `<!DOCTYPE html>
       transition: color 160ms ease, border-color 160ms ease;
     }
     .d-bar__logout:hover { color: var(--fg); border-color: var(--fg); }
+    .d-bar__admin-link {
+      font-family: var(--mono); font-size: 10px; letter-spacing: 0.12em;
+      text-transform: uppercase; color: var(--accent); text-decoration: none;
+      transition: opacity 150ms;
+    }
+    .d-bar__admin-link:hover { opacity: 0.7; }
 
     /* ── Screens ── */
     .screen { display: none; padding-top: var(--bar-h); }
     .screen.active { display: block; }
     #screen-editor { padding-top: 0; }
+
+    /* ── Onboarding ── */
+    .ob-wrap { min-height: calc(100vh - var(--bar-h)); display: flex; align-items: center; justify-content: center; padding: 40px 20px; }
+    .ob-card { background: var(--bg); border: 1px solid var(--line); max-width: 480px; width: 100%; padding: 40px; }
+    .ob-title { font-family: var(--serif); font-size: 28px; letter-spacing: -0.01em; margin-bottom: 6px; }
+    .ob-sub   { font-size: 13px; color: var(--fg-faint); margin-bottom: 24px; }
+    .ob-step  { display: flex; flex-direction: column; gap: 14px; }
+    .slug-row { display: flex; gap: 8px; }
+    .slug-row input { flex: 1; }
+    .slug-status { font-family: var(--mono); font-size: 10px; letter-spacing: 0.08em; }
+    .slug-hint   { font-family: var(--mono); font-size: 9px; color: var(--fg-faint); margin-top: 3px; }
+    .ob-actions  { display: flex; gap: 10px; margin-top: 8px; flex-wrap: wrap; }
+
+    /* ── Orders tab ── */
+    .orders-pane { display: flex; flex-direction: column; overflow: hidden; flex: 1; }
+    .orders-toolbar { display: flex; gap: 6px; padding: 8px 10px; border-bottom: 1px solid var(--line-soft); flex-shrink: 0; }
+    #orders-list { flex: 1; overflow-y: auto; }
+    .order-row { padding: 10px 12px; border-bottom: 1px solid var(--line-soft); cursor: pointer; transition: background 150ms; }
+    .order-row:hover { background: var(--bg-soft); }
+    .order-row__head { display: flex; align-items: center; gap: 8px; margin-bottom: 2px; }
+    .order-ref   { font-family: var(--mono); font-size: 9px; color: var(--fg-faint); }
+    .order-name  { font-size: 12px; font-weight: 500; flex: 1; }
+    .order-amt   { font-family: var(--mono); font-size: 11px; }
+    .order-badge { font-family: var(--mono); font-size: 8px; letter-spacing: 0.1em; text-transform: uppercase; padding: 1px 5px; border: 1px solid; }
+    .order-badge--pending          { color: #9a6200; border-color: #9a6200; }
+    .order-badge--awaiting_transfer{ color: #6b4c00; border-color: #6b4c00; }
+    .order-badge--paid             { color: #1c6b3a; border-color: #1c6b3a; }
+    .order-badge--processing       { color: var(--accent); border-color: var(--accent); }
+    .order-badge--shipped          { color: #1a50a0; border-color: #1a50a0; }
+    .order-badge--delivered        { color: #1c6b3a; border-color: #1c6b3a; }
+    .order-badge--cancelled        { color: var(--fg-faint); border-color: var(--fg-faint); }
+    .order-date  { font-family: var(--mono); font-size: 9px; color: var(--fg-faint); }
+    .order-detail { padding: 14px; background: var(--bg); border-bottom: 2px solid var(--accent); display: none; }
+    .order-detail.open { display: block; }
+    .order-detail__row { display: flex; justify-content: space-between; padding: 4px 0; font-size: 12px; border-bottom: 1px solid var(--line-soft); }
+    .order-detail__key { color: var(--fg-faint); font-family: var(--mono); font-size: 9px; letter-spacing: 0.08em; }
+    .order-status-sel { font-family: var(--mono); font-size: 10px; padding: 5px 8px; margin-top: 8px; width: 100%; }
 
     /* ── Login ── */
     .login-wrap { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 40px; }
@@ -476,8 +519,64 @@ const HTML = `<!DOCTYPE html>
     </div>
     <div class="d-bar__right">
       <button class="btn-push" id="btn-push-live" style="display:none">🚀 Push Live</button>
+      <a class="d-bar__admin-link" id="d-admin-link" href="/admin/" style="display:none">Admin ↗</a>
       <span class="d-bar__email" id="d-email"></span>
       <button class="d-bar__logout" id="d-logout">Sign out</button>
+    </div>
+  </div>
+
+  <!-- ── Onboarding ── -->
+  <div class="screen" id="screen-onboard">
+    <div class="ob-wrap">
+      <div class="ob-card">
+        <div id="ob-step-1">
+          <h2 class="ob-title">Welcome to MaxCyberSolutions</h2>
+          <p class="ob-sub">Let's set up your store in two quick steps.</p>
+          <div class="ob-step">
+            <div class="form-field">
+              <label for="ob-store-name">Store name *</label>
+              <input id="ob-store-name" type="text" placeholder="My Brand Store" />
+            </div>
+            <div class="form-field">
+              <label for="ob-slug">Store URL slug *</label>
+              <div class="slug-row">
+                <input id="ob-slug" type="text" placeholder="my-brand" />
+                <button type="button" class="btn-ghost btn-sm" id="btn-check-slug">Check</button>
+              </div>
+              <div class="slug-status" id="ob-slug-status"></div>
+              <div class="slug-hint">Your store: maxcybersolutions.online/store/<span id="ob-slug-preview">my-brand</span></div>
+            </div>
+            <p class="status-msg" id="ob-msg-1"></p>
+            <div class="ob-actions">
+              <button class="btn-solid" id="btn-ob-next-1">Next →</button>
+            </div>
+          </div>
+        </div>
+
+        <div id="ob-step-2" style="display:none">
+          <h2 class="ob-title">Payment setup</h2>
+          <p class="ob-sub">Add your payment details so customers can buy from your store. You can skip and configure these later in Store Settings.</p>
+          <div class="ob-step">
+            <div class="form-field">
+              <label for="ob-cbu">CBU / CVU (for bank transfers)</label>
+              <input id="ob-cbu" type="text" placeholder="0000003100098765432100" />
+            </div>
+            <div class="form-field">
+              <label for="ob-bank-name">Bank name</label>
+              <input id="ob-bank-name" type="text" placeholder="Banco Galicia" />
+            </div>
+            <div class="form-field">
+              <label for="ob-bank-holder">Account holder</label>
+              <input id="ob-bank-holder" type="text" placeholder="Jane Doe" />
+            </div>
+            <p class="status-msg" id="ob-msg-2"></p>
+            <div class="ob-actions">
+              <button class="btn-ghost" id="btn-ob-skip-2">Skip for now</button>
+              <button class="btn-solid" id="btn-ob-finish">Finish setup →</button>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -556,6 +655,7 @@ const HTML = `<!DOCTYPE html>
           <button class="etab" data-tab="sections">Sections</button>
           <button class="etab" data-tab="items">Items</button>
           <button class="etab" data-tab="config">Config</button>
+          <button class="etab" data-tab="orders">Orders</button>
         </div>
 
         <!-- Design tab -->
@@ -1011,8 +1111,118 @@ const HTML = `<!DOCTYPE html>
               </div>
 
             </div>
+
+            <div class="config-section">
+              <span class="config-section__label">Payments &amp; Checkout</span>
+
+              <div class="adv-tweak" id="tweak-mp">
+                <div class="adv-tweak__head">
+                  <div class="adv-tweak__title-area" onclick="this.closest('.adv-tweak').classList.toggle('open')">
+                    <div class="adv-tweak__title">Mercado Pago</div>
+                    <div class="adv-tweak__desc">Credit/debit cards and other MP methods.</div>
+                  </div>
+                  <div class="adv-tweak__controls">
+                    <span class="adv-tweak__arrow" onclick="this.closest('.adv-tweak').classList.toggle('open')">›</span>
+                  </div>
+                </div>
+                <div class="adv-tweak__body">
+                  <div class="form-field">
+                    <label for="cfg-mp-pub">Public Key</label>
+                    <input id="cfg-mp-pub" type="text" placeholder="APP_USR-…" />
+                  </div>
+                  <div class="form-field">
+                    <label for="cfg-mp-tok">Access Token</label>
+                    <input id="cfg-mp-tok" type="password" placeholder="APP_USR-…" autocomplete="new-password" />
+                    <p style="font-size:10px;color:var(--fg-faint);margin-top:3px">Get these from your Mercado Pago developer dashboard.</p>
+                  </div>
+                  <button class="btn-ghost btn-sm" id="btn-save-payment" style="margin-top:6px">Save payment settings</button>
+                  <p class="status-msg" id="payment-msg" style="font-size:10px;padding:4px 0"></p>
+                </div>
+              </div>
+
+              <div class="adv-tweak" id="tweak-bank">
+                <div class="adv-tweak__head">
+                  <div class="adv-tweak__title-area" onclick="this.closest('.adv-tweak').classList.toggle('open')">
+                    <div class="adv-tweak__title">Bank Transfer (CBU / CVU)</div>
+                    <div class="adv-tweak__desc">Accept transfers to your Argentine bank account.</div>
+                  </div>
+                  <div class="adv-tweak__controls">
+                    <span class="adv-tweak__arrow" onclick="this.closest('.adv-tweak').classList.toggle('open')">›</span>
+                  </div>
+                </div>
+                <div class="adv-tweak__body">
+                  <div class="form-field">
+                    <label for="cfg-cbu">CBU / CVU</label>
+                    <input id="cfg-cbu" type="text" placeholder="0000003100098765432100" />
+                  </div>
+                  <div class="form-field">
+                    <label for="cfg-bank-name">Bank name</label>
+                    <input id="cfg-bank-name" type="text" placeholder="Banco Galicia" />
+                  </div>
+                  <div class="form-field">
+                    <label for="cfg-bank-holder">Account holder</label>
+                    <input id="cfg-bank-holder" type="text" placeholder="John Doe" />
+                  </div>
+                </div>
+              </div>
+
+              <div class="adv-tweak" id="tweak-ship-origin">
+                <div class="adv-tweak__head">
+                  <div class="adv-tweak__title-area" onclick="this.closest('.adv-tweak').classList.toggle('open')">
+                    <div class="adv-tweak__title">Store Origin (for shipping quotes)</div>
+                    <div class="adv-tweak__desc">Required for MercadoEnvíos &amp; Andreani quotes.</div>
+                  </div>
+                  <div class="adv-tweak__controls">
+                    <span class="adv-tweak__arrow" onclick="this.closest('.adv-tweak').classList.toggle('open')">›</span>
+                  </div>
+                </div>
+                <div class="adv-tweak__body">
+                  <div class="form-field">
+                    <label for="cfg-s-addr">Street address</label>
+                    <input id="cfg-s-addr" type="text" placeholder="Av. Corrientes 1234" />
+                  </div>
+                  <div class="form-row">
+                    <div class="form-field">
+                      <label for="cfg-s-zip">Postal code</label>
+                      <input id="cfg-s-zip" type="text" placeholder="C1414" />
+                    </div>
+                    <div class="form-field">
+                      <label for="cfg-s-city">City</label>
+                      <input id="cfg-s-city" type="text" placeholder="Buenos Aires" />
+                    </div>
+                  </div>
+                  <div class="form-field">
+                    <label for="cfg-s-prov">Province</label>
+                    <input id="cfg-s-prov" type="text" placeholder="CABA" />
+                  </div>
+                </div>
+              </div>
+
+            </div>
+
           </div>
         </div>
+
+        <!-- Orders tab -->
+        <div class="etab-pane" id="etab-orders">
+          <div class="orders-pane" id="orders-pane">
+            <div class="orders-toolbar">
+              <select id="orders-status-filter" style="flex:1;padding:6px 8px;font-size:11px">
+                <option value="">All orders</option>
+                <option value="pending">Pending</option>
+                <option value="awaiting_transfer">Awaiting Transfer</option>
+                <option value="paid">Paid</option>
+                <option value="processing">Processing</option>
+                <option value="shipped">Shipped</option>
+                <option value="delivered">Delivered</option>
+                <option value="cancelled">Cancelled</option>
+              </select>
+              <button class="btn-ghost btn-sm" id="btn-refresh-orders">↻</button>
+            </div>
+            <div id="orders-list"><p class="status-msg" style="padding:12px">Load an order tab to see orders.</p></div>
+          </div>
+        </div>
+
       </div>
 
       <!-- Right: preview -->
@@ -1142,6 +1352,37 @@ const HTML = `<!DOCTYPE html>
             <p style="font-size:11px;color:var(--fg-faint);margin:0">Variations use SKU = base-SKU + V1, V2… Base SKU must not end in V+number.</p>
             <div id="pm-vars-list"></div>
             <button type="button" class="btn-ghost btn-sm" id="btn-add-variation">+ Add variation</button>
+          </div>
+        </div>
+
+        <!-- Shipping dimensions -->
+        <div class="modal-section">
+          <div class="modal-section__head" onclick="this.parentElement.classList.toggle('open')">
+            <span class="modal-section__title">Shipping dimensions</span>
+            <span style="font-size:11px;color:var(--fg-faint)">▾</span>
+          </div>
+          <div class="modal-section__body" style="display:none">
+            <p style="font-size:11px;color:var(--fg-faint);margin:0 0 8px">Used for MercadoEnvíos and Andreani shipping quotes.</p>
+            <div class="form-row">
+              <div class="form-field">
+                <label for="pm-weight">Weight (g)</label>
+                <input id="pm-weight" type="number" min="0" placeholder="500" />
+              </div>
+              <div class="form-field">
+                <label for="pm-width">Width (cm)</label>
+                <input id="pm-width" type="number" min="0" placeholder="20" />
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-field">
+                <label for="pm-height">Height (cm)</label>
+                <input id="pm-height" type="number" min="0" placeholder="15" />
+              </div>
+              <div class="form-field">
+                <label for="pm-depth">Depth (cm)</label>
+                <input id="pm-depth" type="number" min="0" placeholder="10" />
+              </div>
+            </div>
           </div>
         </div>
 

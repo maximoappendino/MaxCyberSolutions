@@ -11,6 +11,6 @@
     "migrate:local": "node --experimental-sqlite scripts/migrate-local.js"
   },
   "devDependencies": {
-    "wrangler": "^3.114.17"
+    "wrangler": "^4.112.0"
   }
 }

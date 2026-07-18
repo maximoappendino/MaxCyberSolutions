@@ -19,3 +19,12 @@ bucket_name = "maxcybersolutions-assets"
 # ── Environment vars ──────────────────────────────────────────────────────────
 [vars]
 ENVIRONMENT = "production"
+PUBLIC_URL  = "https://maxcybersolutions.online"
+# Mercado Pago — Maximo's account (for platform billing + webhook verification)
+# Set via: wrangler secret put MP_ACCESS_TOKEN
+# MP_ACCESS_TOKEN = ""
+# Andreani shipping API credentials
+# Set via: wrangler secret put ANDREANI_USER / ANDREANI_PASS / ANDREANI_CONTRATO
+# ANDREANI_USER     = ""
+# ANDREANI_PASS     = ""
+# ANDREANI_CONTRATO = ""
