@@ -591,7 +591,9 @@ const HTML = `<!DOCTYPE html>
         </div>
         <div class="login-tabs">
           <button class="login-tab active" data-tab="signin">Sign in</button>
+<!-- #################################################################
           <button class="login-tab" data-tab="register">Register</button>
+#################################################################### -->
         </div>
         <form class="login-form" id="login-form">
           <div class="login-field">
@@ -617,6 +619,7 @@ const HTML = `<!DOCTYPE html>
         <h2 class="sec-head__title">Your storefronts.</h2>
       </div>
       <div class="stores-grid" id="stores-grid"></div>
+<!-- ##############################################################
       <div class="new-store-form">
         <h3 class="new-store-form__title">Create a store</h3>
         <div class="form-row">
@@ -638,6 +641,7 @@ const HTML = `<!DOCTYPE html>
           <p class="status-msg" id="ns-msg"></p>
         </div>
       </div>
+################################################################# -->
     </div>
   </div>
 
