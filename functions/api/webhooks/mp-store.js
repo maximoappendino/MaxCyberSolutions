@@ -2,7 +2,7 @@
 // Mercado Pago IPN webhook for storefront orders.
 // The notification_url in the MP preference includes ?order={orderId} so we can
 // look up the order's store and verify the payment using the store's own token.
-import { json } from '../_lib/helpers.js';
+import { json } from '../../_lib/helpers.js';
 
 export async function onRequestPost({ request, env }) {
   const url  = new URL(request.url);

@@ -1,7 +1,7 @@
 // POST /api/public/orders/:id/verify
 // Called from the checkout success page to verify a Mercado Pago payment.
 // Uses the store's own MP access token to verify the payment belongs to this order.
-import { json } from '../../../../../_lib/helpers.js';
+import { json } from '../../../../_lib/helpers.js';
 
 export async function onRequestPost({ params, request, env }) {
   let body;

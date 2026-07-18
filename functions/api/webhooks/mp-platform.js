@@ -1,8 +1,8 @@
 // POST /api/webhooks/mp-platform
 // Mercado Pago IPN webhook for platform subscriptions.
 // When a new client pays Maximo, this creates their account automatically.
-import { json, uuid } from '../_lib/helpers.js';
-import { hashPassword } from '../_lib/auth.js';
+import { json, uuid } from '../../_lib/helpers.js';
+import { hashPassword } from '../../_lib/auth.js';
 
 export async function onRequestPost({ request, env }) {
   const body = await request.json().catch(() => ({}));
