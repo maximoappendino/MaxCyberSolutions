@@ -550,6 +550,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   setupCpTabs();
   setupGallery();
   setupImgEditor();
+  setupImgPicker();
   setupEditorTabs();
   setupDesignListeners();
   setupSectionControls();
@@ -778,6 +779,7 @@ function setupCpTabs() {
 
 // ── Gallery ───────────────────────────────────────────────────────────────────
 let _galleryImages = [];
+let _galleryLoaded = false;
 
 async function loadGallery() {
   const grid = document.getElementById('gallery-pane-grid');
@@ -787,13 +789,15 @@ async function loadGallery() {
   if (!res.ok) { grid.innerHTML = '<p class="gallery-empty">Failed to load images.</p>'; return; }
   const data = await res.json();
   _galleryImages = data.images || [];
+  _galleryLoaded = true;
   renderGalleryGrid();
 }
 
 function renderGalleryGrid() {
   const grid = document.getElementById('gallery-pane-grid');
+  const drop  = '<div class="gallery-drop-hint">Drop images here to upload</div>';
   if (!_galleryImages.length) {
-    grid.innerHTML = '<p class="gallery-empty">No images uploaded yet. Click "+ Upload" to add one.</p>';
+    grid.innerHTML = '<p class="gallery-empty">No images uploaded yet. Click "+ Upload" to add one.</p>' + drop;
     return;
   }
   grid.innerHTML = _galleryImages.map((img, i) => `
@@ -805,7 +809,7 @@ function renderGalleryGrid() {
     <button class="gallery-item__btn" onclick="deleteGalleryImg(${i})">Delete</button>
   </div>
   <div class="gallery-item__size">${formatBytes(img.size)}</div>
-</div>`).join('');
+</div>`).join('') + drop;
 }
 
 function formatBytes(b) {
@@ -831,6 +835,17 @@ window.deleteGalleryImg = async function(i) {
   renderGalleryGrid();
 };
 
+async function galleryUploadFile(file) {
+  if (!file || !state.activeStore) return null;
+  const fd = new FormData();
+  fd.append('file', file);
+  fd.append('store_id', state.activeStore.id);
+  const res  = await fetch('/api/upload', { method: 'POST', body: fd });
+  const data = await safeJson(res);
+  if (!res.ok) { alert(data.error || 'Upload failed'); return null; }
+  return data.url;
+}
+
 function setupGallery() {
   document.getElementById('btn-gallery-upload').addEventListener('click', () => {
     document.getElementById('gallery-upload-input').click();
@@ -838,14 +853,19 @@ function setupGallery() {
   document.getElementById('btn-gallery-refresh').addEventListener('click', loadGallery);
   document.getElementById('gallery-upload-input').addEventListener('change', async e => {
     const file = e.target.files[0]; e.target.value = '';
-    if (!file || !state.activeStore) return;
-    const fd = new FormData();
-    fd.append('file', file);
-    fd.append('store_id', state.activeStore.id);
-    const res = await fetch('/api/upload', { method: 'POST', body: fd });
-    const data = await safeJson(res);
-    if (!res.ok) { alert(data.error || 'Upload failed'); return; }
+    await galleryUploadFile(file);
     await loadGallery();
+  });
+
+  const grid = document.getElementById('gallery-pane-grid');
+  grid.addEventListener('dragover', e => { e.preventDefault(); grid.classList.add('drag-over'); });
+  grid.addEventListener('dragleave', e => { if (!grid.contains(e.relatedTarget)) grid.classList.remove('drag-over'); });
+  grid.addEventListener('drop', async e => {
+    e.preventDefault();
+    grid.classList.remove('drag-over');
+    const files = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('image/'));
+    for (const file of files) await galleryUploadFile(file);
+    if (files.length) await loadGallery();
   });
 }
 
@@ -898,23 +918,134 @@ function setupImgEditor() {
     _ie.sourceImg = null; // use canvas as new source
   });
 
+  // Visual crop
+  const _crop = { active: false, x: 0, y: 0, w: 0, h: 0 };
+
+  function cropOverlayToCanvas() {
+    const canvas  = document.getElementById('img-editor-canvas');
+    const overlay = document.getElementById('ie-crop-overlay');
+    const rect    = document.getElementById('ie-crop-rect');
+    const oRect   = overlay.getBoundingClientRect();
+    const cRect   = canvas.getBoundingClientRect();
+    const scaleX  = canvas.width  / cRect.width;
+    const scaleY  = canvas.height / cRect.height;
+    const rRect   = rect.getBoundingClientRect();
+    return {
+      cx: Math.round((rRect.left - cRect.left) * scaleX),
+      cy: Math.round((rRect.top  - cRect.top)  * scaleY),
+      cw: Math.round(rRect.width  * scaleX),
+      ch: Math.round(rRect.height * scaleY),
+    };
+  }
+
+  function initCropRect() {
+    const canvas = document.getElementById('img-editor-canvas');
+    const rect   = document.getElementById('ie-crop-rect');
+    const wrap   = document.getElementById('ie-crop-overlay');
+    const cRect  = canvas.getBoundingClientRect();
+    const wRect  = wrap.getBoundingClientRect();
+    const left   = cRect.left - wRect.left;
+    const top    = cRect.top  - wRect.top;
+    rect.style.left   = left   + 'px';
+    rect.style.top    = top    + 'px';
+    rect.style.width  = cRect.width  + 'px';
+    rect.style.height = cRect.height + 'px';
+  }
+
+  document.getElementById('ie-crop-btn').addEventListener('click', () => {
+    const overlay = document.getElementById('ie-crop-overlay');
+    overlay.classList.add('active');
+    document.getElementById('ie-crop-btn').style.display     = 'none';
+    document.getElementById('ie-apply-crop').style.display   = '';
+    document.getElementById('ie-cancel-crop').style.display  = '';
+    _crop.active = true;
+    setTimeout(initCropRect, 10);
+  });
+
+  document.getElementById('ie-cancel-crop').addEventListener('click', () => {
+    document.getElementById('ie-crop-overlay').classList.remove('active');
+    document.getElementById('ie-crop-btn').style.display     = '';
+    document.getElementById('ie-apply-crop').style.display   = 'none';
+    document.getElementById('ie-cancel-crop').style.display  = 'none';
+    _crop.active = false;
+  });
+
   document.getElementById('ie-apply-crop').addEventListener('click', () => {
     const canvas = document.getElementById('img-editor-canvas');
-    const cx = parseInt(document.getElementById('ie-cx').value, 10) || 0;
-    const cy = parseInt(document.getElementById('ie-cy').value, 10) || 0;
-    let   cw = parseInt(document.getElementById('ie-cw').value, 10) || canvas.width;
-    let   ch = parseInt(document.getElementById('ie-ch').value, 10) || canvas.height;
-    cw = Math.min(cw, canvas.width  - cx);
-    ch = Math.min(ch, canvas.height - cy);
-    if (cw <= 0 || ch <= 0) return;
+    const { cx, cy, cw, ch } = cropOverlayToCanvas();
+    const safeCx = Math.max(0, cx);
+    const safeCy = Math.max(0, cy);
+    const safeCw = Math.min(cw, canvas.width  - safeCx);
+    const safeCh = Math.min(ch, canvas.height - safeCy);
+    if (safeCw <= 0 || safeCh <= 0) return;
     const tmp = document.createElement('canvas');
-    tmp.width = cw; tmp.height = ch;
-    tmp.getContext('2d').drawImage(canvas, cx, cy, cw, ch, 0, 0, cw, ch);
-    canvas.width  = cw;
-    canvas.height = ch;
+    tmp.width = safeCw; tmp.height = safeCh;
+    tmp.getContext('2d').drawImage(canvas, safeCx, safeCy, safeCw, safeCh, 0, 0, safeCw, safeCh);
+    canvas.width  = safeCw;
+    canvas.height = safeCh;
     canvas.getContext('2d').drawImage(tmp, 0, 0);
     _ie.sourceImg = null;
+    document.getElementById('ie-crop-overlay').classList.remove('active');
+    document.getElementById('ie-crop-btn').style.display     = '';
+    document.getElementById('ie-apply-crop').style.display   = 'none';
+    document.getElementById('ie-cancel-crop').style.display  = 'none';
+    _crop.active = false;
   });
+
+  // Drag handles for crop rect
+  (function() {
+    const overlay = document.getElementById('ie-crop-overlay');
+    const rect    = document.getElementById('ie-crop-rect');
+    let drag = null;
+
+    function startDrag(e, handle) {
+      e.preventDefault(); e.stopPropagation();
+      const r = rect.getBoundingClientRect();
+      drag = {
+        handle,
+        startX: e.clientX, startY: e.clientY,
+        origLeft:   rect.offsetLeft,  origTop:    rect.offsetTop,
+        origWidth:  rect.offsetWidth, origHeight: rect.offsetHeight,
+      };
+    }
+
+    rect.querySelectorAll('.ie-handle').forEach(h => {
+      h.addEventListener('mousedown', e => startDrag(e, h.dataset.handle));
+    });
+    rect.addEventListener('mousedown', e => {
+      if (e.target.classList.contains('ie-handle')) return;
+      startDrag(e, 'move');
+    });
+
+    document.addEventListener('mousemove', e => {
+      if (!drag) return;
+      const dx = e.clientX - drag.startX;
+      const dy = e.clientY - drag.startY;
+      const MIN = 20;
+      const oW  = overlay.getBoundingClientRect();
+      let l = drag.origLeft, t = drag.origTop, w = drag.origWidth, h = drag.origHeight;
+
+      if (drag.handle === 'move')         { l += dx; t += dy; }
+      else if (drag.handle === 'br')      { w += dx; h += dy; }
+      else if (drag.handle === 'bl')      { l += dx; w -= dx; h += dy; }
+      else if (drag.handle === 'tr')      { t += dy; w += dx; h -= dy; }
+      else if (drag.handle === 'tl')      { l += dx; t += dy; w -= dx; h -= dy; }
+      else if (drag.handle === 'tm')      { t += dy; h -= dy; }
+      else if (drag.handle === 'bm')      { h += dy; }
+      else if (drag.handle === 'ml')      { l += dx; w -= dx; }
+      else if (drag.handle === 'mr')      { w += dx; }
+
+      if (w < MIN) { if (drag.handle.includes('l')) l = drag.origLeft + drag.origWidth - MIN; w = MIN; }
+      if (h < MIN) { if (drag.handle.includes('t')) t = drag.origTop  + drag.origHeight - MIN; h = MIN; }
+
+      rect.style.left   = l + 'px';
+      rect.style.top    = t + 'px';
+      rect.style.width  = w + 'px';
+      rect.style.height = h + 'px';
+    });
+
+    document.addEventListener('mouseup', () => { drag = null; });
+  })();
 
   // Ratio lock for resize
   document.getElementById('ie-rw').addEventListener('input', () => {
@@ -959,10 +1090,6 @@ window.openImgEditor = function(i) {
     canvas.height = _ie.origH;
     document.getElementById('ie-rw').value = _ie.origW;
     document.getElementById('ie-rh').value = _ie.origH;
-    document.getElementById('ie-cw').value = _ie.origW;
-    document.getElementById('ie-ch').value = _ie.origH;
-    document.getElementById('ie-cx').value = 0;
-    document.getElementById('ie-cy').value = 0;
     drawEditorCanvas();
   };
   srcImg.onerror = () => alert('Could not load image for editing.');
@@ -994,6 +1121,10 @@ function resetImgEditor() {
 
 function closeImgEditor() {
   document.getElementById('img-editor-overlay').classList.remove('active');
+  document.getElementById('ie-crop-overlay').classList.remove('active');
+  document.getElementById('ie-crop-btn').style.display    = '';
+  document.getElementById('ie-apply-crop').style.display  = 'none';
+  document.getElementById('ie-cancel-crop').style.display = 'none';
   _ie.sourceImg = null;
 }
 
@@ -1397,7 +1528,7 @@ function setupDesignListeners() {
   // Logo upload
   document.getElementById('btn-logo-upload').addEventListener('click', () => {
     state.imgUploadTarget = { type: 'logo' };
-    document.getElementById('img-upload-input').click();
+    openImgPicker();
   });
   document.getElementById('btn-logo-clear').addEventListener('click', () => {
     state.draft.logo = '';
@@ -1690,6 +1821,9 @@ function setupSectionControls() {
   });
   document.addEventListener('click', () => { menu.style.display = 'none'; });
   document.getElementById('sec-editor-close').addEventListener('click', closeSectionEditor);
+  document.getElementById('sec-modal-overlay').addEventListener('click', e => {
+    if (e.target.id === 'sec-modal-overlay') closeSectionEditor();
+  });
   document.getElementById('btn-add-float-btn').addEventListener('click', addFloatBtn);
 }
 
@@ -1706,13 +1840,20 @@ function renderFloatBtnsPanel() {
 </div>`).join('');
 }
 
+function insertAboveFooter(section) {
+  const secs = state.draft.sections;
+  const fi   = secs.findIndex(s => s.type === 'footer');
+  if (fi !== -1) { secs.splice(fi, 0, section); return fi; }
+  secs.push(section);
+  return secs.length - 1;
+}
+
 function addFloatBtn() {
   if (!Array.isArray(state.draft.sections)) state.draft.sections = [];
   pushUndo();
   const def = SECTION_TYPES['floating-cta'];
   const section = { id: uid(), type: 'floating-cta', ...deepClone(def.defaults) };
-  state.draft.sections.push(section);
-  state.editingSection = state.draft.sections.length - 1;
+  state.editingSection = insertAboveFooter(section);
   renderSectionList();
   openSectionEditor(state.editingSection);
   markDirty();
@@ -1724,8 +1865,7 @@ window.addSection = function(type) {
   if (!def) return;
   pushUndo();
   const section = { id: uid(), type, ...deepClone(def.defaults) };
-  state.draft.sections.push(section);
-  state.editingSection = state.draft.sections.length - 1;
+  state.editingSection = insertAboveFooter(section);
   renderSectionList();
   openSectionEditor(state.editingSection);
   markDirty();
@@ -1789,16 +1929,16 @@ function openSectionEditor(i) {
   if (!section) return;
   const def = SECTION_TYPES[section.type] || { label: section.type };
 
-  document.getElementById('sec-editor').style.display       = '';
-  document.getElementById('sec-editor-title').textContent   = def.label || section.type;
-  document.getElementById('sec-editor-fields').innerHTML    = buildSectionFields(section, i);
+  document.getElementById('sec-modal-overlay').classList.add('active');
+  document.getElementById('sec-editor-title').textContent = def.label || section.type;
+  document.getElementById('sec-editor-fields').innerHTML  = buildSectionFields(section, i);
 
   bindSectionFields(i);
 }
 
 function closeSectionEditor() {
   state.editingSection = null;
-  document.getElementById('sec-editor').style.display = 'none';
+  document.getElementById('sec-modal-overlay').classList.remove('active');
   renderSectionList();
 }
 
@@ -2226,7 +2366,7 @@ function bindSectionFields(i) {
 // ── Gallery / carousel image actions ──────────────────────────────────────────
 window.triggerGalleryImgAdd = function(sectionIdx) {
   state.imgUploadTarget = { type: 'gallery', sectionIdx };
-  document.getElementById('img-upload-input').click();
+  openImgPicker();
 };
 window.removeGalleryImg = function(sectionIdx, imgIdx) {
   state.draft.sections[sectionIdx].images.splice(imgIdx, 1);
@@ -2235,7 +2375,7 @@ window.removeGalleryImg = function(sectionIdx, imgIdx) {
 };
 window.triggerCarouselImgAdd = function(sectionIdx) {
   state.imgUploadTarget = { type: 'carousel', sectionIdx };
-  document.getElementById('img-upload-input').click();
+  openImgPicker();
 };
 window.removeCarouselImg = function(sectionIdx, imgIdx) {
   state.draft.sections[sectionIdx].images.splice(imgIdx, 1);
@@ -2250,7 +2390,7 @@ window.clearRichTextBg = function(sectionIdx) {
 
 window.triggerSecImgUpload = function(sectionIdx, fld) {
   state.imgUploadTarget = { type: 'section', sectionIdx, field: fld };
-  document.getElementById('img-upload-input').click();
+  openImgPicker();
 };
 window.clearSecImg = function(sectionIdx, fieldPath) {
   setNestedField(state.draft.sections[sectionIdx], fieldPath, '');
@@ -2304,6 +2444,94 @@ async function handleImgUpload(e) {
   } finally {
     state.imgUploadTarget = null;
   }
+}
+
+// ── Image picker modal ────────────────────────────────────────────────────────
+function handleImgSelect(url) {
+  const target = state.imgUploadTarget;
+  if (!target) return;
+  state.imgUploadTarget = null;
+
+  if (target.type === 'logo') {
+    state.draft.logo = url;
+    renderLogoPicker(url);
+    markDirty();
+  } else if (target.type === 'section') {
+    setNestedField(state.draft.sections[target.sectionIdx], target.field, url);
+    openSectionEditor(target.sectionIdx);
+    markDirty();
+  } else if (target.type === 'gallery') {
+    if (!Array.isArray(state.draft.sections[target.sectionIdx].images))
+      state.draft.sections[target.sectionIdx].images = [];
+    state.draft.sections[target.sectionIdx].images.push({ url, caption: '' });
+    openSectionEditor(target.sectionIdx);
+    markDirty();
+  } else if (target.type === 'carousel') {
+    if (!Array.isArray(state.draft.sections[target.sectionIdx].images))
+      state.draft.sections[target.sectionIdx].images = [];
+    state.draft.sections[target.sectionIdx].images.push(url);
+    openSectionEditor(target.sectionIdx);
+    markDirty();
+  } else if (target.type === 'product') {
+    document.getElementById('pm-image').value = url;
+    renderProductImgPreview(url);
+  }
+}
+
+async function openImgPicker() {
+  const overlay = document.getElementById('img-picker-overlay');
+  const grid    = document.getElementById('img-picker-grid');
+  if (!overlay) return;
+
+  if (!_galleryLoaded) {
+    grid.innerHTML = '<p class="img-picker-empty">Loading…</p>';
+    overlay.classList.add('active');
+    await loadGallery();
+  }
+
+  if (!_galleryImages.length) {
+    grid.innerHTML = '<p class="img-picker-empty">No images yet. Upload one above.</p>';
+  } else {
+    grid.innerHTML = _galleryImages.map((img, i) =>
+      `<div class="picker-item" onclick="window.pickImg(${i})">
+        <img src="${img.url}" loading="lazy" alt="" />
+      </div>`
+    ).join('');
+  }
+  overlay.classList.add('active');
+}
+
+window.pickImg = function(i) {
+  const img = _galleryImages[i];
+  if (!img) return;
+  document.getElementById('img-picker-overlay').classList.remove('active');
+  handleImgSelect(img.url);
+};
+
+function setupImgPicker() {
+  document.getElementById('img-picker-close').addEventListener('click', () => {
+    document.getElementById('img-picker-overlay').classList.remove('active');
+    state.imgUploadTarget = null;
+  });
+  document.getElementById('img-picker-overlay').addEventListener('click', e => {
+    if (e.target.id === 'img-picker-overlay') {
+      e.currentTarget.classList.remove('active');
+      state.imgUploadTarget = null;
+    }
+  });
+  document.getElementById('btn-picker-upload').addEventListener('click', () => {
+    document.getElementById('picker-upload-input').click();
+  });
+  document.getElementById('picker-upload-input').addEventListener('change', async e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    e.target.value = '';
+    const url = await galleryUploadFile(file);
+    if (!url) return;
+    await loadGallery();
+    document.getElementById('img-picker-overlay').classList.remove('active');
+    handleImgSelect(url);
+  });
 }
 
 // ── Items tab ─────────────────────────────────────────────────────────────────
@@ -2581,9 +2809,8 @@ function setupProductModal() {
 
   document.getElementById('pm-img-upload').addEventListener('click', () => {
     state.imgUploadTarget = { type: 'product' };
-    document.getElementById('pm-img-input').click();
+    openImgPicker();
   });
-  document.getElementById('pm-img-input').addEventListener('change', handleImgUpload);
   document.getElementById('pm-img-clear').addEventListener('click', () => {
     document.getElementById('pm-image').value = '';
     renderProductImgPreview('');

@@ -483,8 +483,13 @@ function renderStorefront(store, config, products, isPreview = false, isInspect 
 
     /* ── Floating CTAs ── */
     .s-floats { position: fixed; inset: 0; z-index: 50; pointer-events: none; }
+    .s-float-group { position: absolute; display: flex; gap: 12px; pointer-events: none; }
+    .s-float-group--bottom-right { bottom: 28px; right: 28px; flex-direction: column-reverse; align-items: flex-end; }
+    .s-float-group--bottom-left  { bottom: 28px; left:  28px; flex-direction: column-reverse; align-items: flex-start; }
+    .s-float-group--top-right    { top: 88px;    right: 28px; flex-direction: column;         align-items: flex-end; }
+    .s-float-group--top-left     { top: 88px;    left:  28px; flex-direction: column;         align-items: flex-start; }
     .s-float {
-      position: absolute; pointer-events: auto;
+      pointer-events: auto;
       display: flex; align-items: center; gap: 8px; padding: 12px 18px;
       font-family: var(--mono); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase;
       text-decoration: none; color: #fff; border-radius: var(--s-radius-btn);
@@ -492,10 +497,6 @@ function renderStorefront(store, config, products, isPreview = false, isInspect 
       transition: transform 160ms ease, box-shadow 160ms ease;
     }
     .s-float:hover { transform: translateY(-2px); box-shadow: 0 6px 24px rgba(0,0,0,.32); }
-    .s-float--bottom-right { bottom: 28px; right: 28px; }
-    .s-float--bottom-left  { bottom: 28px; left:  28px; }
-    .s-float--top-right    { top: 88px;    right: 28px; }
-    .s-float--top-left     { top: 88px;    left:  28px; }
     .s-float__icon { font-size: 16px; line-height: 1; }
 
     /* ── Carousel ── */
@@ -737,10 +738,7 @@ function renderStorefront(store, config, products, isPreview = false, isInspect 
 
   ${features.hasNewsletterPopup && !isPreview ? renderNewsletterModal() : ''}
 
-  ${floaters.length || customBtns.length ? `<div class="s-floats">
-    ${floaters.map(renderFloatingCta).join('\n')}
-    ${customBtns.map((b, i) => renderCustomBtn(b, i)).join('\n')}
-  </div>` : ''}
+  ${buildFloatsHtml(floaters, customBtns)}
 
   ${!hasFooterSection ? `<footer class="s-foot">
     <span class="s-foot__brand">Powered by MaxCyberSolutions</span>
@@ -1178,25 +1176,39 @@ function renderRichText(s) {
 function renderFloatingCta(s) {
   const ICONS = { whatsapp: '💬', phone: '📞', email: '✉️', link: '↗' };
   const icon  = ICONS[s.icon] || '↗';
-  const pos   = s.position || 'bottom-right';
-  const color = s.color    || '#25D366';
-  return `<a href="${esc(s.url || '#')}" class="s-float s-float--${esc(pos)}"
+  const color = s.color || '#25D366';
+  return `<a href="${esc(s.url || '#')}" class="s-float"
   style="background:${esc(color)}" target="_blank" rel="noopener noreferrer">
   <span class="s-float__icon">${icon}</span>
   ${s.label ? `<span>${esc(s.label)}</span>` : ''}
 </a>`;
 }
 
-function renderCustomBtn(b, i) {
-  const POSITIONS = ['bottom-right','bottom-left','top-right','top-left'];
-  const pos   = POSITIONS[i % POSITIONS.length];
-  const style = b.sticky ? 'position:fixed' : '';
+function renderCustomBtn(b) {
   const color = b.color || 'var(--accent)';
-  return `<a href="${esc(b.url)}" class="s-float s-float--${esc(pos)}"
-  style="background:${esc(color)};${style}" target="_blank" rel="noopener noreferrer">
+  return `<a href="${esc(b.url)}" class="s-float"
+  style="background:${esc(color)}" target="_blank" rel="noopener noreferrer">
   ${b.image ? `<img src="${esc(b.image)}" style="width:20px;height:20px;object-fit:contain" alt="" />` : ''}
   ${b.text ? `<span>${esc(b.text)}</span>` : ''}
 </a>`;
+}
+
+function buildFloatsHtml(floaters, customBtns) {
+  if (!floaters.length && !customBtns.length) return '';
+  const ALL_POS = ['bottom-right','bottom-left','top-right','top-left'];
+  const groups  = {};
+  floaters.forEach(s => {
+    const pos = ALL_POS.includes(s.position) ? s.position : 'bottom-right';
+    (groups[pos] = groups[pos] || []).push(renderFloatingCta(s));
+  });
+  customBtns.forEach((b, i) => {
+    const pos = ALL_POS[i % ALL_POS.length];
+    (groups[pos] = groups[pos] || []).push(renderCustomBtn(b));
+  });
+  const inner = ALL_POS.filter(p => groups[p]).map(p =>
+    `<div class="s-float-group s-float-group--${esc(p)}">${groups[p].join('')}</div>`
+  ).join('\n');
+  return `<div class="s-floats">\n${inner}\n</div>`;
 }
 
 // ── Card ──────────────────────────────────────────────────────────────────────
@@ -1300,10 +1312,14 @@ function inspectScript() {
   document.querySelectorAll('.s-inspect-wrap').forEach(function(el) {
     el.addEventListener('click', function(e) {
       e.preventDefault(); e.stopPropagation();
-      var idx = parseInt(el.dataset.secIdx, 10);
-      var stype = el.dataset.secType;
+      document.querySelectorAll('.s-inspect-wrap').forEach(function(w) {
+        w.style.outline = ''; w.style.outlineOffset = '';
+      });
       el.style.outline = '3px solid var(--accent)';
       el.style.outlineOffset = '-3px';
+      setTimeout(function() { el.style.outline = ''; el.style.outlineOffset = ''; }, 700);
+      var idx = parseInt(el.dataset.secIdx, 10);
+      var stype = el.dataset.secType;
       window.parent.postMessage({ type: 'sec-inspect', idx: idx, stype: stype }, '*');
     });
   });

@@ -237,6 +237,21 @@ const HTML = `<!DOCTYPE html>
     .gallery-item__btn:hover { background: rgba(0,0,0,.7); }
     .gallery-item__size { font-family: var(--mono); font-size: 8px; letter-spacing: .08em; color: var(--fg-faint); padding: 4px 6px; text-align: right; }
     .gallery-empty { grid-column: 1/-1; color: var(--fg-faint); font-size: 13px; text-align: center; padding: 40px; }
+    .gallery-pane__grid.drag-over { outline: 2px dashed var(--accent); outline-offset: -6px; background: color-mix(in srgb, var(--accent) 8%, var(--bg)); }
+    .gallery-drop-hint { grid-column: 1/-1; text-align: center; padding: 24px; font-family: var(--mono); font-size: 10px; letter-spacing: .1em; text-transform: uppercase; color: var(--fg-faint); border: 2px dashed var(--line); }
+
+    /* Image picker modal */
+    .img-picker-overlay { position: fixed; inset: 0; z-index: 500; background: rgba(0,0,0,.65); display: none; align-items: center; justify-content: center; }
+    .img-picker-overlay.active { display: flex; }
+    .img-picker-box { background: var(--bg); width: min(780px, 96vw); max-height: 88vh; display: flex; flex-direction: column; overflow: hidden; border: 1px solid var(--line); }
+    .img-picker-head { display: flex; align-items: center; padding: 12px 16px; border-bottom: 1px solid var(--line); flex-shrink: 0; }
+    .img-picker-title { font-family: var(--mono); font-size: 10px; letter-spacing: .14em; text-transform: uppercase; flex: 1; }
+    .img-picker-toolbar { display: flex; gap: 8px; padding: 10px 16px; border-bottom: 1px solid var(--line); flex-shrink: 0; }
+    .img-picker-grid { flex: 1; overflow-y: auto; padding: 16px; display: grid; grid-template-columns: repeat(auto-fill, minmax(140px,1fr)); gap: 12px; align-content: start; }
+    .picker-item { position: relative; border: 2px solid transparent; overflow: hidden; cursor: pointer; }
+    .picker-item img { width: 100%; aspect-ratio: 1; object-fit: cover; display: block; background: var(--line-soft); }
+    .picker-item:hover { border-color: var(--accent); }
+    .img-picker-empty { grid-column: 1/-1; color: var(--fg-faint); font-size: 13px; text-align: center; padding: 40px; }
 
     /* Canvas Image Editor */
     .img-editor-overlay { position: fixed; inset: 0; z-index: 600; background: rgba(0,0,0,.75); display: none; align-items: center; justify-content: center; }
@@ -245,8 +260,20 @@ const HTML = `<!DOCTYPE html>
     .img-editor-head { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-bottom: 1px solid var(--line); flex-shrink: 0; }
     .img-editor-head__title { font-family: var(--mono); font-size: 10px; letter-spacing: .14em; text-transform: uppercase; flex: 1; }
     .img-editor-body { display: flex; flex: 1; overflow: hidden; gap: 0; }
-    .img-editor-canvas-wrap { flex: 1; display: flex; align-items: center; justify-content: center; background: #111; overflow: hidden; padding: 16px; }
-    .img-editor-canvas-wrap canvas { max-width: 100%; max-height: 100%; object-fit: contain; }
+    .img-editor-canvas-wrap { flex: 1; position: relative; display: flex; align-items: center; justify-content: center; background: #111; overflow: hidden; padding: 16px; }
+    .img-editor-canvas-wrap canvas { max-width: 100%; max-height: 100%; object-fit: contain; display: block; }
+    .ie-crop-overlay { position: absolute; inset: 0; display: none; cursor: crosshair; }
+    .ie-crop-overlay.active { display: block; }
+    .ie-crop-rect { position: absolute; box-shadow: 0 0 0 9999px rgba(0,0,0,.6); border: 1.5px solid #fff; cursor: move; box-sizing: border-box; }
+    .ie-handle { position: absolute; width: 10px; height: 10px; background: #fff; border: 1px solid rgba(0,0,0,.4); box-sizing: border-box; }
+    .ie-handle--tl { top:-5px; left:-5px; cursor:nw-resize; }
+    .ie-handle--tr { top:-5px; right:-5px; cursor:ne-resize; }
+    .ie-handle--bl { bottom:-5px; left:-5px; cursor:sw-resize; }
+    .ie-handle--br { bottom:-5px; right:-5px; cursor:se-resize; }
+    .ie-handle--tm { top:-5px; left:calc(50% - 5px); cursor:n-resize; }
+    .ie-handle--bm { bottom:-5px; left:calc(50% - 5px); cursor:s-resize; }
+    .ie-handle--ml { left:-5px; top:calc(50% - 5px); cursor:w-resize; }
+    .ie-handle--mr { right:-5px; top:calc(50% - 5px); cursor:e-resize; }
     .img-editor-tools { width: 220px; flex-shrink: 0; border-left: 1px solid var(--line); display: flex; flex-direction: column; overflow-y: auto; }
     .img-editor-tabs { display: flex; border-bottom: 1px solid var(--line); flex-shrink: 0; }
     .img-editor-tab { flex: 1; font-family: var(--mono); font-size: 9px; letter-spacing: .1em; text-transform: uppercase; padding: 8px 4px; border: none; background: transparent; color: var(--fg-faint); border-bottom: 2px solid transparent; margin-bottom: -1px; cursor: pointer; }
@@ -344,11 +371,13 @@ const HTML = `<!DOCTYPE html>
     .float-item__btn { background: none; border: none; color: var(--fg-faint); cursor: pointer; padding: 2px 6px; font-size: 13px; }
     .float-item__btn:hover { color: #b33; }
 
-    /* Section editor */
-    .sec-editor { border-top: 2px solid var(--accent); background: var(--bg); display: flex; flex-direction: column; overflow: hidden; max-height: 55%; }
+    /* Section editor modal */
+    .sec-modal-overlay { position: fixed; inset: 0; z-index: 300; background: rgba(0,0,0,.45); display: none; align-items: center; justify-content: center; }
+    .sec-modal-overlay.active { display: flex; }
+    .sec-modal-box { background: var(--bg); width: min(540px, 96vw); max-height: 88vh; display: flex; flex-direction: column; overflow: hidden; border: 1px solid var(--line); border-top: 2px solid var(--accent); }
     .sec-editor__head { display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; border-bottom: 1px solid var(--line); flex-shrink: 0; }
     .sec-editor__title { font-family: var(--mono); font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent); }
-    .sec-editor__close { font-family: var(--mono); font-size: 10px; background: none; border: none; color: var(--fg-faint); padding: 2px 6px; }
+    .sec-editor__close { font-family: var(--mono); font-size: 10px; background: none; border: none; color: var(--fg-faint); padding: 2px 6px; cursor: pointer; }
     .sec-editor__close:hover { color: var(--fg); }
     .sec-editor__fields { padding: 12px; display: flex; flex-direction: column; gap: 12px; overflow-y: auto; }
 
@@ -942,13 +971,6 @@ const HTML = `<!DOCTYPE html>
               </div>
               <div class="float-btn-list" id="float-btn-list"></div>
             </div>
-            <div class="sec-editor" id="sec-editor" style="display:none">
-              <div class="sec-editor__head">
-                <span class="sec-editor__title" id="sec-editor-title"></span>
-                <button class="sec-editor__close" id="sec-editor-close">✕ close</button>
-              </div>
-              <div class="sec-editor__fields" id="sec-editor-fields"></div>
-            </div>
           </div>
         </div>
 
@@ -1367,6 +1389,7 @@ const HTML = `<!DOCTYPE html>
             <button class="btn-ghost btn-sm" id="btn-gallery-refresh">↻</button>
           </div>
           <div class="gallery-pane__grid" id="gallery-pane-grid">
+            <div class="gallery-drop-hint">Drop images here to upload</div>
             <p style="color:var(--fg-faint);font-size:12px;padding:20px">Loading images…</p>
           </div>
         </div>
@@ -1396,12 +1419,23 @@ const HTML = `<!DOCTYPE html>
       <div class="img-editor-body">
         <div class="img-editor-canvas-wrap">
           <canvas id="img-editor-canvas"></canvas>
+          <div class="ie-crop-overlay" id="ie-crop-overlay">
+            <div class="ie-crop-rect" id="ie-crop-rect">
+              <div class="ie-handle ie-handle--tl" data-handle="tl"></div>
+              <div class="ie-handle ie-handle--tm" data-handle="tm"></div>
+              <div class="ie-handle ie-handle--tr" data-handle="tr"></div>
+              <div class="ie-handle ie-handle--ml" data-handle="ml"></div>
+              <div class="ie-handle ie-handle--mr" data-handle="mr"></div>
+              <div class="ie-handle ie-handle--bl" data-handle="bl"></div>
+              <div class="ie-handle ie-handle--bm" data-handle="bm"></div>
+              <div class="ie-handle ie-handle--br" data-handle="br"></div>
+            </div>
+          </div>
         </div>
         <div class="img-editor-tools">
           <div class="img-editor-tabs">
             <button class="img-editor-tab active" data-etab="filters">Filters</button>
             <button class="img-editor-tab" data-etab="resize">Resize</button>
-            <button class="img-editor-tab" data-etab="crop">Crop</button>
           </div>
           <!-- Filters panel -->
           <div class="img-editor-panel active" id="iet-filters">
@@ -1443,27 +1477,45 @@ const HTML = `<!DOCTYPE html>
             </label>
             <button class="btn-ghost btn-sm" id="ie-apply-resize">Apply resize</button>
           </div>
-          <!-- Crop panel -->
-          <div class="img-editor-panel" id="iet-crop">
-            <div class="form-row">
-              <div class="form-field"><label for="ie-cx">X</label><input type="number" id="ie-cx" min="0" value="0" /></div>
-              <div class="form-field"><label for="ie-cy">Y</label><input type="number" id="ie-cy" min="0" value="0" /></div>
-            </div>
-            <div class="form-row">
-              <div class="form-field"><label for="ie-cw">Width</label><input type="number" id="ie-cw" min="1" /></div>
-              <div class="form-field"><label for="ie-ch">Height</label><input type="number" id="ie-ch" min="1" /></div>
-            </div>
-            <button class="btn-ghost btn-sm" id="ie-apply-crop">Apply crop</button>
-          </div>
         </div>
       </div>
       <div class="img-editor-foot">
-        <button class="btn-ghost btn-sm" id="img-editor-cancel">Cancel</button>
+        <button class="btn-ghost btn-sm" id="ie-crop-btn">✂ Crop</button>
+        <button class="btn-ghost btn-sm" id="ie-apply-crop" style="display:none">✓ Apply</button>
+        <button class="btn-ghost btn-sm" id="ie-cancel-crop" style="display:none">✕ Cancel crop</button>
+        <div style="flex:1"></div>
+        <button class="btn-ghost btn-sm" id="img-editor-cancel">Close</button>
         <button class="btn-solid btn-sm" id="img-editor-save">Save &amp; Upload</button>
       </div>
     </div>
   </div>
   <input type="file" id="gallery-upload-input" accept="image/*" style="display:none" />
+
+  <!-- ── Section editor modal ── -->
+  <div class="sec-modal-overlay" id="sec-modal-overlay">
+    <div class="sec-modal-box">
+      <div class="sec-editor__head">
+        <span class="sec-editor__title" id="sec-editor-title"></span>
+        <button class="sec-editor__close" id="sec-editor-close">✕ close</button>
+      </div>
+      <div class="sec-editor__fields" id="sec-editor-fields"></div>
+    </div>
+  </div>
+
+  <!-- ── Image picker modal ── -->
+  <div class="img-picker-overlay" id="img-picker-overlay">
+    <div class="img-picker-box">
+      <div class="img-picker-head">
+        <span class="img-picker-title">Select Image</span>
+        <button class="modal-close" id="img-picker-close">✕</button>
+      </div>
+      <div class="img-picker-toolbar">
+        <button class="btn-ghost btn-sm" id="btn-picker-upload">↑ Upload new image</button>
+        <input type="file" id="picker-upload-input" accept="image/*" style="display:none" />
+      </div>
+      <div class="img-picker-grid" id="img-picker-grid"></div>
+    </div>
+  </div>
 
   <!-- ── Product / item modal ── -->
   <div class="modal-overlay" id="product-modal">
