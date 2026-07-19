@@ -1465,6 +1465,8 @@ async function pushLive() {
 }
 
 // ── Preview ───────────────────────────────────────────────────────────────────
+let _previewSaveVersion = 0;
+
 async function schedulePreviewSave() {
   clearTimeout(state.previewTimer);
   state.previewTimer = setTimeout(savePreviewDraft, 900);
@@ -1472,12 +1474,13 @@ async function schedulePreviewSave() {
 
 async function savePreviewDraft() {
   if (!state.activeStore || !state.draft) return;
+  const myVer = ++_previewSaveVersion;
   await api('PUT', `/api/stores/${state.activeStore.id}`, {
     _draft: true,
     name:   state.draft.name || state.activeStore.name,
     config: state.draft,
   });
-  if (dashConfig.autoRefresh !== false) updatePreview();
+  if (myVer === _previewSaveVersion && dashConfig.autoRefresh !== false) updatePreview();
 }
 
 function updatePreview() {
@@ -3592,11 +3595,14 @@ window.applyTemplate = function(id) {
 // ── Product picker ────────────────────────────────────────────────────────────
 let _ppSectionIdx = null;
 let _ppSelected   = new Set();
+let _ppOrder      = [];
 
 window.openProductPicker = function(sectionIdx) {
   _ppSectionIdx = sectionIdx;
   const s = state.draft.sections[sectionIdx] || {};
-  _ppSelected   = new Set((s.selectedProducts || []).map(String));
+  const sel = (s.selectedProducts || []).map(String);
+  _ppSelected = new Set(sel);
+  _ppOrder    = [...sel];
   _renderPP();
   document.getElementById('product-picker-overlay').classList.add('active');
 };
@@ -3621,33 +3627,81 @@ function _renderPP() {
       </div>
     </label>`;
   }).join('');
+  _renderPPOrder();
 }
 
+function _renderPPOrder() {
+  const el = document.getElementById('pp-order-section');
+  if (!el) return;
+  if (_ppOrder.length === 0) { el.style.display = 'none'; return; }
+  el.style.display = '';
+  const prodMap = Object.fromEntries((state.products || []).map(p => [String(p.id), p]));
+  el.innerHTML =
+    `<div style="padding:10px 24px 6px;font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--fg-faint);border-top:1px solid var(--line-soft)">Display Order</div>` +
+    _ppOrder.map((pid, idx) => {
+      const p = prodMap[pid];
+      if (!p) return '';
+      const canUp   = idx > 0;
+      const canDown = idx < _ppOrder.length - 1;
+      return `<div class="pp-order-item">
+        <span class="pp-order-num">${idx + 1}</span>
+        ${p.image ? `<img src="${esc(p.image)}" class="pp-img" style="width:32px;height:32px;object-fit:cover;border-radius:3px;flex-shrink:0" alt="" />` : ''}
+        <span class="pp-name" style="flex:1;font-size:13px">${esc(p.name)}</span>
+        <div style="display:flex;gap:2px">
+          <button class="float-item__btn" onclick="ppMoveOrder(${idx},-1)" ${canUp ? '' : 'disabled'} title="Move up">↑</button>
+          <button class="float-item__btn" onclick="ppMoveOrder(${idx},1)"  ${canDown ? '' : 'disabled'} title="Move down">↓</button>
+        </div>
+      </div>`;
+    }).join('');
+}
+
+window.ppMoveOrder = function(idx, dir) {
+  const target = idx + dir;
+  if (target < 0 || target >= _ppOrder.length) return;
+  [_ppOrder[idx], _ppOrder[target]] = [_ppOrder[target], _ppOrder[idx]];
+  _renderPPOrder();
+};
+
 window.ppSelectAll = function() {
-  (state.products || []).forEach(p => _ppSelected.add(String(p.id)));
+  (state.products || []).forEach(p => {
+    const pid = String(p.id);
+    _ppSelected.add(pid);
+    if (!_ppOrder.includes(pid)) _ppOrder.push(pid);
+  });
   _renderPP();
 };
 
 window.ppSelectNone = function() {
   _ppSelected.clear();
+  _ppOrder = [];
   _renderPP();
 };
 
 window.ppToggle = function(cb) {
   const pid = String(cb.dataset.pid);
-  if (cb.checked) _ppSelected.add(pid);
-  else            _ppSelected.delete(pid);
+  if (cb.checked) {
+    _ppSelected.add(pid);
+    if (!_ppOrder.includes(pid)) _ppOrder.push(pid);
+  } else {
+    _ppSelected.delete(pid);
+    _ppOrder = _ppOrder.filter(id => id !== pid);
+  }
   document.getElementById('pp-summary').textContent =
     _ppSelected.size === 0
       ? `All ${(state.products||[]).length} products`
       : `${_ppSelected.size} of ${(state.products||[]).length} selected`;
+  _renderPPOrder();
 };
 
 window.ppFilterUnder = function() {
   const val = parseFloat(document.getElementById('pp-price-val').value);
   if (isNaN(val)) return;
   (state.products || []).forEach(p => {
-    if (p.price_cents / 100 <= val) _ppSelected.add(String(p.id));
+    if (p.price_cents / 100 <= val) {
+      const pid = String(p.id);
+      _ppSelected.add(pid);
+      if (!_ppOrder.includes(pid)) _ppOrder.push(pid);
+    }
   });
   _renderPP();
 };
@@ -3656,7 +3710,11 @@ window.ppFilterOver = function() {
   const val = parseFloat(document.getElementById('pp-price-val').value);
   if (isNaN(val)) return;
   (state.products || []).forEach(p => {
-    if (p.price_cents / 100 >= val) _ppSelected.add(String(p.id));
+    if (p.price_cents / 100 >= val) {
+      const pid = String(p.id);
+      _ppSelected.add(pid);
+      if (!_ppOrder.includes(pid)) _ppOrder.push(pid);
+    }
   });
   _renderPP();
 };
@@ -3665,8 +3723,8 @@ window.confirmProductPicker = function() {
   if (_ppSectionIdx === null) return;
   const s = state.draft.sections[_ppSectionIdx];
   if (!s) return;
-  // Empty set = show all (no filter stored)
-  s.selectedProducts = _ppSelected.size === 0 ? [] : [..._ppSelected];
+  // Use ordered list; empty = show all
+  s.selectedProducts = _ppOrder.length === 0 ? [] : [..._ppOrder];
   markDirty();
   openSectionEditor(_ppSectionIdx);
   document.getElementById('product-picker-overlay').classList.remove('active');

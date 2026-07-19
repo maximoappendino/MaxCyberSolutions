@@ -601,6 +601,8 @@ const HTML = `<!DOCTYPE html>
     .pp-name  { font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .pp-price { font-size: 12px; color: var(--fg-faint); font-family: var(--mono); }
     .pp-oos   { font-size: 10px; color: #b33; font-family: var(--mono); letter-spacing: 0.08em; text-transform: uppercase; }
+    .pp-order-item { display:flex; align-items:center; gap:8px; padding:5px 24px; }
+    .pp-order-num { font-family:var(--mono); font-size:9px; letter-spacing:.05em; color:var(--fg-faint); min-width:16px; text-align:right; }
     .gallery-box { background: var(--bg); border: 1px solid var(--line); width: 100%; max-width: 720px;
       padding: 36px; display: flex; flex-direction: column; gap: 24px;
       max-height: calc(100vh - 48px); overflow-y: auto; }
@@ -1869,6 +1871,8 @@ const HTML = `<!DOCTYPE html>
       </div>
       <!-- Product list -->
       <div id="pp-list" style="overflow-y:auto;flex:1;padding:8px 0"></div>
+      <!-- Sort order -->
+      <div id="pp-order-section" style="display:none;max-height:220px;overflow-y:auto;border-bottom:1px solid var(--line-soft)"></div>
       <!-- Footer -->
       <div style="padding:14px 24px;border-top:1px solid var(--line-soft);display:flex;justify-content:flex-end;gap:8px">
         <button class="btn-ghost btn-sm" onclick="closeProductPicker()">Cancel</button>
@@ -1907,7 +1911,7 @@ const HTML = `<!DOCTYPE html>
   <input type="file" id="img-upload-input" accept="image/*" style="display:none" />
   <input type="file" id="pm-img-input"     accept="image/*" style="display:none" />
 
-  <script src="/js/dashboard.js?v=20260719b"></script>
+  <script src="/js/dashboard.js?v=20260719c"></script>
 </body>
 </html>`;
 
