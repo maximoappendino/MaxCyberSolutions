@@ -1813,7 +1813,7 @@ function cartHtml(slug, cbuCvu, mpToken, waNumber, waMessage) {
       return '• ' + i.quantity + 'x ' + i.name + ' - ' + fmtPrice(i.price_cents * i.quantity);
     });
     var total = cart.reduce(function(s,i){ return s+(i.price_cents*i.quantity); }, 0);
-    var msg = WA_MSG + '\n\n' + lines.join('\n') + '\n\n💰 Total: ' + fmtPrice(total);
+    var msg = WA_MSG + '\\n\\n' + lines.join('\\n') + '\\n\\n💰 Total: ' + fmtPrice(total);
     window.open('https://wa.me/' + WA_NUMBER + '?text=' + encodeURIComponent(msg), '_blank');
   };
 
@@ -1827,7 +1827,7 @@ function cartHtml(slug, cbuCvu, mpToken, waNumber, waMessage) {
         return '• ' + i.quantity + 'x ' + i.name + ' - ' + fmtPrice(i.price_cents * i.quantity);
       });
       var total = cart.reduce(function(s,i){ return s+(i.price_cents*i.quantity); }, 0);
-      var extra = '\n\n🛒 Mi pedido:\n' + lines.join('\n') + '\n💰 Total: ' + fmtPrice(total);
+      var extra = '\\n\\n🛒 Mi pedido:\\n' + lines.join('\\n') + '\\n💰 Total: ' + fmtPrice(total);
       urlObj.searchParams.set('text', (existing ? existing + extra : extra));
       return urlObj.toString();
     } catch(e) { return baseUrl; }
