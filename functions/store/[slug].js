@@ -552,13 +552,35 @@ function renderStorefront(store, config, products, isPreview = false, isInspect 
     .s-header__inner {
       width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 16px;
     }
-    .s-header--centered-logo .s-header__inner { justify-content: center; gap: 24px; }
+    /* Layout: left-aligned (default) — brand left, actions right. Already the default flex behavior. */
+    /* Layout: centered-logo — brand centered absolutely, actions pushed to corners */
+    .s-header--centered-logo .s-header__inner { position: relative; justify-content: center; }
+    .s-header--centered-logo .s-header__brand { position: absolute; left: 50%; transform: translateX(-50%); }
+    .s-header--centered-logo .s-header__actions { margin-left: auto; }
+    /* Layout: minimal — tighter padding, smaller brand text, thinner divider */
+    .s-header--minimal { padding: 8px var(--pad); }
+    .s-header--minimal .s-header__inner { gap: 10px; }
+    .s-header--minimal .s-header__action { font-size: 15px; padding: 3px; }
+    /* Layout: commerce-focused — cart badge more prominent, accent border on cart btn */
+    .s-header--commerce-focused .s-header__action--cart {
+      background: var(--accent); color: #fff; border-radius: 6px; padding: 6px 10px;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .s-header--commerce-focused .s-header__action--cart:hover { opacity: 0.88; }
+    .s-header--commerce-focused .s-cart-badge {
+      background: #fff; color: var(--accent); font-size: 9px; font-weight: 700;
+      padding: 1px 5px; border-radius: 99px;
+    }
+    /* Layout: split-nav — nav links centred between brand and actions (if nav is added later) */
+    .s-header--split-nav .s-header__inner { justify-content: space-between; }
     .s-header__brand { display: flex; align-items: center; gap: 12px; }
     .s-header__actions { display: flex; align-items: center; gap: 14px; }
     .s-header__action {
       background: none; border: none; cursor: pointer; font-size: 18px; color: inherit;
       padding: 4px; transition: opacity 160ms; line-height: 1;
+      display: inline-flex; align-items: center;
     }
+    .s-header__action svg { display: block; }
     .s-header__action:hover { opacity: 0.65; }
     .s-header__lang {
       font-family: var(--mono); font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase;
@@ -917,11 +939,38 @@ function renderHeader(s, config) {
     extraStyle += 'backdrop-filter:blur(14px) saturate(120%);';
   }
 
+  const iStyle = s.iconStyle || 'symbolic';
+  const ICO = {
+    symbolic: {
+      search:   '⌕',
+      account:  '◎',
+      wishlist: '♡',
+      cart:     '⊞',
+    },
+    outline: {
+      search:   '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>',
+      account:  '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0M4.5 20.118a7.5 7.5 0 0 1 15 0"/></svg>',
+      wishlist: '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z"/></svg>',
+      cart:     '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 0 0-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 0 0-16.536-1.84M7.5 14.25 5.106 5.272M6 20.25a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Zm12.75 0a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Z"/></svg>',
+    },
+    solid: {
+      search:   '<svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><path fill-rule="evenodd" d="M10.5 3.75a6.75 6.75 0 1 0 0 13.5 6.75 6.75 0 0 0 0-13.5zM2.25 10.5a8.25 8.25 0 1 1 14.59 5.28l4.69 4.69a.75.75 0 1 1-1.06 1.06l-4.69-4.69A8.25 8.25 0 0 1 2.25 10.5z" clip-rule="evenodd"/></svg>',
+      account:  '<svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><path fill-rule="evenodd" d="M7.5 6a4.5 4.5 0 1 1 9 0 4.5 4.5 0 0 1-9 0M3.751 20.105a8.25 8.25 0 0 1 16.498 0 .75.75 0 0 1-.437.695A18.683 18.683 0 0 1 12 22.5c-2.786 0-5.433-.608-7.812-1.7a.75.75 0 0 1-.437-.695z" clip-rule="evenodd"/></svg>',
+      wishlist: '<svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><path d="M11.645 20.91l-.007-.003-.022-.012a15.247 15.247 0 0 1-.383-.218 25.18 25.18 0 0 1-4.244-3.17C4.688 15.36 2.25 12.174 2.25 8.25 2.25 5.322 4.714 3 7.688 3A5.5 5.5 0 0 1 12 5.052 5.5 5.5 0 0 1 16.313 3c2.973 0 5.437 2.322 5.437 5.25 0 3.925-2.438 7.111-4.739 9.256a25.175 25.175 0 0 1-4.244 3.17 15.247 15.247 0 0 1-.383.219l-.022.012-.007.004-.003.001a.752.752 0 0 1-.704 0l-.003-.001z"/></svg>',
+      cart:     '<svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><path d="M2.25 2.25a.75.75 0 0 0 0 1.5h1.386c.17 0 .318.114.362.278l2.558 9.592a3.752 3.752 0 0 0-2.806 3.63c0 .414.336.75.75.75h15.75a.75.75 0 0 0 0-1.5H5.378A2.25 2.25 0 0 1 7.5 15h11.218a.75.75 0 0 0 .674-.421 60.358 60.358 0 0 0 2.96-7.228.75.75 0 0 0-.525-.965A60.864 60.864 0 0 0 5.68 4.509l-.232-.867A1.875 1.875 0 0 0 3.636 2.25H2.25ZM3.75 20.25a1.5 1.5 0 1 1 3 0 1.5 1.5 0 0 1-3 0ZM16.5 20.25a1.5 1.5 0 1 1 3 0 1.5 1.5 0 0 1-3 0Z"/></svg>',
+    },
+    labels: {
+      search: 'Search', account: 'Account', wishlist: 'Wishlist', cart: 'Cart',
+    },
+  };
+  const ico = ICO[iStyle] || ICO.symbolic;
+  const lblStyle = iStyle === 'labels' ? ' style="font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase"' : '';
+
   const actions = [];
-  if (s.showSearch  !== false) actions.push('<button class="s-header__action" onclick="sSearchOpen()" title="Search" aria-label="Search">⌕</button>');
-  if (s.showAccount !== false) actions.push('<button class="s-header__action" title="Account" aria-label="Account" style="opacity:.4;cursor:default">◎</button>');
-  if (s.showWishlist)          actions.push('<button class="s-header__action" title="Wishlist" aria-label="Wishlist">♡</button>');
-  if (s.showCart    !== false) actions.push('<button class="s-header__action" onclick="sCartOpen()" title="Cart" aria-label="Cart">⊞<span class="s-cart-badge" data-count="0">0</span></button>');
+  if (s.showSearch  !== false) actions.push(`<button class="s-header__action" onclick="sSearchOpen()" title="Search" aria-label="Search"${lblStyle}>${ico.search}</button>`);
+  if (s.showAccount !== false) actions.push(`<button class="s-header__action" title="Account" aria-label="Account" style="opacity:.4;cursor:default${iStyle==='labels'?';font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase':''}">${ico.account}</button>`);
+  if (s.showWishlist)          actions.push(`<button class="s-header__action" title="Wishlist" aria-label="Wishlist"${lblStyle}>${ico.wishlist}</button>`);
+  if (s.showCart    !== false) actions.push(`<button class="s-header__action s-header__action--cart" onclick="sCartOpen()" title="Cart" aria-label="Cart"${lblStyle}>${ico.cart}<span class="s-cart-badge" data-count="0">0</span></button>`);
   if (s.showLanguage !== false) actions.push('<span class="s-header__lang" style="opacity:.4;cursor:default">EN</span>');
   if (s.showCurrency)          actions.push('<span class="s-header__lang">USD</span>');
 

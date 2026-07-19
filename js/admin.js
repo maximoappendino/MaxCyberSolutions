@@ -620,12 +620,9 @@ window.accessDashboard = async function(ownerId) {
   const url = `/api/auth/impersonate?t=${encodeURIComponent(data.token)}`;
   // Browser cookies are shared across all tabs — opening this will replace the admin session.
   // Tip: open in a private/incognito window to keep both sessions active simultaneously.
-  if (confirm('This will open the client\'s dashboard in a new tab.\n\n⚠️ Note: browser cookies are shared across tabs — your admin session will be replaced by the client\'s session in ALL tabs. To keep your admin session active, open this link in a private/incognito window instead.\n\nCopy link to clipboard and open incognito?')) {
-    navigator.clipboard?.writeText(window.location.origin + url).catch(() => {});
-    alert('Link copied. Now open a new private/incognito window and paste it there.\n\n' + window.location.origin + url);
-  } else {
-    window.open(url, '_blank');
-  }
+  navigator.clipboard.writeText(window.location.origin + url).catch(() => {
+    prompt('Copy this link and open it in a private/incognito window:', window.location.origin + url);
+  });
 };
 
 // ── Download templates ────────────────────────────────────────────────────────

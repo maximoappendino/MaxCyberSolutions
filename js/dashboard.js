@@ -69,6 +69,7 @@ const SECTION_TYPES = {
       announcementBg: '#1c1a16', announcementColor: '#e2a14a', announcementHeight: 40,
       countdownEnabled: false, countdownEnd: '',
       layout: 'left-aligned', sticky: 'smart', stickyStyle: 'solid',
+      iconStyle: 'symbolic',
       showSearch: true, showAccount: true, showWishlist: false, showCart: true,
       showLanguage: true, showCurrency: false, showBorderBottom: true,
     },
@@ -2106,6 +2107,9 @@ function buildSectionFields(s, i) {
         fieldToggle('Border bottom',       'showBorderBottom', s.showBorderBottom !== false),
       ]),
       fieldGroup('Header Actions', [
+        fieldSelect('Icon style', 'iconStyle', s.iconStyle || 'symbolic',
+          ['symbolic','outline','solid','labels'],
+          ['Symbolic (Unicode ⌕♡⊞)','Outline (line SVG)','Solid (filled SVG)','Text Labels']),
         fieldToggle('Search',            'showSearch',   s.showSearch   !== false),
         fieldToggle('Account',           'showAccount',  s.showAccount  !== false),
         fieldToggle('Wishlist',          'showWishlist', !!s.showWishlist),
