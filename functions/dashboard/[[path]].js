@@ -27,6 +27,20 @@ const HTML = `<!DOCTYPE html>
       --s-radius: 0px; --s-radius-btn: 0px; --s-radius-sm: 0px;
       --s-border-w: 1px; --s-shadow: none; --s-shadow-card: none;
     }
+    /* Dark mode */
+    body.dark-mode {
+      --cream: #1a1816; --ink: #f0ece2;
+      --ink-soft: #c0b8a8; --ink-faint: #8a8278;
+      --rule: #32302c; --rule-soft: #28261e;
+      --accent-soft: rgba(226,161,74,.18);
+    }
+    /* Large text */
+    body.large-text { font-size: 16px !important; }
+    body.large-text input, body.large-text textarea, body.large-text select { font-size: 15px; }
+    /* High contrast */
+    body.high-contrast { --ink-faint: var(--ink-soft); --rule: var(--ink-faint); }
+    body.high-contrast.dark-mode { --ink-faint: var(--ink-soft); }
+
     *, *::before, *::after { box-sizing: border-box; }
     html, body { margin: 0; padding: 0; background: var(--bg); color: var(--fg);
       font-family: var(--sans); font-size: 14px; line-height: 1.5;
@@ -200,6 +214,34 @@ const HTML = `<!DOCTYPE html>
     .store-card__slug { font-family: var(--mono); font-size: 9px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--fg-faint); }
     .store-card__name { font-family: var(--serif); font-size: 22px; letter-spacing: -0.01em; }
     .store-card__actions { display: flex; gap: 8px; margin-top: 4px; }
+    .store-card__plan { font-family: var(--mono); font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase;
+      padding: 2px 7px; border: 1px solid var(--accent); color: var(--accent); display: inline-block; width: fit-content; }
+
+    /* Plan banner */
+    .plan-banner { display: flex; align-items: center; gap: 12px; border: 1px solid var(--line); padding: 14px 20px; margin-bottom: 32px; }
+    .plan-banner__label { font-family: var(--mono); font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--fg-faint); }
+    .plan-banner__name  { font-family: var(--serif); font-size: 22px; letter-spacing: -0.01em; }
+    .plan-banner__right { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+
+    /* Action cards */
+    .action-section { margin-top: 32px; }
+    .action-section__title { font-family: var(--mono); font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--fg-faint); margin-bottom: 14px; }
+    .action-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px,1fr)); gap: 10px; }
+    .action-card { border: 1px solid var(--line); padding: 18px 16px; display: flex; flex-direction: column; gap: 6px;
+      cursor: pointer; background: none; text-align: left; width: 100%; transition: background 180ms, border-color 180ms; }
+    .action-card:hover { background: var(--accent-soft); border-color: var(--accent); }
+    .action-card__icon { font-size: 22px; line-height: 1; }
+    .action-card__title { font-family: var(--mono); font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; margin-top: 4px; }
+    .action-card__sub   { font-size: 11px; color: var(--fg-faint); line-height: 1.4; }
+
+    /* Accessibility panel */
+    .access-panel { margin-top: 32px; border: 1px solid var(--line); padding: 20px; }
+    .access-panel__title { font-family: var(--mono); font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--fg-faint); margin-bottom: 14px; }
+    .access-controls { display: flex; gap: 10px; flex-wrap: wrap; }
+    .access-btn { font-family: var(--mono); font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase;
+      padding: 8px 14px; border: 1px solid var(--line); background: transparent; cursor: pointer; transition: background 150ms, color 150ms; }
+    .access-btn:hover, .access-btn.active { background: var(--ink); color: var(--cream); border-color: var(--ink); }
+    .access-btn.active { border-color: var(--accent); background: var(--accent); }
     .new-store-form { border: 1px solid var(--line); padding: 28px; display: flex; flex-direction: column; gap: 16px; max-width: 480px; }
     .new-store-form__title { font-family: var(--serif); font-size: 22px; letter-spacing: -0.01em; margin: 0; }
     .form-row   { display: flex; gap: 10px; }
@@ -668,6 +710,19 @@ const HTML = `<!DOCTYPE html>
     </div>
   </div>
 
+  <!-- ── Paused ── -->
+  <div class="screen" id="screen-paused">
+    <div class="login-wrap">
+      <div class="login-box" style="text-align:center">
+        <div style="font-size:48px;margin-bottom:16px">⏸</div>
+        <span class="login-box__tag">MaxCyberSolutions</span>
+        <h1 class="login-box__title" style="margin-top:8px">Account Paused</h1>
+        <p class="login-box__sub" style="margin-top:12px">Your dashboard has been temporarily paused by the administrator. Your website is still visible to visitors. Please contact support to resume access.</p>
+        <button class="login-submit" style="margin-top:32px;max-width:260px;align-self:center" onclick="logout()">Sign out</button>
+      </div>
+    </div>
+  </div>
+
   <!-- ── Login ── -->
   <div class="screen active" id="screen-login">
     <div class="login-wrap">
@@ -702,11 +757,58 @@ const HTML = `<!DOCTYPE html>
   <!-- ── Stores ── -->
   <div class="screen" id="screen-stores">
     <div class="d-content">
-      <div class="sec-head">
-        <p class="sec-head__tag">§ Stores</p>
-        <h2 class="sec-head__title">Your storefronts.</h2>
+      <div class="sec-head" style="margin-bottom:20px">
+        <p class="sec-head__tag">§ Storefronts</p>
+        <h2 class="sec-head__title">Your stores.</h2>
+      </div>
+      <div class="plan-banner" id="plan-banner">
+        <div>
+          <div class="plan-banner__label">Your plan</div>
+          <div class="plan-banner__name" id="plan-name-display">—</div>
+        </div>
+        <div class="plan-banner__right" id="plan-banner-right"></div>
       </div>
       <div class="stores-grid" id="stores-grid"></div>
+
+      <div class="action-section">
+        <div class="action-section__title">Quick actions</div>
+        <div class="action-cards">
+          <button class="action-card" onclick="actionContact()">
+            <div class="action-card__icon">💬</div>
+            <div class="action-card__title">Contact support</div>
+            <div class="action-card__sub">Get help from the MaxCyberSolutions team</div>
+          </button>
+          <button class="action-card" onclick="actionRequest('upgrade-plan')">
+            <div class="action-card__icon">⬆</div>
+            <div class="action-card__title">Upgrade plan</div>
+            <div class="action-card__sub">Unlock more features and higher limits</div>
+          </button>
+          <button class="action-card" onclick="actionRequest('more-storage')">
+            <div class="action-card__icon">🗄</div>
+            <div class="action-card__title">More storage</div>
+            <div class="action-card__sub">Request additional image storage space</div>
+          </button>
+          <button class="action-card" onclick="actionRequest('slug-change')">
+            <div class="action-card__icon">🔗</div>
+            <div class="action-card__title">Change URL slug</div>
+            <div class="action-card__sub">Request a new URL for one of your stores</div>
+          </button>
+          <button class="action-card" onclick="actionRequest('website-transfer')">
+            <div class="action-card__icon">⇄</div>
+            <div class="action-card__title">Transfer website</div>
+            <div class="action-card__sub">Move a website to a different account</div>
+          </button>
+        </div>
+      </div>
+
+      <div class="access-panel">
+        <div class="access-panel__title">Display &amp; accessibility</div>
+        <div class="access-controls">
+          <button class="access-btn" id="acc-dark"   onclick="toggleAccess('dark')">Dark mode</button>
+          <button class="access-btn" id="acc-large"  onclick="toggleAccess('large')">Large text</button>
+          <button class="access-btn" id="acc-contrast" onclick="toggleAccess('contrast')">High contrast</button>
+        </div>
+      </div>
 <!-- ##############################################################
       <div class="new-store-form">
         <h3 class="new-store-form__title">Create a store</h3>
@@ -967,7 +1069,10 @@ const HTML = `<!DOCTYPE html>
             <div class="float-panel" id="float-panel">
               <div class="float-panel__head">
                 <span class="float-panel__label">Floating Buttons</span>
-                <button class="btn-ghost btn-sm" id="btn-add-float-btn">+ Add</button>
+                <div style="display:flex;gap:4px">
+                  <button class="btn-ghost btn-sm" id="btn-add-float-btn">+ Button</button>
+                  <button class="btn-ghost btn-sm" id="btn-add-social-links">⊕ Social</button>
+                </div>
               </div>
               <div class="float-btn-list" id="float-btn-list"></div>
             </div>
@@ -1763,11 +1868,26 @@ const HTML = `<!DOCTYPE html>
     </div>
   </div>
 
+  <!-- Product sort modal -->
+  <div class="modal-overlay-lg" id="product-sort-overlay" onclick="if(event.target===this)closeProductSort()">
+    <div class="modal-panel" style="max-width:480px;display:flex;flex-direction:column;max-height:80vh">
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:18px 20px;border-bottom:1px solid var(--line-soft)">
+        <h3 style="margin:0;font-size:15px">Sort product order</h3>
+        <button class="btn-ghost btn-sm" onclick="closeProductSort()">✕</button>
+      </div>
+      <div id="ps-list" style="overflow-y:auto;flex:1;padding:12px 16px"></div>
+      <div style="padding:12px 16px;border-top:1px solid var(--line-soft);display:flex;justify-content:flex-end;gap:8px">
+        <button class="btn-ghost btn-sm" onclick="closeProductSort()">Cancel</button>
+        <button class="btn-solid btn-sm" onclick="confirmProductSort()">Apply order</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Hidden file inputs -->
   <input type="file" id="img-upload-input" accept="image/*" style="display:none" />
   <input type="file" id="pm-img-input"     accept="image/*" style="display:none" />
 
-  <script src="/js/dashboard.js"></script>
+  <script src="/js/dashboard.js?v=20260718e"></script>
 </body>
 </html>`;
 

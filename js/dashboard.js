@@ -125,6 +125,14 @@ const SECTION_TYPES = {
       size: 'medium', pulse: false,
     },
   },
+  'social-links': {
+    label: 'Social Links', icon: '⊕',
+    defaults: {
+      whatsapp: '', whatsapp2: '', instagram: '', facebook: '',
+      twitter: '', reddit: '', email: '', linkedin: '',
+      custom: [], position: 'bottom-right',
+    },
+  },
   'rich-text': {
     label: 'Text Block', icon: '¶',
     defaults: {
@@ -544,6 +552,10 @@ const state = {
 // ── Boot ──────────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', async () => {
   loadDashConfig();
+  // Apply accessibility preferences immediately on load
+  document.body.classList.toggle('dark-mode',    !!dashConfig.darkMode);
+  document.body.classList.toggle('large-text',   !!dashConfig.largeText);
+  document.body.classList.toggle('high-contrast',!!dashConfig.highContrast);
   setupLoginTabs();
   setupLoginForm();
   setupNewStoreForm();
@@ -593,6 +605,10 @@ function onAuthenticated() {
   document.getElementById('d-email').textContent    = state.owner.email;
   const adminLink = document.getElementById('d-admin-link');
   if (adminLink) adminLink.style.display = state.owner.is_admin ? '' : 'none';
+  if (state.owner.status === 'paused') {
+    showScreen('paused');
+    return;
+  }
   if (state.owner.onboarded === 0) {
     setupOnboarding();
     showScreen('onboard');
@@ -605,6 +621,9 @@ async function logout() {
   await api('POST', '/api/auth/logout');
   state.owner = null;
   document.getElementById('d-bar').style.display = 'none';
+  // Always re-enable the sign-in button (may have been left disabled on previous login)
+  const loginBtn = document.getElementById('login-submit');
+  if (loginBtn) loginBtn.disabled = false;
   showScreen('login');
 }
 
@@ -668,7 +687,24 @@ function setupLoginForm() {
 async function showStoresScreen() {
   hideEditorBar();
   showScreen('stores');
+  renderPlanBanner();
+  applyAccessibility();
   await loadStores();
+}
+
+function renderPlanBanner() {
+  const nameEl  = document.getElementById('plan-name-display');
+  const rightEl = document.getElementById('plan-banner-right');
+  if (!nameEl || !state.owner) return;
+  const plan = (state.owner.plan || 'basic').toUpperCase();
+  nameEl.textContent = plan;
+
+  // Show push usage if available
+  if (rightEl && state.owner.push_daily_limit) {
+    const used  = state.owner.push_daily_used  ?? 0;
+    const limit = state.owner.push_daily_limit ?? 10;
+    rightEl.innerHTML = `<span style="font-family:var(--mono);font-size:10px;color:var(--fg-faint)">Publishes today: ${used}/${limit}</span>`;
+  }
 }
 
 async function loadStores() {
@@ -694,6 +730,51 @@ function renderStoresGrid() {
       </div>
     </div>`).join('');
 }
+
+// ── Quick actions ─────────────────────────────────────────────────────────────
+const SUPPORT_EMAIL = 'maximoappendinopadilla@gmail.com';
+
+window.actionContact = function() {
+  const subject = encodeURIComponent('MaxCyberSolutions — Support request');
+  const body    = encodeURIComponent(`Hi,\n\nI need help with my account (${state.owner?.email || ''}).\n\n`);
+  window.open(`mailto:${SUPPORT_EMAIL}?subject=${subject}&body=${body}`, '_blank');
+};
+
+window.actionRequest = function(type) {
+  const labels = {
+    'upgrade-plan':     'plan upgrade',
+    'more-storage':     'additional storage',
+    'slug-change':      'URL slug change',
+    'website-transfer': 'website transfer',
+  };
+  const label   = labels[type] || type;
+  const subject = encodeURIComponent(`MaxCyberSolutions — Request: ${label}`);
+  const body    = encodeURIComponent(`Hi,\n\nI'd like to request a ${label} for my account (${state.owner?.email || ''}).\n\nDetails:\n`);
+  window.open(`mailto:${SUPPORT_EMAIL}?subject=${subject}&body=${body}`, '_blank');
+};
+
+// ── Accessibility toggles ─────────────────────────────────────────────────────
+function applyAccessibility() {
+  const body = document.body;
+  body.classList.toggle('dark-mode',    !!dashConfig.darkMode);
+  body.classList.toggle('large-text',   !!dashConfig.largeText);
+  body.classList.toggle('high-contrast',!!dashConfig.highContrast);
+
+  const darkBtn     = document.getElementById('acc-dark');
+  const largeBtn    = document.getElementById('acc-large');
+  const contrastBtn = document.getElementById('acc-contrast');
+  if (darkBtn)     darkBtn.classList.toggle('active',    !!dashConfig.darkMode);
+  if (largeBtn)    largeBtn.classList.toggle('active',   !!dashConfig.largeText);
+  if (contrastBtn) contrastBtn.classList.toggle('active',!!dashConfig.highContrast);
+}
+
+window.toggleAccess = function(mode) {
+  if (mode === 'dark')     dashConfig.darkMode    = !dashConfig.darkMode;
+  if (mode === 'large')    dashConfig.largeText   = !dashConfig.largeText;
+  if (mode === 'contrast') dashConfig.highContrast = !dashConfig.highContrast;
+  saveDashConfig();
+  applyAccessibility();
+};
 
 function setupNewStoreForm() {
   const nsBtn = document.getElementById('ns-submit');
@@ -1760,16 +1841,18 @@ function renderDashStyleGrid() {
 // ── Section list ──────────────────────────────────────────────────────────────
 const FIXED_SECTION_TYPES = new Set(['header', 'footer']);
 
+const FLOAT_SECTION_TYPES = new Set(['floating-cta', 'social-links']);
+
 function renderSectionList() {
   const list     = document.getElementById('sec-list');
   const sections = state.draft.sections || [];
-  const mainSecs = sections.filter(s => s.type !== 'floating-cta');
+  const mainSecs = sections.filter(s => !FLOAT_SECTION_TYPES.has(s.type));
 
   if (!mainSecs.length) {
     list.innerHTML = `<p style="padding:16px;font-size:12px;color:var(--fg-faint)">${t('noSections')}</p>`;
   } else {
     list.innerHTML = sections.map((s, i) => {
-      if (s.type === 'floating-cta') return '';
+      if (FLOAT_SECTION_TYPES.has(s.type)) return '';
       const def      = SECTION_TYPES[s.type] || { label: s.type, icon: '?' };
       const isActive = state.editingSection === i;
       const isFixed  = FIXED_SECTION_TYPES.has(s.type);
@@ -1789,7 +1872,7 @@ function renderSectionList() {
     setupDragDrop();
   }
 
-  const ADDABLE = Object.entries(SECTION_TYPES).filter(([type]) => !FIXED_SECTION_TYPES.has(type) && type !== 'floating-cta');
+  const ADDABLE = Object.entries(SECTION_TYPES).filter(([type]) => !FIXED_SECTION_TYPES.has(type) && !FLOAT_SECTION_TYPES.has(type));
   document.getElementById('sec-add-menu').innerHTML = ADDABLE.map(([type, def]) =>
     `<div class="sec-add-menu__item" onclick="addSection('${type}')">
       <span class="sec-add-menu__icon">${def.icon}</span>
@@ -1825,22 +1908,28 @@ function setupSectionControls() {
     if (e.target.id === 'sec-modal-overlay') closeSectionEditor();
   });
   document.getElementById('btn-add-float-btn').addEventListener('click', addFloatBtn);
+  const socialBtn = document.getElementById('btn-add-social-links');
+  if (socialBtn) socialBtn.addEventListener('click', addSocialLinks);
 }
 
 function renderFloatBtnsPanel() {
   const list  = document.getElementById('float-btn-list');
   const secs  = state.draft.sections || [];
-  const floats = secs.map((s, i) => ({ s, i })).filter(({ s }) => s.type === 'floating-cta');
+  const floats = secs.map((s, i) => ({ s, i })).filter(({ s }) => FLOAT_SECTION_TYPES.has(s.type));
   if (!floats.length) { list.innerHTML = '<p style="font-size:11px;color:var(--fg-faint);padding:4px 0">No floating buttons yet.</p>'; return; }
-  list.innerHTML = floats.map(({ s, i }) => `
-<div class="float-item" onclick="editSection(${i})">
-  <span class="float-item__icon">◎</span>
-  <span class="float-item__label">${esc(s.label || 'Floating Button')}</span>
+  list.innerHTML = floats.map(({ s, i }) => {
+    const def = SECTION_TYPES[s.type] || { icon: '◎' };
+    const lbl = s.type === 'social-links' ? 'Social Links' : (s.label || 'Floating Button');
+    return `<div class="float-item" onclick="editSection(${i})">
+  <span class="float-item__icon">${def.icon}</span>
+  <span class="float-item__label">${esc(lbl)}</span>
   <button class="float-item__btn" onclick="event.stopPropagation();removeSection(${i})" title="Remove">✕</button>
-</div>`).join('');
+</div>`;
+  }).join('');
 }
 
 function insertAboveFooter(section) {
+  if (!Array.isArray(state.draft.sections)) state.draft.sections = [];
   const secs = state.draft.sections;
   const fi   = secs.findIndex(s => s.type === 'footer');
   if (fi !== -1) { secs.splice(fi, 0, section); return fi; }
@@ -1853,6 +1942,24 @@ function addFloatBtn() {
   pushUndo();
   const def = SECTION_TYPES['floating-cta'];
   const section = { id: uid(), type: 'floating-cta', ...deepClone(def.defaults) };
+  state.editingSection = insertAboveFooter(section);
+  renderSectionList();
+  openSectionEditor(state.editingSection);
+  markDirty();
+}
+
+function addSocialLinks() {
+  if (!Array.isArray(state.draft.sections)) state.draft.sections = [];
+  const existing = state.draft.sections.find(s => s.type === 'social-links');
+  if (existing) {
+    const idx = state.draft.sections.indexOf(existing);
+    state.editingSection = idx;
+    openSectionEditor(idx);
+    return;
+  }
+  pushUndo();
+  const def = SECTION_TYPES['social-links'];
+  const section = { id: uid(), type: 'social-links', ...deepClone(def.defaults) };
   state.editingSection = insertAboveFooter(section);
   renderSectionList();
   openSectionEditor(state.editingSection);
@@ -1919,20 +2026,21 @@ function setupDragDrop() {
       renderSectionList();
       if (state.editingSection !== null) openSectionEditor(state.editingSection);
       markDirty();
+      updatePreview();
     });
   });
 }
 
 // ── Section editor ────────────────────────────────────────────────────────────
 function openSectionEditor(i) {
-  const section = state.draft.sections[i];
+  const section = state.draft.sections?.[i];
   if (!section) return;
-  const def = SECTION_TYPES[section.type] || { label: section.type };
-
-  document.getElementById('sec-modal-overlay').classList.add('active');
+  const def     = SECTION_TYPES[section.type] || { label: section.type };
+  const overlay = document.getElementById('sec-modal-overlay');
+  if (!overlay) return;
+  overlay.classList.add('active');
   document.getElementById('sec-editor-title').textContent = def.label || section.type;
   document.getElementById('sec-editor-fields').innerHTML  = buildSectionFields(section, i);
-
   bindSectionFields(i);
 }
 
@@ -2057,6 +2165,7 @@ function buildSectionFields(s, i) {
           <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
             <span style="font-size:12px;color:var(--fg-soft)">${Array.isArray(s.selectedProducts) && s.selectedProducts.length ? `${s.selectedProducts.length} product${s.selectedProducts.length===1?'':'s'} selected` : 'All products'}</span>
             <button class="btn-ghost btn-sm" type="button" onclick="openProductPicker(${i})">Choose products…</button>
+            ${Array.isArray(s.selectedProducts) && s.selectedProducts.length > 1 ? `<button class="btn-ghost btn-sm" type="button" onclick="openProductSort(${i})">Sort order…</button>` : ''}
           </div>
         </div>`,
         fieldToggle('Show out-of-stock', 'showOutOfStock', s.showOutOfStock !== false),
@@ -2083,6 +2192,22 @@ function buildSectionFields(s, i) {
         fieldToggle('Show filters', 'showFilters', !!s.showFilters),
         fieldToggle('Show sort', 'showSort', !!s.showSort),
       ]),
+      fieldGroup('Colours', [
+        `<div class="form-field">
+          <label>Background color</label>
+          <div style="display:flex;align-items:center;gap:8px">
+            <input type="color" data-field="bg" value="${esc(s.bg || '#ffffff')}" style="height:32px;padding:2px 4px;flex:1" />
+            <button type="button" class="btn-ghost btn-sm" onclick="clearSectionBg(${i},'bg')">Clear</button>
+          </div>
+        </div>`,
+        `<div class="form-field">
+          <label>Text color</label>
+          <div style="display:flex;align-items:center;gap:8px">
+            <input type="color" data-field="fg" value="${esc(s.fg || '#1c1a16')}" style="height:32px;padding:2px 4px;flex:1" />
+            <button type="button" class="btn-ghost btn-sm" onclick="clearSectionBg(${i},'fg')">Clear</button>
+          </div>
+        </div>`,
+      ]),
     ].join('');
 
     // ── TEXT BANNER ───────────────────────────────────────────────────────────
@@ -2098,6 +2223,10 @@ function buildSectionFields(s, i) {
       `<div class="form-row">
         ${field('color', 'Background', 'bg',    s.bg    || '#1c1a16')}
         ${field('color', 'Text color', 'color', s.color || '#e2a14a')}
+      </div>`,
+      `<div style="display:flex;gap:6px;margin-top:-4px;margin-bottom:8px">
+        <button type="button" class="btn-ghost btn-sm" onclick="clearSectionBg(${i},'bg')">Clear BG</button>
+        <button type="button" class="btn-ghost btn-sm" onclick="clearSectionBg(${i},'color')">Clear text</button>
       </div>`,
       fieldSelect('Alignment', 'align', s.align || 'center', ['left','center','right']),
       fieldGroup('CTA Button', [
@@ -2116,21 +2245,44 @@ function buildSectionFields(s, i) {
     // ── IMAGE GALLERY ─────────────────────────────────────────────────────────
     case 'image-gallery': return [
       fieldTextarea('Title (optional)', 'title', esc(s.title || '')),
-      fieldSelect('Gallery layout', 'layout', s.layout || 'classic',
-        ['classic','list','featured','minimal'],
-        ['Classic Grid','List','Featured (first image large)','Minimal (2-col, spacious)']),
-      `<div class="form-row">
-        ${fieldSelect('Columns', 'columns', String(s.columns||3), ['2','3','4'], ['2','3','4'])}
-        ${fieldSelect('Image ratio', 'ratio', s.ratio || '1/1',
-          ['1/1','4/3','4/5','16/9'],
-          ['Square (1:1)','Landscape (4:3)','Portrait (4:5)','Widescreen (16:9)'])}
-      </div>`,
-      fieldSelect('Hover effect', 'hoverEffect', s.hoverEffect || 'zoom',
-        ['none','zoom','fade','overlay'],
-        ['None','Zoom','Fade','Overlay']),
+      fieldGroup('Layout', [
+        fieldSelect('Gallery layout', 'layout', s.layout || 'classic',
+          ['classic','list','featured','minimal'],
+          ['Classic Grid','List','Featured (first image large)','Minimal (2-col, spacious)']),
+        `<div class="form-row">
+          ${fieldSelect('Columns', 'columns', String(s.columns||3), ['2','3','4','5','6'], ['2','3','4','5','6'])}
+          ${fieldSelect('Image ratio', 'ratio', s.ratio || '1/1',
+            ['1/1','4/3','4/5','16/9','auto'],
+            ['Square (1:1)','Landscape (4:3)','Portrait (4:5)','Widescreen (16:9)','Auto'])}
+        </div>`,
+        field('number', 'Gap between images (px)', 'gap', s.gap ?? 8),
+      ]),
+      fieldGroup('Image Settings', [
+        fieldSelect('Image fit', 'imgFit', s.imgFit || 'cover',
+          ['cover','contain'], ['Cover (fill space)','Contain (show full image)']),
+        fieldSelect('Hover effect', 'hoverEffect', s.hoverEffect || 'zoom',
+          ['none','zoom','fade','overlay'],
+          ['None','Zoom','Fade','Overlay']),
+        fieldSelect('Click action', 'clickAction', s.clickAction || 'lightbox',
+          ['none','lightbox','url'],
+          ['None','Open lightbox','Open URL']),
+        fieldToggle('Show captions', 'showCaptions', !!s.showCaptions),
+      ]),
       fieldGroup('Colours', [
-        field('color', 'Background', 'bg',    s.bg    || ''),
-        field('color', 'Text',       'color', s.color || ''),
+        `<div class="form-field">
+          <label>Background color</label>
+          <div style="display:flex;align-items:center;gap:8px">
+            <input type="color" data-field="bg" value="${esc(s.bg || '#ffffff')}" style="height:32px;padding:2px 4px;flex:1" />
+            <button type="button" class="btn-ghost btn-sm" onclick="clearSectionBg(${i},'bg')">Clear</button>
+          </div>
+        </div>`,
+        `<div class="form-field">
+          <label>Text color</label>
+          <div style="display:flex;align-items:center;gap:8px">
+            <input type="color" data-field="color" value="${esc(s.color || '#1c1a16')}" style="height:32px;padding:2px 4px;flex:1" />
+            <button type="button" class="btn-ghost btn-sm" onclick="clearSectionBg(${i},'color')">Clear</button>
+          </div>
+        </div>`,
       ]),
       buildGalleryImages(s.images || [], i),
     ].join('');
@@ -2240,17 +2392,48 @@ function buildSectionFields(s, i) {
       ]),
     ].join('');
 
+    // ── SOCIAL LINKS ──────────────────────────────────────────────────────────
+    case 'social-links': {
+      const customItems = Array.isArray(s.custom) ? s.custom : [];
+      return [
+        fieldGroup('Social Accounts', [
+          field('text', '💬 WhatsApp number', 'whatsapp', esc(s.whatsapp || ''), 'Digits only, e.g. 5491112345678'),
+          field('text', '💬 WhatsApp 2 (optional)', 'whatsapp2', esc(s.whatsapp2 || ''), 'Second WhatsApp number'),
+          field('text', '📸 Instagram URL', 'instagram', esc(s.instagram || '')),
+          field('text', '👥 Facebook URL', 'facebook', esc(s.facebook || '')),
+          field('text', '🐦 Twitter / X URL', 'twitter', esc(s.twitter || '')),
+          field('text', '🤖 Reddit URL', 'reddit', esc(s.reddit || '')),
+          field('text', '✉️ Email address', 'email', esc(s.email || '')),
+          field('text', '💼 LinkedIn URL', 'linkedin', esc(s.linkedin || '')),
+        ]),
+        fieldSelect('Position', 'position', s.position || 'bottom-right',
+          ['bottom-right','bottom-left','top-right','top-left'],
+          ['Bottom right','Bottom left','Top right','Top left']),
+        fieldGroup('Custom Buttons', [
+          `<div id="sl-custom-list" style="display:flex;flex-direction:column;gap:6px">
+            ${customItems.map((c, ci) => `<div class="sl-custom-row" style="display:flex;gap:6px;align-items:center">
+              <input type="text" placeholder="Label" value="${esc(c.title||'')}" oninput="slCustomField(${i},${ci},'title',this.value)" style="flex:2;padding:5px 8px;border:1px solid var(--line);background:var(--bg);color:var(--fg);font-size:12px" />
+              <input type="text" placeholder="URL" value="${esc(c.url||'')}" oninput="slCustomField(${i},${ci},'url',this.value)" style="flex:3;padding:5px 8px;border:1px solid var(--line);background:var(--bg);color:var(--fg);font-size:12px" />
+              <button type="button" class="btn-ghost btn-sm" onclick="slRemoveCustom(${i},${ci})">✕</button>
+            </div>`).join('')}
+          </div>
+          <button type="button" class="btn-ghost btn-sm" style="margin-top:6px" onclick="slAddCustom(${i})">+ Add custom button</button>`,
+        ]),
+      ].join('');
+    }
+
     default: return '<p style="padding:8px;color:var(--fg-faint)">No fields for this section type.</p>';
   }
 }
 
 // Field builders
-function field(type, label, fieldPath, value) {
+function field(type, label, fieldPath, value, hint = '') {
   const isColor   = type === 'color';
   const styleAttr = isColor ? ' style="height:38px;padding:3px 6px;"' : '';
   return `<div class="form-field">
     <label>${esc(label)}</label>
     <input type="${type}" data-field="${esc(fieldPath)}" value="${value}"${styleAttr} />
+    ${hint ? `<p style="font-size:10px;color:var(--fg-faint);margin-top:2px">${esc(hint)}</p>` : ''}
   </div>`;
 }
 
@@ -2386,6 +2569,82 @@ window.clearRichTextBg = function(sectionIdx) {
   state.draft.sections[sectionIdx].bgColor = '';
   openSectionEditor(sectionIdx);
   markDirty();
+};
+
+window.clearSectionBg = function(sectionIdx, field) {
+  state.draft.sections[sectionIdx][field] = '';
+  openSectionEditor(sectionIdx);
+  markDirty();
+};
+
+// ── Social links custom buttons ───────────────────────────────────────────────
+window.slAddCustom = function(sectionIdx) {
+  const s = state.draft.sections[sectionIdx];
+  if (!Array.isArray(s.custom)) s.custom = [];
+  s.custom.push({ title: '', url: '', icon: null, color: '' });
+  openSectionEditor(sectionIdx);
+  markDirty();
+};
+window.slRemoveCustom = function(sectionIdx, ci) {
+  const s = state.draft.sections[sectionIdx];
+  if (Array.isArray(s.custom)) s.custom.splice(ci, 1);
+  openSectionEditor(sectionIdx);
+  markDirty();
+};
+window.slCustomField = function(sectionIdx, ci, field, val) {
+  const s = state.draft.sections[sectionIdx];
+  if (Array.isArray(s.custom) && s.custom[ci]) s.custom[ci][field] = val;
+  markDirty();
+};
+
+// ── Product sort popup ────────────────────────────────────────────────────────
+let _psSectionIdx = null;
+let _psOrder      = [];
+
+window.openProductSort = function(sectionIdx) {
+  _psSectionIdx = sectionIdx;
+  const s = state.draft.sections[sectionIdx] || {};
+  _psOrder = [...(s.selectedProducts || [])].map(String);
+  _renderPS();
+  document.getElementById('product-sort-overlay').classList.add('active');
+};
+
+function _renderPS() {
+  const products = state.products || [];
+  const byId = Object.fromEntries(products.map(p => [String(p.id), p]));
+  document.getElementById('ps-list').innerHTML = _psOrder.map((id, idx) => {
+    const p = byId[id];
+    if (!p) return '';
+    return `<div class="ps-item" data-idx="${idx}" style="display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid var(--line);margin-bottom:4px;background:var(--bg)">
+      <span style="font-family:var(--mono);font-size:10px;color:var(--fg-faint);min-width:18px">${idx+1}</span>
+      ${p.image ? `<img src="${esc(p.image)}" style="width:36px;height:36px;object-fit:cover;flex-shrink:0" alt="" />` : '<div style="width:36px;height:36px;background:var(--line-soft);flex-shrink:0"></div>'}
+      <span style="flex:1;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(p.name)}</span>
+      <button type="button" class="btn-ghost btn-sm" onclick="psMoveUp(${idx})" ${idx===0?'disabled':''}>↑</button>
+      <button type="button" class="btn-ghost btn-sm" onclick="psMoveDown(${idx})" ${idx===_psOrder.length-1?'disabled':''}>↓</button>
+    </div>`;
+  }).join('');
+}
+
+window.psMoveUp = function(idx) {
+  if (idx <= 0) return;
+  [_psOrder[idx-1], _psOrder[idx]] = [_psOrder[idx], _psOrder[idx-1]];
+  _renderPS();
+};
+window.psMoveDown = function(idx) {
+  if (idx >= _psOrder.length - 1) return;
+  [_psOrder[idx+1], _psOrder[idx]] = [_psOrder[idx], _psOrder[idx+1]];
+  _renderPS();
+};
+window.confirmProductSort = function() {
+  if (_psSectionIdx === null) return;
+  const s = state.draft.sections[_psSectionIdx];
+  if (s) s.selectedProducts = [..._psOrder];
+  markDirty();
+  openSectionEditor(_psSectionIdx);
+  document.getElementById('product-sort-overlay').classList.remove('active');
+};
+window.closeProductSort = function() {
+  document.getElementById('product-sort-overlay').classList.remove('active');
 };
 
 window.triggerSecImgUpload = function(sectionIdx, fld) {
@@ -2799,7 +3058,6 @@ function parseCsvRow(row) {
 
 // ── Product modal ─────────────────────────────────────────────────────────────
 function setupProductModal() {
-  document.getElementById('btn-new-item').addEventListener('click', openNewProductModal);
   document.getElementById('pm-close').addEventListener('click',  closeProductModal);
   document.getElementById('pm-cancel').addEventListener('click', closeProductModal);
   document.getElementById('product-modal').addEventListener('click', e => {
@@ -2939,6 +3197,9 @@ window.editProduct = function(productId) {
 
 function closeProductModal() {
   document.getElementById('product-modal').classList.remove('active');
+  // Re-enable submit so the next open works without a page refresh
+  const submitBtn = document.getElementById('pm-submit');
+  if (submitBtn) submitBtn.disabled = false;
   state.editingProduct = null;
   state.variations     = [];
 }

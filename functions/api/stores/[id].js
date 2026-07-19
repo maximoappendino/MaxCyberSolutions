@@ -1,6 +1,13 @@
 import { json } from '../../_lib/helpers.js';
 import { deleteStoreImages } from '../../_lib/storage.js';
 
+function getWeekKey(d) {
+  const jan4 = new Date(d.getFullYear(), 0, 4);
+  const dayNum = Math.round((d - jan4) / 86400000);
+  const weekNum = Math.ceil((dayNum + jan4.getDay() + 1) / 7);
+  return `${d.getFullYear()}-W${String(weekNum).padStart(2, '0')}`;
+}
+
 export async function onRequestGet({ params, data, env }) {
   const store = await env.DB.prepare(
     'SELECT id, slug, name, config, preview_config, created_at FROM stores WHERE id = ? AND owner_id = ?'
@@ -48,6 +55,35 @@ export async function onRequestPut({ params, request, data, env }) {
       'UPDATE stores SET preview_config = ? WHERE id = ? AND owner_id = ?'
     ).bind(JSON.stringify(updated), params.id, data.owner_id).run();
     return json({ id: params.id, draft: true, config: updated });
+  }
+
+  // Enforce push limits on publish
+  const ownerRow = await env.DB.prepare(
+    `SELECT push_daily_limit, push_weekly_limit, push_daily_used, push_weekly_used,
+            push_daily_reset, push_weekly_reset, is_admin
+     FROM owners WHERE id = ?`
+  ).bind(data.owner_id).first();
+
+  if (ownerRow && !ownerRow.is_admin) {
+    const today = new Date().toISOString().slice(0, 10);
+    const week  = getWeekKey(new Date());
+
+    const dailyUsed  = ownerRow.push_daily_reset  === today ? (ownerRow.push_daily_used  ?? 0) : 0;
+    const weeklyUsed = ownerRow.push_weekly_reset === week  ? (ownerRow.push_weekly_used ?? 0) : 0;
+    const dailyLimit  = ownerRow.push_daily_limit  ?? 10;
+    const weeklyLimit = ownerRow.push_weekly_limit ?? 50;
+
+    if (dailyUsed >= dailyLimit) {
+      return json({ error: `Daily publish limit reached (${dailyLimit}/day). Try again tomorrow.` }, 429);
+    }
+    if (weeklyUsed >= weeklyLimit) {
+      return json({ error: `Weekly publish limit reached (${weeklyLimit}/week). Try again next week.` }, 429);
+    }
+
+    await env.DB.prepare(
+      `UPDATE owners SET push_daily_used = ?, push_weekly_used = ?,
+                        push_daily_reset = ?, push_weekly_reset = ? WHERE id = ?`
+    ).bind(dailyUsed + 1, weeklyUsed + 1, today, week, data.owner_id).run();
   }
 
   const updatedName = name ?? (current.name || '');

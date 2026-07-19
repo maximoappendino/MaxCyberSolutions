@@ -8,12 +8,8 @@ export async function onRequestGet({ params, env, request }) {
   const isPreview   = url.searchParams.get('preview') === '1';
   const isInspect   = isPreview && url.searchParams.get('inspect') === '1';
 
-  if (!isPreview) {
-    const cache    = caches.default;
-    const cacheKey = new Request(`https://store-cache.internal/${slug}`);
-    const cached   = await cache.match(cacheKey);
-    if (cached) return cached;
-  }
+  // Workers cache intentionally removed — rely on CDN edge cache only.
+  // caches.default was causing stale pages to be served after deployments.
 
   const store = await env.DB.prepare(`
     SELECT s.*, o.status AS owner_status
@@ -26,6 +22,9 @@ export async function onRequestGet({ params, env, request }) {
     return new Response('Store not found', { status: 404, headers: { 'Content-Type': 'text/plain' } });
   }
 
+  if (!isPreview && store.owner_status === 'frozen') {
+    return frozenPage(store.name || slug);
+  }
   if (!isPreview && store.owner_status !== 'active') {
     return maintenancePage(store.name || slug);
   }
@@ -58,11 +57,6 @@ export async function onRequestGet({ params, env, request }) {
     },
   });
 
-  if (!isPreview) {
-    const cache    = caches.default;
-    const cacheKey = new Request(`https://store-cache.internal/${slug}`);
-    await cache.put(cacheKey, response.clone());
-  }
   return response;
 }
 
@@ -98,11 +92,11 @@ function renderStorefront(store, config, products, isPreview = false, isInspect 
   const hasHeaderSection = sections ? sections.some(s => s.type === 'header') : false;
   const hasFooterSection = sections ? sections.some(s => s.type === 'footer') : false;
 
-  const floaters    = sections ? sections.filter(s => s.type === 'floating-cta') : [];
+  const floaters    = sections ? sections.filter(s => s.type === 'floating-cta' || s.type === 'social-links') : [];
   const customBtns  = Array.isArray(config.buttons) ? config.buttons.filter(b => b.text && b.url) : [];
   const body        = sections
     ? sections.map((s, idx) => {
-        if (s.type === 'floating-cta') return '';
+        if (s.type === 'floating-cta' || s.type === 'social-links') return '';
         const rendered = renderSection(s, products, config);
         if (!rendered) return '';
         return isInspect
@@ -716,6 +710,14 @@ function renderStorefront(store, config, products, isPreview = false, isInspect 
       letter-spacing: 0.1em; padding: 10px 16px; opacity: 0;
       transition: opacity 200ms; pointer-events: none; }
     .s-atc-feedback.show { opacity: 1; }
+    .s-powered { position: fixed; bottom: 8px; left: 8px; z-index: 45;
+      display: flex; align-items: center; gap: 4px; text-decoration: none;
+      font-family: var(--mono); font-size: 8px; letter-spacing: 0.05em;
+      color: var(--fg-faint); opacity: 0.55; transition: opacity 150ms;
+      padding: 3px 6px; border-radius: 3px;
+      background: color-mix(in srgb, var(--bg) 70%, transparent); }
+    .s-powered:hover { opacity: 1; }
+    .s-powered img { height: 14px; width: auto; }
   </style>
 </head>
 <body>
@@ -739,6 +741,11 @@ function renderStorefront(store, config, products, isPreview = false, isInspect 
   ${features.hasNewsletterPopup && !isPreview ? renderNewsletterModal() : ''}
 
   ${buildFloatsHtml(floaters, customBtns)}
+
+  ${!isPreview ? `<a href="https://maxcybersolutions.online" target="_blank" rel="noopener" class="s-powered" title="Powered by MaxCyberSolutions">
+    <img src="/img/icon.webp" alt="" />
+    MaxCyberSolutions
+  </a>` : ''}
 
   ${!hasFooterSection ? `<footer class="s-foot">
     <span class="s-foot__brand">Powered by MaxCyberSolutions</span>
@@ -964,17 +971,22 @@ function renderProductGrid(s, products) {
   const colsMob   = Math.max(1, parseInt(s.colsMobile) || 1);
   const maxProd   = parseInt(s.maxProducts) || 0;
   const c         = s.colors || {};
+  const bg        = c.bg || s.bg || '';
+  const fg        = c.fg || s.fg || '';
   const secStyle  = [
-    c.bg ? `background:${esc(c.bg)}` : '',
-    c.fg ? `color:${esc(c.fg)}`     : '',
+    bg ? `background:${esc(bg)}` : '',
+    fg ? `color:${esc(fg)}`     : '',
   ].filter(Boolean).join(';');
   const titleStyle = c.title ? ` style="color:${esc(c.title)}"` : '';
   const tagStyle   = c.body  ? ` style="color:${esc(c.body)}"` : '';
 
-  let filtered = s.showOutOfStock === false ? products.filter(p => p.in_stock) : products;
+  let allVisible = s.showOutOfStock === false ? products.filter(p => p.in_stock) : products;
+  let filtered;
   if (Array.isArray(s.selectedProducts) && s.selectedProducts.length > 0) {
-    const ids = new Set(s.selectedProducts.map(String));
-    filtered = filtered.filter(p => ids.has(String(p.id)));
+    const byId = Object.fromEntries(allVisible.map(p => [String(p.id), p]));
+    filtered   = s.selectedProducts.map(id => byId[String(id)]).filter(Boolean);
+  } else {
+    filtered = allVisible;
   }
 
   const cardOpts = {
@@ -1118,6 +1130,9 @@ function renderGallery(s) {
   const cols        = Math.max(1, parseInt(s.columns) || 3);
   const ratio       = (s.ratio || '1/1').replace(':', '/');
   const hoverEffect = s.hoverEffect || 'none';
+  const imgFit      = s.imgFit || 'cover';
+  const showCap     = !!s.showCaptions;
+  const gap         = parseInt(s.gap) >= 0 ? parseInt(s.gap) : 8;
   const c           = s.colors || {};
   const bg          = c.bg  || s.bg    || '';
   const fg          = c.fg  || s.color || '';
@@ -1131,13 +1146,13 @@ function renderGallery(s) {
 
   return `<section class="s-gallery s-gallery--${esc(layout)}"${secStyle ? ` style="${secStyle}"` : ''}>
   ${s.title ? `<h2 class="s-gallery__title">${esc(s.title)}</h2>` : ''}
-  <div class="s-gallery__grid" style="grid-template-columns:${gridCols}">
+  <div class="s-gallery__grid" style="grid-template-columns:${gridCols};gap:${gap}px">
     ${images.map(img => {
       const url     = typeof img === 'string' ? img : (img.url || '');
       const caption = typeof img === 'object' ? (img.caption || '') : '';
       return `<div class="s-gallery__item${hoverClass}">
-      <img src="${esc(url)}" alt="${esc(caption)}" loading="lazy" style="aspect-ratio:${esc(ratio)};object-fit:cover;width:100%;display:block" />
-      ${caption ? `<span class="s-gallery__caption">${esc(caption)}</span>` : ''}
+      <img src="${esc(url)}" alt="${esc(caption)}" loading="lazy" style="aspect-ratio:${esc(ratio)};object-fit:${esc(imgFit)};width:100%;display:block" />
+      ${showCap && caption ? `<span class="s-gallery__caption">${esc(caption)}</span>` : ''}
     </div>`;
     }).join('')}
   </div>
@@ -1177,7 +1192,8 @@ function renderFloatingCta(s) {
   const ICONS = { whatsapp: '💬', phone: '📞', email: '✉️', link: '↗' };
   const icon  = ICONS[s.icon] || '↗';
   const color = s.color || '#25D366';
-  return `<a href="${esc(s.url || '#')}" class="s-float"
+  const waClass = s.icon === 'whatsapp' ? ' s-float--wa' : '';
+  return `<a href="${esc(s.url || '#')}" class="s-float${waClass}"
   style="background:${esc(color)}" target="_blank" rel="noopener noreferrer">
   <span class="s-float__icon">${icon}</span>
   ${s.label ? `<span>${esc(s.label)}</span>` : ''}
@@ -1193,13 +1209,61 @@ function renderCustomBtn(b) {
 </a>`;
 }
 
+const SOCIAL_DEFS = {
+  whatsapp:  { label: 'WhatsApp',  icon: '💬', color: '#25D366', waClass: ' s-float--wa' },
+  whatsapp2: { label: 'WhatsApp',  icon: '💬', color: '#1fbe5e', waClass: ' s-float--wa' },
+  instagram: { label: 'Instagram', icon: '📸', color: '#C13584' },
+  facebook:  { label: 'Facebook',  icon: '👥', color: '#1877F2' },
+  twitter:   { label: 'Twitter',   icon: '🐦', color: '#1DA1F2' },
+  reddit:    { label: 'Reddit',    icon: '🤖', color: '#FF4500' },
+  email:     { label: 'Email',     icon: '✉️', color: '#555' },
+  linkedin:  { label: 'LinkedIn',  icon: '💼', color: '#0A66C2' },
+};
+
+function renderSocialLinks(s) {
+  const pos = s.position || 'bottom-right';
+  const buttons = [];
+  if (s.whatsapp)  buttons.push(renderSocialBtn('whatsapp',  `https://wa.me/${esc(s.whatsapp.replace(/\D/g,''))}`));
+  if (s.whatsapp2) buttons.push(renderSocialBtn('whatsapp2', `https://wa.me/${esc(s.whatsapp2.replace(/\D/g,''))}`));
+  if (s.instagram) buttons.push(renderSocialBtn('instagram', esc(s.instagram)));
+  if (s.facebook)  buttons.push(renderSocialBtn('facebook',  esc(s.facebook)));
+  if (s.twitter)   buttons.push(renderSocialBtn('twitter',   esc(s.twitter)));
+  if (s.reddit)    buttons.push(renderSocialBtn('reddit',    esc(s.reddit)));
+  if (s.email)     buttons.push(renderSocialBtn('email',     `mailto:${esc(s.email)}`));
+  if (s.linkedin)  buttons.push(renderSocialBtn('linkedin',  esc(s.linkedin)));
+  if (Array.isArray(s.custom)) {
+    s.custom.forEach(c => {
+      if (c.url) buttons.push(`<a href="${esc(c.url)}" class="s-float" style="background:${esc(c.color||'var(--accent)')}" target="_blank" rel="noopener noreferrer">
+  <span class="s-float__icon">${c.icon ? esc(c.icon) : '↗'}</span>
+  ${c.title ? `<span>${esc(c.title)}</span>` : ''}
+</a>`);
+    });
+  }
+  return { pos, buttons };
+}
+
+function renderSocialBtn(platform, url) {
+  const def = SOCIAL_DEFS[platform] || { label: platform, icon: '↗', color: '#333' };
+  return `<a href="${url}" class="s-float${def.waClass||''}"
+  style="background:${esc(def.color)}" target="_blank" rel="noopener noreferrer">
+  <span class="s-float__icon">${def.icon}</span>
+  <span>${def.label}</span>
+</a>`;
+}
+
 function buildFloatsHtml(floaters, customBtns) {
   if (!floaters.length && !customBtns.length) return '';
   const ALL_POS = ['bottom-right','bottom-left','top-right','top-left'];
   const groups  = {};
   floaters.forEach(s => {
-    const pos = ALL_POS.includes(s.position) ? s.position : 'bottom-right';
-    (groups[pos] = groups[pos] || []).push(renderFloatingCta(s));
+    if (s.type === 'social-links') {
+      const { pos, buttons } = renderSocialLinks(s);
+      const p = ALL_POS.includes(pos) ? pos : 'bottom-right';
+      (groups[p] = groups[p] || []).push(...buttons);
+    } else {
+      const pos = ALL_POS.includes(s.position) ? s.position : 'bottom-right';
+      (groups[pos] = groups[pos] || []).push(renderFloatingCta(s));
+    }
   });
   customBtns.forEach((b, i) => {
     const pos = ALL_POS[i % ALL_POS.length];
@@ -1563,9 +1627,67 @@ function cartHtml(slug, cbuCvu, mpToken, waNumber, waMessage, hasFloaters = fals
     window.open('https://wa.me/' + WA_NUMBER + '?text=' + encodeURIComponent(msg), '_blank');
   };
 
+  // Intercept clicks on floating WA buttons to append cart contents when cart has items
+  function _buildCartMsg(baseUrl) {
+    if (!cart.length) return baseUrl;
+    try {
+      var urlObj = new URL(baseUrl);
+      var existing = urlObj.searchParams.get('text') || '';
+      var lines = cart.map(function(i){
+        return '• ' + i.quantity + 'x ' + i.name + ' - ' + fmtPrice(i.price_cents * i.quantity);
+      });
+      var total = cart.reduce(function(s,i){ return s+(i.price_cents*i.quantity); }, 0);
+      var extra = '\n\n🛒 Mi pedido:\n' + lines.join('\n') + '\n💰 Total: ' + fmtPrice(total);
+      urlObj.searchParams.set('text', (existing ? existing + extra : extra));
+      return urlObj.toString();
+    } catch(e) { return baseUrl; }
+  }
+
+  document.addEventListener('click', function(e) {
+    var a = e.target.closest('a.s-float--wa');
+    if (!a || !cart.length) return;
+    e.preventDefault();
+    window.open(_buildCartMsg(a.href), '_blank');
+  });
+
   try { updateBadge(); } catch(e) { _err(e); }
 })();
 </script>`;
+}
+
+function frozenPage(storeName) {
+  return new Response(`<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>${esc(storeName)} — Frozen</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { min-height: 100vh; display: flex; align-items: center; justify-content: center;
+      background: #e8eef4; font-family: Georgia, serif; color: #1c2530; }
+    .wrap { text-align: center; padding: 48px 32px; max-width: 480px; }
+    .name { font-size: clamp(28px, 6vw, 48px); letter-spacing: -0.02em; margin-bottom: 16px; }
+    .msg  { font-style: italic; color: #5a6a7a; font-size: 17px; line-height: 1.6; }
+    .rule { width: 48px; height: 1px; background: #b4c0cc; margin: 24px auto; }
+    .icon { font-size: 40px; margin-bottom: 16px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="icon">❄</div>
+    <h1 class="name">${esc(storeName)}</h1>
+    <div class="rule"></div>
+    <p class="msg">This website has been frozen.<br/>Please contact the store owner for more information.</p>
+  </div>
+</body>
+</html>`, {
+    status: 503,
+    headers: {
+      'Content-Type':  'text/html;charset=UTF-8',
+      'Cache-Control': 'no-store',
+    },
+  });
 }
 
 function maintenancePage(storeName) {

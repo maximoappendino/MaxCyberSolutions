@@ -1,6 +1,30 @@
-// DELETE /api/admin/owners/:id/stores/:storeId — remove a store from a client account
+// Admin store management: edit slug (PATCH), delete (DELETE)
 import { json } from '../../../../../_lib/helpers.js';
 import { deleteStoreImages } from '../../../../../_lib/storage.js';
+
+export async function onRequestPatch({ params, request, env }) {
+  let body;
+  try { body = await request.json(); } catch { return json({ error: 'Invalid JSON' }, 400); }
+
+  const { slug } = body ?? {};
+  if (!slug) return json({ error: 'slug is required' }, 400);
+  if (!/^[a-z0-9-]{2,48}$/.test(slug)) {
+    return json({ error: 'slug must be 2–48 chars: lowercase letters, numbers, hyphens' }, 400);
+  }
+
+  const store = await env.DB.prepare(
+    'SELECT id FROM stores WHERE id = ? AND owner_id = ?'
+  ).bind(params.storeId, params.id).first();
+  if (!store) return json({ error: 'Not found' }, 404);
+
+  const conflict = await env.DB.prepare(
+    'SELECT id FROM stores WHERE slug = ? AND id != ?'
+  ).bind(slug, params.storeId).first();
+  if (conflict) return json({ error: 'Slug already taken' }, 409);
+
+  await env.DB.prepare('UPDATE stores SET slug = ? WHERE id = ?').bind(slug, params.storeId).run();
+  return json({ ok: true, slug });
+}
 
 export async function onRequestDelete({ params, env }) {
   const store = await env.DB.prepare(

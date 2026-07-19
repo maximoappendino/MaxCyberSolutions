@@ -227,6 +227,7 @@ const HTML = `<!DOCTYPE html>
       text-transform: uppercase; padding: 2px 6px; border: 1px solid; border-radius: 0; }
     .status--active   { color: #1c6b3a; border-color: #1c6b3a; }
     .status--paused   { color: #9a6200; border-color: #9a6200; }
+    .status--frozen   { color: #1a5a8a; border-color: #1a5a8a; }
     .status--archived { color: var(--ink-faint); border-color: var(--ink-faint); }
 
     /* Status control */
@@ -243,12 +244,46 @@ const HTML = `<!DOCTYPE html>
     .btn-status--resume:hover  { background: #1c6b3a; color: #fff; }
     .btn-status--pause   { color: #9a6200; border-color: #9a6200; }
     .btn-status--pause:hover   { background: #9a6200; color: #fff; }
+    .btn-status--freeze  { color: #1a5a8a; border-color: #1a5a8a; }
+    .btn-status--freeze:hover  { background: #1a5a8a; color: #fff; }
     .btn-status--archive { color: var(--ink-faint); border-color: var(--ink-faint); }
     .btn-status--archive:hover { background: var(--ink-faint); color: var(--cream); }
+
+    /* Push limits */
+    .push-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 10px; }
+    .push-row  { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
+    .push-row label { font-family: var(--mono); font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; min-width: 90px; }
+    .push-adj  { display: flex; align-items: center; gap: 6px; }
+    .push-adj-btn { font-family: var(--mono); font-size: 13px; padding: 3px 10px;
+      border: 1px solid var(--ink-faint); background: transparent; cursor: pointer; }
+    .push-adj-btn:hover { background: var(--ink-faint); color: var(--cream); }
+    .push-adj-val { font-family: var(--mono); font-size: 12px; min-width: 32px; text-align: center; }
+
+    /* Password toggle */
+    .pw-wrap { position: relative; display: flex; }
+    .pw-wrap input { flex: 1; }
+    .pw-eye { position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
+      background: none; border: none; cursor: pointer; font-size: 13px; color: var(--ink-faint);
+      padding: 0; line-height: 1; }
+
+    /* Store row border */
+    .store-row { gap: 6px; }
+    .store-actions { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
 
     /* Misc */
     .empty-msg { font-family: var(--serif); font-style: italic;
       font-size: 15px; color: var(--ink-faint); padding: 20px 14px; }
+
+    /* New-client / generic modal */
+    .a-modal-overlay { position: fixed; inset: 0; z-index: 400; background: rgba(0,0,0,.45);
+      display: none; align-items: center; justify-content: center; }
+    .a-modal-overlay.active { display: flex; }
+    .a-modal-box { background: #fff; width: min(460px, 96vw); padding: 28px 32px; display: flex; flex-direction: column; gap: 18px; }
+    .a-modal-title { font-family: var(--serif); font-size: 22px; letter-spacing: -0.01em; }
+    .a-modal-field { display: flex; flex-direction: column; gap: 5px; }
+    .a-modal-error { font-family: var(--mono); font-size: 10px; color: var(--red);
+      background: var(--red-soft); padding: 7px 10px; display: none; }
+    .a-modal-foot { display: flex; gap: 10px; justify-content: flex-end; margin-top: 4px; }
   </style>
 </head>
 <body>
@@ -269,7 +304,10 @@ const HTML = `<!DOCTYPE html>
 <div class="a-layout">
   <aside class="a-sidebar">
     <div class="a-sidebar__head">
-      <div class="a-sidebar__heading">Clients</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <div class="a-sidebar__heading" style="margin-bottom:0">Clients</div>
+        <button class="btn-solid" id="btn-new-client" style="padding:6px 14px;font-size:9px">+ New</button>
+      </div>
       <input class="a-sidebar__search" id="client-search" type="search" placeholder="Search by name, email…"/>
     </div>
     <div id="client-list">
@@ -282,7 +320,57 @@ const HTML = `<!DOCTYPE html>
   </main>
 </div>
 
-<script src="/js/admin.js"></script>
+<!-- ── Slug transfer modal ── -->
+<div class="a-modal-overlay" id="transfer-modal" onclick="if(event.target.id==='transfer-modal')closeModal('transfer-modal')">
+  <div class="a-modal-box" style="width:min(540px,96vw)">
+    <div class="a-modal-title">Transfer Website</div>
+    <p style="font-size:13px;color:#5a6060;margin:-6px 0 4px">Move this website to another client account.</p>
+    <div class="a-modal-field">
+      <label>Target client</label>
+      <select id="tr-target-owner" style="width:100%;padding:8px 10px;border:1px solid #d0cac0;font-size:13px">
+        <option value="">— select a client —</option>
+      </select>
+    </div>
+    <div class="a-modal-field">
+      <label>Transfer type</label>
+      <select id="tr-type" style="width:100%;padding:8px 10px;border:1px solid #d0cac0;font-size:13px">
+        <option value="complete">Complete — move entire website (data, products, images)</option>
+        <option value="partial">Partial — give slug only (target gets empty store; original keeps data with a temp slug)</option>
+      </select>
+    </div>
+    <div class="a-modal-error" id="tr-error"></div>
+    <div class="a-modal-foot">
+      <button class="btn-danger" style="padding:8px 16px" onclick="closeModal('transfer-modal')">Cancel</button>
+      <button class="btn-solid" id="btn-tr-submit" onclick="submitTransfer()">Transfer</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── New client modal ── -->
+<div class="a-modal-overlay" id="new-client-modal" onclick="if(event.target.id==='new-client-modal')closeModal('new-client-modal')">
+  <div class="a-modal-box">
+    <div class="a-modal-title">New Client</div>
+    <div class="a-modal-field">
+      <label>Full name (optional)</label>
+      <input id="nc-name" type="text" placeholder="Jane Doe" />
+    </div>
+    <div class="a-modal-field">
+      <label>Email *</label>
+      <input id="nc-email" type="email" placeholder="client@email.com" />
+    </div>
+    <div class="a-modal-field">
+      <label>Password *</label>
+      <input id="nc-password" type="password" placeholder="Min. 6 characters" autocomplete="new-password" />
+    </div>
+    <div class="a-modal-error" id="nc-error"></div>
+    <div class="a-modal-foot">
+      <button class="btn-danger" style="padding:8px 16px" onclick="closeModal('new-client-modal')">Cancel</button>
+      <button class="btn-solid" id="btn-nc-submit" onclick="submitNewClient()">Create client</button>
+    </div>
+  </div>
+</div>
+
+<script src="/js/admin.js?v=20260718d"></script>
 </body>
 </html>`;
 

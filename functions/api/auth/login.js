@@ -11,17 +11,27 @@ export async function onRequestPost({ request, env }) {
   const { email, password } = body ?? {};
   if (!email || !password) return json({ error: 'email and password are required' }, 400);
 
-  const owner = await env.DB.prepare('SELECT * FROM owners WHERE email = ?')
-    .bind(email.toLowerCase()).first();
+  const normalEmail = email.toLowerCase().trim();
+
+  // Check owner account first, then collaborators
+  const owner = await env.DB.prepare('SELECT * FROM owners WHERE email = ?').bind(normalEmail).first();
+  const collab = !owner
+    ? await env.DB.prepare('SELECT * FROM collaborators WHERE email = ?').bind(normalEmail).first()
+    : null;
+
+  const account = owner || collab;
 
   // Always verify to prevent user enumeration via timing
-  if (!owner) {
+  if (!account) {
     await crypto.subtle.digest('SHA-256', new TextEncoder().encode(password));
     return json({ error: 'Invalid credentials' }, 401);
   }
 
-  const valid = await verifyPassword(password, owner.salt, owner.hash);
+  const valid = await verifyPassword(password, account.salt, account.hash);
   if (!valid) return json({ error: 'Invalid credentials' }, 401);
+
+  // For collaborators, the session owner_id is their associated owner
+  const sessionOwnerId = collab ? collab.owner_id : owner.id;
 
   const sessionId = uuid();
   const expiresAt = new Date(Date.now() + SESSION_TTL_SECONDS * 1000)
@@ -29,9 +39,9 @@ export async function onRequestPost({ request, env }) {
 
   await env.DB.prepare(
     'INSERT INTO sessions (id, owner_id, expires_at) VALUES (?, ?, ?)'
-  ).bind(sessionId, owner.id, expiresAt).run();
+  ).bind(sessionId, sessionOwnerId, expiresAt).run();
 
-  return new Response(JSON.stringify({ id: owner.id, email: owner.email }), {
+  return new Response(JSON.stringify({ id: sessionOwnerId, email: account.email }), {
     status: 200,
     headers: {
       'Content-Type': 'application/json',
