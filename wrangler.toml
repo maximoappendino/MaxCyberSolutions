@@ -28,3 +28,6 @@ PUBLIC_URL  = "https://maxcybersolutions.online"
 # ANDREANI_USER     = ""
 # ANDREANI_PASS     = ""
 # ANDREANI_CONTRATO = ""
+# Resend email API key — get free key at resend.com
+# Set via: wrangler secret put RESEND_API_KEY
+# RESEND_API_KEY = ""

@@ -133,8 +133,10 @@ function renderDetail() {
 
   const today = new Date().toISOString().slice(0, 10);
   const week  = getWeekKey(new Date());
-  const dailyUsed  = c.push_daily_reset  === today ? (c.push_daily_used  ?? 0) : 0;
-  const weeklyUsed = c.push_weekly_reset === week  ? (c.push_weekly_used ?? 0) : 0;
+  const month = new Date().toISOString().slice(0, 7);
+  const dailyUsed   = c.push_daily_reset  === today ? (c.push_daily_used  ?? 0) : 0;
+  const weeklyUsed  = c.push_weekly_reset === week  ? (c.push_weekly_used ?? 0) : 0;
+  const monthlyEmailUsed = c.email_monthly_reset === month ? (c.email_monthly_used ?? 0) : 0;
 
   const st = c.status || 'active';
 
@@ -274,6 +276,28 @@ function renderDetail() {
           <button class="push-adj-btn" onclick="adjustPushes('${esc(c.id)}','weekly',1)">+</button>
         </div>
         <span style="font-size:11px;color:var(--ink-faint);margin-left:4px">/ ${c.push_weekly_limit ?? 50} this week</span>
+      </div>
+    </div>
+
+    <div class="dsection">
+      <div class="dsection__title">Email Limits</div>
+      <div class="push-grid">
+        <div class="dfield">
+          <label>Monthly limit</label>
+          <input id="d-email-monthly-limit" type="number" min="0" value="${c.email_monthly_limit ?? 200}"/>
+        </div>
+      </div>
+      <div style="margin-bottom:8px">
+        <button class="btn-solid" style="padding:6px 14px;font-size:10px" onclick="saveEmailLimits('${esc(c.id)}')">Save limit</button>
+      </div>
+      <div class="push-row">
+        <label>Monthly used</label>
+        <div class="push-adj">
+          <button class="push-adj-btn" onclick="adjustEmails('${esc(c.id)}',-1)">−</button>
+          <span class="push-adj-val" id="d-email-monthly-used">${monthlyEmailUsed}</span>
+          <button class="push-adj-btn" onclick="adjustEmails('${esc(c.id)}',1)">+</button>
+        </div>
+        <span style="font-size:11px;color:var(--ink-faint);margin-left:4px">/ ${c.email_monthly_limit ?? 200} this month</span>
       </div>
     </div>
 
@@ -664,6 +688,27 @@ window.adjustPushes = async function(id, period, delta) {
 
   if (el) el.textContent = next;
   if (state.selected?.id === id) state.selected[field] = next;
+};
+
+// ── Email limits ──────────────────────────────────────────────────────────────
+window.saveEmailLimits = async function(id) {
+  const monthly = Math.max(0, parseInt(document.getElementById('d-email-monthly-limit')?.value, 10) || 0);
+  const res  = await api('PUT', `/api/admin/owners/${id}`, { email_monthly_limit: monthly });
+  const data = await safeJson(res);
+  if (!res.ok) { flashDetailMsg(data.error || 'Failed to save email limit', 'err'); return; }
+  if (state.selected?.id === id) state.selected.email_monthly_limit = monthly;
+  flashDetailMsg('Email limit saved', 'ok');
+};
+
+window.adjustEmails = async function(id, delta) {
+  const el  = document.getElementById('d-email-monthly-used');
+  const cur = parseInt(el?.textContent ?? '0', 10);
+  const next = Math.max(0, cur + delta);
+  const res  = await api('PUT', `/api/admin/owners/${id}`, { email_monthly_used: next });
+  const data = await safeJson(res);
+  if (!res.ok) { flashDetailMsg(data.error || 'Failed', 'err'); return; }
+  if (el) el.textContent = next;
+  if (state.selected?.id === id) state.selected.email_monthly_used = next;
 };
 
 // ── Password show/hide ────────────────────────────────────────────────────────

@@ -2,13 +2,14 @@
 // Creates an order. For MP: also creates a preference and returns init_point.
 // For bank transfer: returns CBU/CVU details for the customer to complete payment.
 import { json, uuid } from '../../../../_lib/helpers.js';
+import { sendEmail, canSendEmail, incrementEmailCount, emailNewOrder, emailOrderConfirmCustomer } from '../../../../_lib/email.js';
 
 export async function onRequestPost({ params, request, env }) {
   let body;
   try { body = await request.json(); } catch { return json({ error: 'Invalid JSON' }, 400); }
 
   const store = await env.DB.prepare(`
-    SELECT s.*, o.status AS owner_status
+    SELECT s.*, o.id AS owner_id, o.email AS owner_email, o.status AS owner_status
     FROM stores s JOIN owners o ON o.id = s.owner_id
     WHERE s.slug = ?
   `).bind(params.slug).first();
@@ -54,18 +55,39 @@ export async function onRequestPost({ params, request, env }) {
 
   // ── Bank Transfer ────────────────────────────────────────────────────────────
   if (payment_method === 'bank') {
-    return json({
-      order_id: orderId,
-      status: 'awaiting_transfer',
-      total_cents,
-      transfer: {
-        cbu_cvu:     store.cbu_cvu,
-        bank_name:   store.bank_name,
-        bank_holder: store.bank_holder,
-        reference:   orderId.slice(0, 8).toUpperCase(),
-        amount:      (total_cents / 100).toFixed(2),
-      },
-    });
+    const transfer = {
+      cbu_cvu:     store.cbu_cvu,
+      bank_name:   store.bank_name,
+      bank_holder: store.bank_holder,
+      reference:   orderId.slice(0, 8).toUpperCase(),
+      amount:      (total_cents / 100).toFixed(2),
+    };
+
+    // Fire emails without blocking the response
+    const order = { id: orderId, customer_name, customer_email, customer_phone,
+      shipping_address, shipping_city, shipping_province, shipping_zip,
+      payment_method, total_cents };
+    const base = env.PUBLIC_URL || 'https://maxcybersolutions.online';
+    const storeName = store.name || params.slug;
+
+    if (await canSendEmail(env, store.owner_id)) {
+      const dashboardUrl = `${base}/dashboard`;
+      await Promise.all([
+        sendEmail(env, {
+          to: store.owner_email,
+          subject: `Nuevo pedido #${orderId.slice(0,8).toUpperCase()} — ${storeName}`,
+          html: emailNewOrder({ order, items, storeName, dashboardUrl }),
+        }),
+        sendEmail(env, {
+          to: customer_email,
+          subject: `Pedido recibido #${orderId.slice(0,8).toUpperCase()} — ${storeName}`,
+          html: emailOrderConfirmCustomer({ order, items, storeName, storeSlug: params.slug, transfer }),
+        }),
+      ]);
+      await incrementEmailCount(env, store.owner_id, 2);
+    }
+
+    return json({ order_id: orderId, status: 'awaiting_transfer', total_cents, transfer });
   }
 
   // ── Mercado Pago ─────────────────────────────────────────────────────────────
@@ -133,6 +155,29 @@ export async function onRequestPost({ params, request, env }) {
 
   await env.DB.prepare('UPDATE orders SET mp_preference_id = ? WHERE id = ?')
     .bind(mpData.id, orderId).run();
+
+  // Send pending notification emails (MP payment not yet confirmed)
+  const order = { id: orderId, customer_name, customer_email, customer_phone,
+    shipping_address, shipping_city, shipping_province, shipping_zip,
+    payment_method, total_cents };
+  const base2     = env.PUBLIC_URL || 'https://maxcybersolutions.online';
+  const storeName2 = store.name || params.slug;
+
+  if (await canSendEmail(env, store.owner_id)) {
+    await Promise.all([
+      sendEmail(env, {
+        to: store.owner_email,
+        subject: `Nuevo pedido #${orderId.slice(0,8).toUpperCase()} — ${storeName2}`,
+        html: emailNewOrder({ order, items, storeName: storeName2, dashboardUrl: `${base2}/dashboard` }),
+      }),
+      sendEmail(env, {
+        to: customer_email,
+        subject: `Pedido recibido #${orderId.slice(0,8).toUpperCase()} — ${storeName2}`,
+        html: emailOrderConfirmCustomer({ order, items, storeName: storeName2, storeSlug: params.slug }),
+      }),
+    ]);
+    await incrementEmailCount(env, store.owner_id, 2);
+  }
 
   return json({ order_id: orderId, mp_init_point: mpData.init_point });
 }
