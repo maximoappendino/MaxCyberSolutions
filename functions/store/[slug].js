@@ -1675,11 +1675,11 @@ function cartHtml(slug, cbuCvu, mpToken, waNumber, waMessage) {
 <script>
 (function(){
   var _err = function(e){ try{console.warn('[Cart]',e);}catch(x){} };
-  const SLUG      = ${JSON.stringify(slug)};
-  const CART_KEY  = 'cart_' + SLUG;
-  const WA_NUMBER = ${JSON.stringify(waNumber || '')};
-  const WA_MSG    = ${JSON.stringify(waMessage || waDefault)};
-  const fmtPrice  = c => '$' + (c/100).toLocaleString('es-AR',{minimumFractionDigits:2,maximumFractionDigits:2});
+  var SLUG      = ${JSON.stringify(slug)};
+  var CART_KEY  = 'cart_' + SLUG;
+  var WA_NUMBER = ${JSON.stringify(waNumber || '')};
+  var WA_MSG    = ${JSON.stringify(waMessage || waDefault)};
+  var fmtPrice  = function(c){ return '$' + (c/100).toLocaleString('es-AR',{minimumFractionDigits:2,maximumFractionDigits:2}); };
 
   var cart = [];
   try { cart = JSON.parse(localStorage.getItem(CART_KEY) || '[]'); } catch(_e) {}
