@@ -260,7 +260,7 @@ function renderStorefront(store, config, products, isPreview = false, isInspect 
       border: 1px solid var(--line); border-radius: var(--s-radius-btn); cursor: pointer; }
 
     /* Grid base */
-    .s-grid { display: grid; border-top: 1px solid var(--line); border-left: 1px solid var(--line); }
+    .s-grid { display: grid; grid-template-columns: var(--cols); border-top: 1px solid var(--line); border-left: 1px solid var(--line); }
 
     /* Grid layout: list */
     .s-grid--list { grid-template-columns: 1fr !important; }
@@ -427,7 +427,7 @@ function renderStorefront(store, config, products, isPreview = false, isInspect 
     .s-gallery { padding: 64px var(--pad); }
     .s-gallery__title { font-family: var(--serif);
       font-size: clamp(32px, 4.5vw, 56px); letter-spacing: -0.02em; margin: 0 0 40px; }
-    .s-gallery__grid { display: grid; gap: 12px; }
+    .s-gallery__grid { display: grid; gap: 12px; grid-template-columns: var(--cols); }
     .s-gallery__item { position: relative; overflow: hidden; }
     .s-gallery__item img { width: 100%; height: 100%; object-fit: cover; display: block;
       transition: transform 300ms ease, opacity 300ms ease; }
@@ -623,9 +623,78 @@ function renderStorefront(store, config, products, isPreview = false, isInspect 
       font-family: var(--mono); font-size: 10px; letter-spacing: 0.12em;
       text-transform: uppercase; color: var(--fg-faint); cursor: pointer; }
 
+    /* ── Mobile ────────────────────────────────────────────────────────────── */
     @media (max-width: 700px) {
-      .s-grid { grid-template-columns: 1fr !important; }
-      .s-gallery__grid--3, .s-gallery__grid--4 { grid-template-columns: repeat(2, 1fr); }
+      /* Nav: drop back link to save space */
+      .s-bar__back { display: none; }
+
+      /* Hero: tighter padding */
+      .s-hero__inner { padding: 44px var(--pad) 28px; }
+      .s-hero--img   { min-height: 40vh; }
+
+      /* Sections: reduce vertical padding */
+      .s-products      { padding: 36px var(--pad); }
+      .s-products__head { margin-bottom: 24px; }
+      .s-gallery        { padding: 36px var(--pad); }
+      .s-rich, .s-rich--lg { padding: 36px var(--pad); }
+
+      /* Product grid: use per-section mobile column count (default 2) */
+      .s-grid { grid-template-columns: var(--mob-cols, repeat(2, 1fr)); }
+
+      /* Compact card for 2-column mobile */
+      .s-card__img  { aspect-ratio: 1/1; }
+      .s-card__body { padding: 0 10px 12px; gap: 5px; }
+      .s-card__name { font-size: 14px; letter-spacing: 0; line-height: 1.25; }
+      .s-card__price { font-size: 20px; }
+      .s-card__desc { display: none; }
+      .s-card__sku  { display: none; }
+
+      /* List layouts: 1 column, cards vertical */
+      .s-grid--list,
+      .s-grid--emilse { grid-template-columns: 1fr; }
+
+      .s-grid--list .s-card,
+      .s-grid--emilse .s-card,
+      .s-grid--emilse .s-card:nth-child(even) { flex-direction: column; min-height: unset; }
+
+      .s-grid--list .s-card__img,
+      .s-grid--emilse .s-card__img { width: 100%; min-width: unset; aspect-ratio: 16/9; }
+
+      .s-grid--list .s-card__body,
+      .s-grid--emilse .s-card__body { padding: 0 16px 20px; justify-content: flex-start; gap: 8px; }
+
+      .s-grid--list .s-card__name,
+      .s-grid--emilse .s-card__name { font-size: 18px; }
+      .s-grid--list .s-card__price,
+      .s-grid--emilse .s-card__price { font-size: 26px; }
+      .s-grid--list .s-card__desc,
+      .s-grid--emilse .s-card__desc { display: block; }
+      .s-grid--list .s-card__sku,
+      .s-grid--emilse .s-card__sku  { display: block; }
+
+      /* Minimal: same compact sizing */
+      .s-grid--minimal .s-card__body  { padding: 0 10px 12px; gap: 5px; }
+      .s-grid--minimal .s-card__name  { font-size: 14px; }
+      .s-grid--minimal .s-card__price { font-size: 20px; }
+
+      /* Frank bento: collapse all spans to simple grid */
+      .s-grid--frank .s-card:nth-child(n)  { grid-column: auto; grid-row: auto; }
+      .s-grid--frank .s-card:nth-child(1) .s-card__img { min-height: auto; flex: none; }
+
+      /* Alicia overlay: shorter cards on mobile */
+      .s-grid--alicia .s-card { min-height: 200px; }
+
+      /* Gallery: always 2 columns on mobile */
+      .s-gallery__grid { grid-template-columns: repeat(2, 1fr) !important; }
+      /* Keep strip as horizontal scroll */
+      .s-gallery--strip .s-gallery__grid { display: flex !important; grid-template-columns: unset !important; }
+      /* Reset featured span */
+      .s-gallery--featured .s-gallery__item:first-child { grid-column: auto; grid-row: auto; }
+
+      /* Cart drawer: full-width on small screens */
+      .s-cart-drawer { width: 100vw; }
+
+      /* Footer */
       .s-foot { flex-direction: column; text-align: center; }
     }
 
@@ -961,7 +1030,7 @@ function renderHero(s, config) {
 function renderProductGrid(s, products) {
   const layout    = s.layout || 'classic';
   const cols      = Math.max(1, parseInt(s.columns) || 3);
-  const colsMob   = Math.max(1, parseInt(s.colsMobile) || 1);
+  const colsMob   = Math.max(1, parseInt(s.colsMobile) || 2);
   const maxProd   = parseInt(s.maxProducts) || 0;
   const c         = s.colors || {};
   const bg        = c.bg || s.bg || '';
@@ -1007,6 +1076,8 @@ function renderProductGrid(s, products) {
   } else {
     gridCols = `repeat(${cols}, 1fr)`;
   }
+  // For list/emilse, force 1 column on mobile; for other layouts use colsMob (default 2)
+  const mobCols = (layout === 'list' || layout === 'emilse') ? 1 : colsMob;
   const showFilters = !!s.showFilters;
   const showSort    = !!s.showSort;
   const gridId      = `sg-${Math.random().toString(36).slice(2,7)}`;
@@ -1079,7 +1150,7 @@ function renderProductGrid(s, products) {
   </div>
   ${toolbar}
   ${filtered.length
-    ? `<div class="s-grid s-grid--${esc(layout)}"${gridCols ? ` style="grid-template-columns:${gridCols}"` : ''}>
+    ? `<div class="s-grid s-grid--${esc(layout)}"${gridCols ? ` style="--cols:${gridCols};--mob-cols:repeat(${mobCols},1fr)"` : ''}>
         ${filtered.map(p => renderCard(p, cardOpts)).join('')}
        </div>`
     : `<div class="s-empty"><p class="s-empty__text">No products yet &mdash; check back soon.</p></div>`}
@@ -1139,7 +1210,7 @@ function renderGallery(s) {
 
   return `<section class="s-gallery s-gallery--${esc(layout)}"${secStyle ? ` style="${secStyle}"` : ''}>
   ${s.title ? `<h2 class="s-gallery__title">${esc(s.title)}</h2>` : ''}
-  <div class="s-gallery__grid" style="grid-template-columns:${gridCols};gap:${gap}px">
+  <div class="s-gallery__grid" style="--cols:${gridCols};gap:${gap}px">
     ${images.map(img => {
       const url     = typeof img === 'string' ? img : (img.url || '');
       const caption = typeof img === 'object' ? (img.caption || '') : '';

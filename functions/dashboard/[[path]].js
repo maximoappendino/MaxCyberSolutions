@@ -1907,7 +1907,7 @@ const HTML = `<!DOCTYPE html>
   <input type="file" id="img-upload-input" accept="image/*" style="display:none" />
   <input type="file" id="pm-img-input"     accept="image/*" style="display:none" />
 
-  <script src="/js/dashboard.js?v=20260719a"></script>
+  <script src="/js/dashboard.js?v=20260719b"></script>
 </body>
 </html>`;
 

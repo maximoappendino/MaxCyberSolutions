@@ -90,7 +90,7 @@ const SECTION_TYPES = {
     defaults: {
       title: 'All products.', tag: '§ Catalogue',
       layout: 'classic',
-      columns: 3, colsMobile: 1,
+      columns: 3, colsMobile: 2,
       showOutOfStock: true, maxProducts: 0,
       imgRatio: '4/3', hoverEffect: 'zoom',
       cardShowImage: true, cardShowBadge: true, cardShowTitle: true,
@@ -2176,7 +2176,7 @@ function buildSectionFields(s, i) {
         `<div class="form-row">
           ${fieldSelect('Desktop cols', 'columns', String(s.columns||3),
             ['2','3','4','5','6'], ['2','3','4','5','6'])}
-          ${fieldSelect('Mobile cols', 'colsMobile', String(s.colsMobile||1),
+          ${fieldSelect('Mobile cols', 'colsMobile', String(s.colsMobile||2),
             ['1','2'], ['1','2'])}
         </div>`,
         `<div class="form-field">
