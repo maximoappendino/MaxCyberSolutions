@@ -492,6 +492,7 @@ function renderStorefront(store, config, products, isPreview = false, isInspect 
     }
     .s-float:hover { transform: translateY(-2px); box-shadow: 0 6px 24px rgba(0,0,0,.32); }
     .s-float__icon { font-size: 16px; line-height: 1; }
+    .s-float__icon-img { width: 20px; height: 20px; object-fit: contain; display: block; }
 
     /* ── Carousel ── */
     .s-hero--carousel { position: relative; overflow: hidden; }
@@ -634,14 +635,6 @@ function renderStorefront(store, config, products, isPreview = false, isInspect 
       color: var(--fg); cursor: pointer; display: flex; align-items: center; gap: 6px;
       transition: border-color 150ms, color 150ms; }
     .s-cart-btn:hover { border-color: var(--accent); color: var(--accent); }
-    /* Floating cart button — always visible regardless of header section */
-    .s-cart-fab { position: fixed; bottom: 24px; right: 24px; z-index: 290;
-      background: var(--fg); color: var(--bg); border: none; border-radius: 999px;
-      padding: 13px 20px; font-family: var(--mono); font-size: 11px; letter-spacing: 0.1em;
-      text-transform: uppercase; cursor: pointer; display: flex; align-items: center; gap: 8px;
-      box-shadow: 0 4px 18px rgba(0,0,0,.22); transition: transform 120ms, box-shadow 120ms; }
-    .s-cart-fab:hover { transform: translateY(-2px); box-shadow: 0 6px 22px rgba(0,0,0,.28); }
-    .s-cart-fab--up   { bottom: 96px; }
     .s-cart-badge { background: var(--accent); color: #fff; border-radius: 999px;
       font-size: 9px; font-weight: 500; min-width: 16px; height: 16px; padding: 0 4px;
       display: inline-flex; align-items: center; justify-content: center; }
@@ -754,7 +747,7 @@ function renderStorefront(store, config, products, isPreview = false, isInspect 
 
   ${features.hasDiscountCountdown && !hasHeaderSection ? countdownScript() : ''}
   ${features.hasNewsletterPopup && !isPreview ? newsletterScript() : ''}
-  ${!isPreview ? cartHtml(store.slug, store.cbu_cvu, store.mp_access_token, store.whatsapp_number, store.whatsapp_message, floaters.length > 0 || customBtns.length > 0) : ''}
+  ${!isPreview ? cartHtml(store.slug, store.cbu_cvu, store.mp_access_token, store.whatsapp_number, store.whatsapp_message) : ''}
   ${isInspect ? inspectScript() : ''}
 </body>
 </html>`;
@@ -1233,8 +1226,12 @@ function renderSocialLinks(s) {
   if (s.linkedin)  buttons.push(renderSocialBtn('linkedin',  esc(s.linkedin)));
   if (Array.isArray(s.custom)) {
     s.custom.forEach(c => {
-      if (c.url) buttons.push(`<a href="${esc(c.url)}" class="s-float" style="background:${esc(c.color||'var(--accent)')}" target="_blank" rel="noopener noreferrer">
-  <span class="s-float__icon">${c.icon ? esc(c.icon) : '↗'}</span>
+      if (!c.url) return;
+      const iconHtml = c.iconUrl
+        ? `<img src="${esc(c.iconUrl)}" class="s-float__icon-img" alt="" />`
+        : `<span class="s-float__icon">${c.icon ? esc(c.icon) : '↗'}</span>`;
+      buttons.push(`<a href="${esc(c.url)}" class="s-float" style="background:${esc(c.color||'var(--accent)')}" target="_blank" rel="noopener noreferrer">
+  ${iconHtml}
   ${c.title ? `<span>${esc(c.title)}</span>` : ''}
 </a>`);
     });
@@ -1430,7 +1427,7 @@ function newsletterScript() {
 </script>`;
 }
 
-function cartHtml(slug, cbuCvu, mpToken, waNumber, waMessage, hasFloaters = false) {
+function cartHtml(slug, cbuCvu, mpToken, waNumber, waMessage) {
   const hasCheckout = !!(cbuCvu || mpToken);
   const hasWA       = !!(waNumber);
   const waDefault   = 'Hola! Me gustaría hacer el siguiente pedido:';
@@ -1463,11 +1460,6 @@ function cartHtml(slug, cbuCvu, mpToken, waNumber, waMessage, hasFloaters = fals
       : ''}
   </div>
 </aside>
-<button class="s-cart-fab${hasFloaters ? ' s-cart-fab--up' : ''}" id="s-cart-fab" onclick="sCartOpen()" aria-label="Open cart">
-  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>
-  <span class="s-cart-badge" id="s-cart-badge" data-count="0">0</span>
-  Cart
-</button>
 <div class="s-atc-feedback" id="s-atc-feedback">Added to cart</div>
 
 <div class="s-search-overlay" id="s-search-overlay" onclick="if(event.target===this)sSearchClose()">

@@ -65,6 +65,10 @@ const HTML = `<!DOCTYPE html>
       transition: color 150ms;
     }
     .a-bar__link:hover { color: var(--ink); }
+    .icon-grid-item { border: 2px solid var(--rule-soft); border-radius: 6px; padding: 8px; display: flex; flex-direction: column; align-items: center; gap: 6px; background: #f8f7f4; }
+    .icon-grid-item img { width: 48px; height: 48px; object-fit: contain; }
+    .icon-grid-item span { font-size: 9px; color: #888; word-break: break-all; text-align: center; max-width: 90px; }
+    .icon-grid-item button { font-size: 10px; background: none; border: none; color: #c00; cursor: pointer; padding: 2px 4px; }
     .a-bar__email { font-family: var(--mono); font-size: 10px; color: var(--ink-faint); }
     .a-bar__logout {
       font-family: var(--mono); font-size: 10px; letter-spacing: 0.12em;
@@ -295,9 +299,26 @@ const HTML = `<!DOCTYPE html>
     <span class="a-bar__badge">Admin</span>
   </div>
   <div class="a-bar__right">
+    <button class="a-bar__link" id="btn-manage-icons" style="background:none;border:none;cursor:pointer">Icons ⊕</button>
     <a class="a-bar__link" href="/dashboard/">Dashboard ↗</a>
     <span class="a-bar__email" id="admin-email"></span>
     <button class="a-bar__logout" id="btn-logout">Sign out</button>
+  </div>
+</div>
+
+<!-- Icons management modal -->
+<div class="a-modal-overlay" id="icons-modal" onclick="if(event.target.id==='icons-modal')closeModal('icons-modal')">
+  <div class="a-modal-box" style="width:min(720px,96vw);max-height:85vh;display:flex;flex-direction:column">
+    <div class="a-modal-title" style="flex-shrink:0">Icon Library</div>
+    <p style="font-size:12px;color:#5a6060;margin:-6px 0 10px;flex-shrink:0">Upload icons (PNG, SVG, WebP) that your clients can use on their floating buttons.</p>
+    <div style="display:flex;gap:8px;margin-bottom:12px;flex-shrink:0">
+      <button class="btn-solid" id="btn-icon-upload" style="padding:7px 16px;font-size:11px">+ Upload icon</button>
+      <input type="file" id="icon-upload-input" accept="image/png,image/svg+xml,image/webp,image/jpeg,image/gif" style="display:none" multiple />
+    </div>
+    <div id="icon-grid" style="flex:1;overflow-y:auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:10px;padding:4px"></div>
+    <div class="a-modal-foot" style="flex-shrink:0">
+      <button class="btn-danger" style="padding:8px 16px" onclick="closeModal('icons-modal')">Close</button>
+    </div>
   </div>
 </div>
 
@@ -370,7 +391,7 @@ const HTML = `<!DOCTYPE html>
   </div>
 </div>
 
-<script src="/js/admin.js?v=20260718d"></script>
+<script src="/js/admin.js?v=20260719a"></script>
 </body>
 </html>`;
 

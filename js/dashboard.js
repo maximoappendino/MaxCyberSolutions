@@ -1917,16 +1917,33 @@ function renderFloatBtnsPanel() {
   const secs  = state.draft.sections || [];
   const floats = secs.map((s, i) => ({ s, i })).filter(({ s }) => FLOAT_SECTION_TYPES.has(s.type));
   if (!floats.length) { list.innerHTML = '<p style="font-size:11px;color:var(--fg-faint);padding:4px 0">No floating buttons yet.</p>'; return; }
-  list.innerHTML = floats.map(({ s, i }) => {
+  list.innerHTML = floats.map(({ s, i }, fi) => {
     const def = SECTION_TYPES[s.type] || { icon: '◎' };
     const lbl = s.type === 'social-links' ? 'Social Links' : (s.label || 'Floating Button');
+    const canUp   = fi > 0;
+    const canDown = fi < floats.length - 1;
     return `<div class="float-item" onclick="editSection(${i})">
   <span class="float-item__icon">${def.icon}</span>
   <span class="float-item__label">${esc(lbl)}</span>
-  <button class="float-item__btn" onclick="event.stopPropagation();removeSection(${i})" title="Remove">✕</button>
+  <div style="display:flex;gap:2px;margin-left:auto" onclick="event.stopPropagation()">
+    <button class="float-item__btn" onclick="moveFloat(${i},-1)" title="Move up" ${canUp ? '' : 'disabled'}>↑</button>
+    <button class="float-item__btn" onclick="moveFloat(${i},1)"  title="Move down" ${canDown ? '' : 'disabled'}>↓</button>
+    <button class="float-item__btn" onclick="removeSection(${i})" title="Remove">✕</button>
+  </div>
 </div>`;
   }).join('');
 }
+
+window.moveFloat = function(sectionIdx, dir) {
+  const secs = state.draft.sections;
+  const target = sectionIdx + dir;
+  if (target < 0 || target >= secs.length) return;
+  if (!FLOAT_SECTION_TYPES.has(secs[target]?.type)) return;
+  pushUndo();
+  [secs[sectionIdx], secs[target]] = [secs[target], secs[sectionIdx]];
+  renderFloatBtnsPanel();
+  markDirty();
+};
 
 function insertAboveFooter(section) {
   if (!Array.isArray(state.draft.sections)) state.draft.sections = [];
@@ -1995,6 +2012,7 @@ window.editSection = function(i) {
 };
 
 // ── Drag & drop reorder ───────────────────────────────────────────────────────
+let _reorderPreviewTimer = null;
 function setupDragDrop() {
   let dragIdx = null;
   document.querySelectorAll('.sec-item').forEach(el => {
@@ -2026,7 +2044,8 @@ function setupDragDrop() {
       renderSectionList();
       if (state.editingSection !== null) openSectionEditor(state.editingSection);
       markDirty();
-      updatePreview();
+      clearTimeout(_reorderPreviewTimer);
+      _reorderPreviewTimer = setTimeout(updatePreview, 1000);
     });
   });
 }
@@ -2410,11 +2429,20 @@ function buildSectionFields(s, i) {
           ['bottom-right','bottom-left','top-right','top-left'],
           ['Bottom right','Bottom left','Top right','Top left']),
         fieldGroup('Custom Buttons', [
-          `<div id="sl-custom-list" style="display:flex;flex-direction:column;gap:6px">
-            ${customItems.map((c, ci) => `<div class="sl-custom-row" style="display:flex;gap:6px;align-items:center">
-              <input type="text" placeholder="Label" value="${esc(c.title||'')}" oninput="slCustomField(${i},${ci},'title',this.value)" style="flex:2;padding:5px 8px;border:1px solid var(--line);background:var(--bg);color:var(--fg);font-size:12px" />
-              <input type="text" placeholder="URL" value="${esc(c.url||'')}" oninput="slCustomField(${i},${ci},'url',this.value)" style="flex:3;padding:5px 8px;border:1px solid var(--line);background:var(--bg);color:var(--fg);font-size:12px" />
-              <button type="button" class="btn-ghost btn-sm" onclick="slRemoveCustom(${i},${ci})">✕</button>
+          `<div id="sl-custom-list" style="display:flex;flex-direction:column;gap:10px">
+            ${customItems.map((c, ci) => `<div class="sl-custom-row" style="display:flex;flex-direction:column;gap:4px;padding:8px;border:1px solid var(--line);border-radius:6px">
+              <div style="display:flex;gap:6px;align-items:center">
+                <button type="button" class="btn-ghost btn-sm" style="min-width:38px;padding:4px" onclick="openIconPicker(${i},${ci})" title="Pick icon">
+                  ${c.iconUrl ? `<img src="${esc(c.iconUrl)}" style="width:18px;height:18px;object-fit:contain" />` : (c.icon || '↗')}
+                </button>
+                <input type="text" placeholder="Label" value="${esc(c.title||'')}" oninput="slCustomField(${i},${ci},'title',this.value)" style="flex:1;padding:5px 8px;border:1px solid var(--line);background:var(--bg);color:var(--fg);font-size:12px" />
+                <button type="button" class="btn-ghost btn-sm" onclick="slRemoveCustom(${i},${ci})">✕</button>
+              </div>
+              <input type="text" placeholder="URL (https://...)" value="${esc(c.url||'')}" oninput="slCustomField(${i},${ci},'url',this.value)" style="width:100%;padding:5px 8px;border:1px solid var(--line);background:var(--bg);color:var(--fg);font-size:12px" />
+              <div style="display:flex;gap:6px;align-items:center">
+                <label style="font-size:10px;color:var(--fg-faint);white-space:nowrap">BG color</label>
+                <input type="color" value="${esc(c.color||'#333333')}" oninput="slCustomField(${i},${ci},'color',this.value)" style="height:28px;padding:2px 4px;flex:1" />
+              </div>
             </div>`).join('')}
           </div>
           <button type="button" class="btn-ghost btn-sm" style="margin-top:6px" onclick="slAddCustom(${i})">+ Add custom button</button>`,
@@ -2594,6 +2622,48 @@ window.slRemoveCustom = function(sectionIdx, ci) {
 window.slCustomField = function(sectionIdx, ci, field, val) {
   const s = state.draft.sections[sectionIdx];
   if (Array.isArray(s.custom) && s.custom[ci]) s.custom[ci][field] = val;
+  markDirty();
+};
+
+// ── Icon picker ───────────────────────────────────────────────────────────────
+let _iconPickerTarget = null; // { sectionIdx, ci }
+
+window.openIconPicker = async function(sectionIdx, ci) {
+  _iconPickerTarget = { sectionIdx, ci };
+  const overlay = document.getElementById('icon-picker-overlay');
+  const grid    = document.getElementById('icon-picker-grid');
+  if (!overlay) return;
+  overlay.classList.add('active');
+  grid.innerHTML = '<p style="padding:16px;color:var(--fg-faint);font-size:12px">Loading icons…</p>';
+  try {
+    const res = await api('GET', '/api/icons');
+    if (!res.ok) throw new Error('Failed');
+    const { icons } = await res.json();
+    if (!icons.length) {
+      grid.innerHTML = '<p style="padding:16px;color:var(--fg-faint);font-size:12px">No icons yet. Ask your admin to upload some.</p>';
+      return;
+    }
+    grid.innerHTML = icons.map(ic =>
+      `<div class="icon-picker-item" onclick="selectIcon('${esc(ic.url)}')" title="${esc(ic.name)}">
+        <img src="${esc(ic.url)}" alt="${esc(ic.name)}" />
+      </div>`
+    ).join('');
+  } catch {
+    grid.innerHTML = '<p style="padding:16px;color:var(--fg-faint);font-size:12px">Could not load icons.</p>';
+  }
+};
+
+window.selectIcon = function(url) {
+  if (!_iconPickerTarget) return;
+  const { sectionIdx, ci } = _iconPickerTarget;
+  const s = state.draft.sections[sectionIdx];
+  if (Array.isArray(s.custom) && s.custom[ci]) {
+    s.custom[ci].iconUrl = url;
+    s.custom[ci].icon    = '';
+  }
+  document.getElementById('icon-picker-overlay').classList.remove('active');
+  _iconPickerTarget = null;
+  openSectionEditor(sectionIdx);
   markDirty();
 };
 

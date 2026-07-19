@@ -285,6 +285,15 @@ const HTML = `<!DOCTYPE html>
     /* Image picker modal */
     .img-picker-overlay { position: fixed; inset: 0; z-index: 500; background: rgba(0,0,0,.65); display: none; align-items: center; justify-content: center; }
     .img-picker-overlay.active { display: flex; }
+    .icon-picker-overlay { position: fixed; inset: 0; z-index: 510; background: rgba(0,0,0,.65); display: none; align-items: center; justify-content: center; }
+    .icon-picker-overlay.active { display: flex; }
+    .icon-picker-box { background: var(--bg); width: min(600px,96vw); max-height: 80vh; display: flex; flex-direction: column; overflow: hidden; border: 1px solid var(--line); border-radius: 4px; }
+    .icon-picker-head { display: flex; align-items: center; padding: 12px 16px; border-bottom: 1px solid var(--line); flex-shrink: 0; }
+    .icon-picker-title { font-family: var(--mono); font-size: 10px; letter-spacing: .14em; text-transform: uppercase; flex: 1; }
+    .icon-picker-grid { flex: 1; overflow-y: auto; padding: 16px; display: grid; grid-template-columns: repeat(auto-fill, minmax(80px,1fr)); gap: 10px; align-content: start; }
+    .icon-picker-item { border: 2px solid transparent; border-radius: 6px; cursor: pointer; padding: 8px; display: flex; align-items: center; justify-content: center; background: var(--line-soft); }
+    .icon-picker-item:hover { border-color: var(--accent); }
+    .icon-picker-item img { width: 40px; height: 40px; object-fit: contain; display: block; }
     .img-picker-box { background: var(--bg); width: min(780px, 96vw); max-height: 88vh; display: flex; flex-direction: column; overflow: hidden; border: 1px solid var(--line); }
     .img-picker-head { display: flex; align-items: center; padding: 12px 16px; border-bottom: 1px solid var(--line); flex-shrink: 0; }
     .img-picker-title { font-family: var(--mono); font-size: 10px; letter-spacing: .14em; text-transform: uppercase; flex: 1; }
@@ -1868,6 +1877,17 @@ const HTML = `<!DOCTYPE html>
     </div>
   </div>
 
+  <!-- Icon picker modal -->
+  <div class="icon-picker-overlay" id="icon-picker-overlay" onclick="if(event.target.id==='icon-picker-overlay')this.classList.remove('active')">
+    <div class="icon-picker-box">
+      <div class="icon-picker-head">
+        <span class="icon-picker-title">Select an icon</span>
+        <button class="btn-ghost btn-sm" onclick="document.getElementById('icon-picker-overlay').classList.remove('active')">✕</button>
+      </div>
+      <div class="icon-picker-grid" id="icon-picker-grid"></div>
+    </div>
+  </div>
+
   <!-- Product sort modal -->
   <div class="modal-overlay-lg" id="product-sort-overlay" onclick="if(event.target===this)closeProductSort()">
     <div class="modal-panel" style="max-width:480px;display:flex;flex-direction:column;max-height:80vh">
@@ -1887,7 +1907,7 @@ const HTML = `<!DOCTYPE html>
   <input type="file" id="img-upload-input" accept="image/*" style="display:none" />
   <input type="file" id="pm-img-input"     accept="image/*" style="display:none" />
 
-  <script src="/js/dashboard.js?v=20260718e"></script>
+  <script src="/js/dashboard.js?v=20260719a"></script>
 </body>
 </html>`;
 

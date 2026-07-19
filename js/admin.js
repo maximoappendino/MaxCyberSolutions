@@ -786,4 +786,53 @@ window.changeCollabPassword = async function(ownerId, colId, email) {
   flashDetailMsg('Password updated', 'ok');
 };
 
-document.addEventListener('DOMContentLoaded', boot);
+// ── Icon library ──────────────────────────────────────────────────────────────
+async function loadIcons() {
+  const grid = document.getElementById('icon-grid');
+  if (!grid) return;
+  grid.innerHTML = '<p style="font-size:12px;color:#888;grid-column:1/-1">Loading…</p>';
+  const res = await api('GET', '/api/admin/icons');
+  const data = await safeJson(res);
+  if (!res.ok) { grid.innerHTML = '<p style="color:red;font-size:12px;grid-column:1/-1">Failed to load icons.</p>'; return; }
+  const icons = data.icons || [];
+  if (!icons.length) { grid.innerHTML = '<p style="font-size:12px;color:#888;grid-column:1/-1">No icons yet. Upload some above.</p>'; return; }
+  grid.innerHTML = icons.map(ic => `
+    <div class="icon-grid-item">
+      <img src="${ic.url}" alt="${ic.name}" />
+      <span>${ic.name}</span>
+      <button onclick="deleteIcon('${ic.key}', this)">Delete</button>
+    </div>`).join('');
+}
+
+window.deleteIcon = async function(key, btn) {
+  if (!confirm('Delete this icon? Clients using it will lose the image.')) return;
+  btn.disabled = true;
+  const res = await api('DELETE', '/api/admin/icons', { key });
+  if (!res.ok) { btn.disabled = false; alert('Failed to delete icon.'); return; }
+  btn.closest('.icon-grid-item')?.remove();
+};
+
+function setupIconsModal() {
+  const btn = document.getElementById('btn-manage-icons');
+  if (!btn) return;
+  btn.addEventListener('click', () => {
+    document.getElementById('icons-modal').classList.add('active');
+    loadIcons();
+  });
+  const uploadInput = document.getElementById('icon-upload-input');
+  document.getElementById('btn-icon-upload')?.addEventListener('click', () => uploadInput?.click());
+  uploadInput?.addEventListener('change', async e => {
+    const files = Array.from(e.target.files);
+    e.target.value = '';
+    if (!files.length) return;
+    for (const file of files) {
+      const fd = new FormData();
+      fd.append('file', file);
+      const res = await fetch('/api/admin/icons', { method: 'POST', body: fd });
+      if (!res.ok) { alert(`Failed to upload ${file.name}`); }
+    }
+    loadIcons();
+  });
+}
+
+document.addEventListener('DOMContentLoaded', () => { boot(); setupIconsModal(); });
