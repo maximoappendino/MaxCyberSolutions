@@ -1682,7 +1682,7 @@ function cartHtml(slug, cbuCvu, mpToken, waNumber, waMessage) {
   const fmtPrice  = c => '$' + (c/100).toLocaleString('es-AR',{minimumFractionDigits:2,maximumFractionDigits:2});
 
   var cart = [];
-  try { cart = JSON.parse(localStorage.getItem(CART_KEY) || '[]'); } catch {}
+  try { cart = JSON.parse(localStorage.getItem(CART_KEY) || '[]'); } catch(_e) {}
 
   function save() { localStorage.setItem(CART_KEY, JSON.stringify(cart)); }
 
@@ -1743,7 +1743,7 @@ function cartHtml(slug, cbuCvu, mpToken, waNumber, waMessage) {
 
   window.sSearchOpen  = function() {
     var el = document.getElementById('s-search-overlay');
-    if (el) { el.classList.add('active'); document.getElementById('s-search-input')?.focus(); }
+    if (el) { el.classList.add('active'); var si = document.getElementById('s-search-input'); if (si) si.focus(); }
   };
   window.sSearchClose = function() {
     var el = document.getElementById('s-search-overlay');
