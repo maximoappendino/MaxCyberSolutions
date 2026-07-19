@@ -1,33 +1,5 @@
-# Control Panel
+Next step is compatibility:
 
-## Tabs
+Let's adapt this to phones. Reduced size not only in terms of storage and data usage, but also in terms of the actual size of the images. The catalog of https://maxcybersolutions.online/store/flowerst , for example. It is unreadable the images are covering the text. I do not know if you can propose a general rule for mobile or if a different layout is presented but find a solution for this.
 
-Changes to the navbar (where the item counter, out of stock counter, and top tag currently is)
-REMOVE THAT AND LET'S SWITCH IT FOR THREE TABS INSTEAD:
 
-1. Dashboard:
-It displays the current dashboard
-
-2. Gallery:
-Where all the pictures are uploaded and ready to used for items, logo, hero banners, or wherever are necessary. Pictures can be removed and edited. Edited pictures take effect on the website (for example if they are cropped[basic editing of course. Crop, resize, and filters])
-
-3. (Under Development):
-Add it just like that to intrigue the client
-
-### Dashboard
-
-#### Design
-
-Let's switch the order:
-
-[Logo]
-[Identity]
-[Look and feel] Colour Palette shows the selected colours right next to it.
-[Fonts]
-
-#### Sections
-
-- Hero Banner:
-1. When changing different layouts sometimes it removes some images that have been uploaded. Let's avoid that. Let's just leave it open as a pool of images the user can dump whatever he wants in the Hero Banner
-- Text Block:
-1. Background colour: should be able to clear background
