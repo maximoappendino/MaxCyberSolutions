@@ -847,6 +847,7 @@ function renderStorefront(store, config, products, isPreview = false, isInspect 
 
   ${features.hasDiscountCountdown && !hasHeaderSection ? countdownScript() : ''}
   ${features.hasNewsletterPopup && !isPreview ? newsletterScript() : ''}
+  ${pdpHtml(store.slug)}
   ${!isPreview ? cartHtml(store.slug, store.cbu_cvu, store.mp_access_token, store.whatsapp_number, store.whatsapp_message) : ''}
   ${isInspect ? inspectScript() : ''}
 </body>
@@ -1531,6 +1532,101 @@ function newsletterScript() {
 </script>`;
 }
 
+function pdpHtml(slug) {
+  return `
+<div class="s-atc-feedback" id="s-atc-feedback">Added to cart</div>
+
+<div class="s-pdp-overlay" id="s-pdp-overlay" onclick="if(event.target===this)sPdpClose()">
+  <div class="s-pdp">
+    <button class="s-pdp__close" onclick="sPdpClose()" aria-label="Close">✕</button>
+    <div class="s-pdp__img" id="s-pdp-img"></div>
+    <div class="s-pdp__body">
+      <div class="s-pdp__sku" id="s-pdp-sku"></div>
+      <h2 class="s-pdp__name" id="s-pdp-name"></h2>
+      <div class="s-pdp__price" id="s-pdp-price"></div>
+      <p class="s-pdp__desc" id="s-pdp-desc"></p>
+      <div class="s-pdp__oos" id="s-pdp-oos"></div>
+      <div class="s-pdp__qty" id="s-pdp-qty-row">
+        <button class="s-pdp__qty-btn" onclick="sPdpQty(-1)">−</button>
+        <span class="s-pdp__qty-val" id="s-pdp-qty">1</span>
+        <button class="s-pdp__qty-btn" onclick="sPdpQty(1)">+</button>
+      </div>
+      <button class="s-pdp__atc" id="s-pdp-atc" onclick="sPdpAddToCart()">Add to cart</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  var _err = function(e){ try{console.warn('[PDP]',e);}catch(x){} };
+  var CART_KEY = 'cart_' + ${JSON.stringify(slug)};
+  var fmtPrice = function(c){ return '$' + (c/100).toLocaleString('es-AR',{minimumFractionDigits:2,maximumFractionDigits:2}); };
+  var _pdpItem = null, _pdpQty = 1;
+
+  window.sPdpOpen = function(el) {
+    try {
+      var art = el.closest ? el.closest('.s-card') : el;
+      if (!art) art = el;
+      var instock = art.dataset.instock === '1';
+      _pdpItem = {
+        id:         art.dataset.id,
+        name:       art.dataset.name        || '',
+        priceCents: parseInt(art.dataset.priceCents) || 0,
+        image:      art.dataset.image       || '',
+        sku:        art.dataset.sku         || '',
+        desc:       art.dataset.description || '',
+        instock:    instock,
+      };
+      _pdpQty = 1;
+      var imgEl = document.getElementById('s-pdp-img');
+      if (_pdpItem.image) {
+        imgEl.style.backgroundImage = 'url(' + _pdpItem.image + ')';
+        imgEl.style.display = '';
+      } else {
+        imgEl.style.display = 'none';
+      }
+      document.getElementById('s-pdp-sku').textContent   = _pdpItem.sku ? 'SKU ' + _pdpItem.sku : '';
+      document.getElementById('s-pdp-name').textContent  = _pdpItem.name;
+      document.getElementById('s-pdp-price').textContent = fmtPrice(_pdpItem.priceCents);
+      document.getElementById('s-pdp-desc').textContent  = _pdpItem.desc;
+      document.getElementById('s-pdp-qty').textContent   = '1';
+      document.getElementById('s-pdp-oos').textContent   = instock ? '' : 'Out of stock';
+      var atc = document.getElementById('s-pdp-atc');
+      atc.disabled = !instock;
+      var qr = document.getElementById('s-pdp-qty-row');
+      if (qr) qr.style.display = instock ? '' : 'none';
+      document.getElementById('s-pdp-overlay').classList.add('active');
+      document.body.style.overflow = 'hidden';
+    } catch(e) { _err(e); }
+  };
+
+  window.sPdpClose = function() {
+    try {
+      document.getElementById('s-pdp-overlay').classList.remove('active');
+      document.body.style.overflow = '';
+    } catch(e) {}
+  };
+
+  window.sPdpQty = function(d) {
+    _pdpQty = Math.max(1, _pdpQty + d);
+    document.getElementById('s-pdp-qty').textContent = _pdpQty;
+  };
+
+  window.sPdpAddToCart = function() {
+    try {
+      if (!_pdpItem || !_pdpItem.instock) return;
+      if (typeof window.sCartAddFromPdp === 'function') {
+        window.sCartAddFromPdp(_pdpItem, _pdpQty);
+      }
+      sPdpClose();
+      var fb = document.getElementById('s-atc-feedback');
+      if (fb) { fb.classList.add('show'); setTimeout(function(){ fb.classList.remove('show'); }, 1500); }
+    } catch(e) { _err(e); }
+  };
+})();
+</script>`;
+}
+
 function cartHtml(slug, cbuCvu, mpToken, waNumber, waMessage) {
   const hasCheckout = !!(cbuCvu || mpToken);
   const hasWA       = !!(waNumber);
@@ -1564,28 +1660,6 @@ function cartHtml(slug, cbuCvu, mpToken, waNumber, waMessage) {
       : ''}
   </div>
 </aside>
-<div class="s-atc-feedback" id="s-atc-feedback">Added to cart</div>
-
-<div class="s-pdp-overlay" id="s-pdp-overlay" onclick="if(event.target===this)sPdpClose()">
-  <div class="s-pdp">
-    <button class="s-pdp__close" onclick="sPdpClose()" aria-label="Close">✕</button>
-    <div class="s-pdp__img" id="s-pdp-img"></div>
-    <div class="s-pdp__body">
-      <div class="s-pdp__sku" id="s-pdp-sku"></div>
-      <h2 class="s-pdp__name" id="s-pdp-name"></h2>
-      <div class="s-pdp__price" id="s-pdp-price"></div>
-      <p class="s-pdp__desc" id="s-pdp-desc"></p>
-      <div class="s-pdp__oos" id="s-pdp-oos"></div>
-      <div class="s-pdp__qty" id="s-pdp-qty-row">
-        <button class="s-pdp__qty-btn" onclick="sPdpQty(-1)">−</button>
-        <span class="s-pdp__qty-val" id="s-pdp-qty">1</span>
-        <button class="s-pdp__qty-btn" onclick="sPdpQty(1)">+</button>
-      </div>
-      <button class="s-pdp__atc" id="s-pdp-atc" onclick="sPdpAddToCart()">Add to cart</button>
-    </div>
-  </div>
-</div>
-
 <div class="s-search-overlay" id="s-search-overlay" onclick="if(event.target===this)sSearchClose()">
   <div class="s-search-modal">
     <div class="s-search-bar">
@@ -1766,84 +1840,19 @@ function cartHtml(slug, cbuCvu, mpToken, waNumber, waMessage) {
     window.open(_buildCartMsg(a.href), '_blank');
   });
 
+  // Expose cart operations for the PDP popup (defined in pdpHtml)
+  window.sCartAddFromPdp = function(item, qty) {
+    var existing = cart.find(function(i){ return i.id === item.id; });
+    if (existing) {
+      existing.quantity += qty;
+    } else {
+      cart.push({ id: item.id, name: item.name, price_cents: item.priceCents, quantity: qty, image: item.image, sku: item.sku });
+    }
+    save();
+    updateBadge();
+  };
+
   try { updateBadge(); } catch(e) { _err(e); }
-
-  // ── Product Detail Popup ──────────────────────────────────────────────────
-  var _pdpItem = null;
-  var _pdpQty  = 1;
-
-  window.sPdpOpen = function(el) {
-    try {
-      var art = el.closest ? el.closest('.s-card') : el;
-      if (!art) art = el;
-      var instock = art.dataset.instock === '1';
-      _pdpItem = {
-        id:         art.dataset.id,
-        name:       art.dataset.name        || '',
-        priceCents: parseInt(art.dataset.priceCents) || 0,
-        image:      art.dataset.image       || '',
-        sku:        art.dataset.sku         || '',
-        desc:       art.dataset.description || '',
-        instock:    instock,
-      };
-      _pdpQty = 1;
-      var imgEl = document.getElementById('s-pdp-img');
-      if (_pdpItem.image) {
-        imgEl.style.backgroundImage = 'url(' + _pdpItem.image + ')';
-        imgEl.style.display = '';
-      } else {
-        imgEl.style.display = 'none';
-      }
-      document.getElementById('s-pdp-sku').textContent   = _pdpItem.sku  ? 'SKU ' + _pdpItem.sku : '';
-      document.getElementById('s-pdp-name').textContent  = _pdpItem.name;
-      document.getElementById('s-pdp-price').textContent = fmtPrice(_pdpItem.priceCents);
-      document.getElementById('s-pdp-desc').textContent  = _pdpItem.desc;
-      document.getElementById('s-pdp-qty').textContent   = '1';
-      document.getElementById('s-pdp-oos').textContent   = instock ? '' : 'Out of stock';
-      var atc = document.getElementById('s-pdp-atc');
-      atc.disabled = !instock;
-      var qr = document.getElementById('s-pdp-qty-row');
-      if (qr) qr.style.display = instock ? '' : 'none';
-      document.getElementById('s-pdp-overlay').classList.add('active');
-      document.body.style.overflow = 'hidden';
-    } catch(e) { _err(e); }
-  };
-
-  window.sPdpClose = function() {
-    try {
-      document.getElementById('s-pdp-overlay').classList.remove('active');
-      document.body.style.overflow = '';
-    } catch(e) {}
-  };
-
-  window.sPdpQty = function(d) {
-    _pdpQty = Math.max(1, _pdpQty + d);
-    document.getElementById('s-pdp-qty').textContent = _pdpQty;
-  };
-
-  window.sPdpAddToCart = function() {
-    try {
-      if (!_pdpItem || !_pdpItem.instock) return;
-      var existing = cart.find(function(i){ return i.id === _pdpItem.id; });
-      if (existing) {
-        existing.quantity += _pdpQty;
-      } else {
-        cart.push({
-          id:          _pdpItem.id,
-          name:        _pdpItem.name,
-          price_cents: _pdpItem.priceCents,
-          quantity:    _pdpQty,
-          image:       _pdpItem.image,
-          sku:         _pdpItem.sku,
-        });
-      }
-      save();
-      updateBadge();
-      sPdpClose();
-      var fb = document.getElementById('s-atc-feedback');
-      if (fb) { fb.classList.add('show'); setTimeout(function(){ fb.classList.remove('show'); }, 1500); }
-    } catch(e) { _err(e); }
-  };
 })();
 </script>`;
 }
