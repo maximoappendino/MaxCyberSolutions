@@ -3,11 +3,10 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>MaxCyberSolutions — From human hands to the Cyberspace</title>
-  <meta name="description" content="MaxCyberSolutions — Web design & development, full-stack apps, game development, 2D/3D design, and voice acting. Independent studio by Max." />
+  <title>MaxCyberSolutions — Online stores, built and run for you</title>
+  <meta name="description" content="MaxCyberSolutions builds and manages your online store end-to-end: product catalog, MercadoPago payments, shipping, customer management, and analytics — starting at $15/mo." />
   <meta name="robots" content="index, follow" />
 
-  <!-- Canonical & hreflang — replace maxcybersolutions.com with your actual domain -->
   <link rel="canonical"  href="https://www.maxcybersolutions.online/en/" />
   <link rel="alternate"  hreflang="en"        href="https://www.maxcybersolutions.online/en/" />
   <link rel="alternate"  hreflang="es"        href="https://www.maxcybersolutions.online/es/" />
@@ -17,71 +16,65 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400;1,500&family=DM+Sans:wght@300;400;500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
-
   <link rel="icon" href="../img/icon.webp" type="image/webp" />
 
   <meta property="og:type"        content="website" />
   <meta property="og:url"         content="https://www.maxcybersolutions.online/en/" />
-  <meta property="og:title"       content="MaxCyberSolutions — From human hands to the Cyberspace" />
-  <meta property="og:description" content="Web design &amp; development, full-stack apps, game development, 2D/3D design, and voice acting. Independent studio by Max." />
+  <meta property="og:title"       content="MaxCyberSolutions — Online stores, built and run for you" />
+  <meta property="og:description" content="Product catalog, MercadoPago, shipping, customer management, analytics — one platform, one person, starting at $15/mo." />
   <meta property="og:image"       content="https://www.maxcybersolutions.online/img/icon.webp" />
   <meta name="twitter:card"       content="summary" />
   <meta name="twitter:image"      content="https://www.maxcybersolutions.online/img/icon.webp" />
 
   <link rel="stylesheet" href="../styles.css" />
 
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    "name": "MaxCyberSolutions",
+    "url": "https://www.maxcybersolutions.online/",
+    "logo": "https://www.maxcybersolutions.online/img/icon.webp",
+    "contactPoint": { "@type": "ContactPoint", "telephone": "+5493517146520", "contactType": "customer support" }
+  }
+  </script>
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      { "@type": "Question", "name": "Do I need technical knowledge to manage my store?",
+        "acceptedAnswer": { "@type": "Answer", "text": "None at all. If you can use a messaging app and fill out a form, you can run your Dashboard. I handle the technical side; you handle your business." } },
+      { "@type": "Question", "name": "Which payment methods does MercadoPago support?",
+        "acceptedAnswer": { "@type": "Answer", "text": "Credit and debit cards, cash at Rapipago and PagoFácil, bank transfers, and MercadoPago wallets — all integrated with zero setup from your side." } },
+      { "@type": "Question", "name": "How long does it take to launch?",
+        "acceptedAnswer": { "@type": "Answer", "text": "Most stores go live within 3 to 7 days after the first call. Simple catalogs can be ready in 24 hours." } }
+    ]
+  }
+  </script>
+
   <script>
   window.PAGE_DATA = {
     lang: 'en',
     strings: {
       dark: 'Dark', light: 'Light',
-      commission: 'Commission', mostChosen: 'Most chosen', tierLabel: 'Tier',
+      commission: 'Commission', mostChosen: 'Most chosen',
+      ctaMax: "Let's talk",
       contactAlert: 'Thanks — Max will be in touch within a day.',
       promoSuccess: '✦ ARGENTINA — 20% discount applied', promoInvalid: 'Invalid code',
     },
-    clients: [
-      { name: 'Flowerst',  logo: '../img/client-flowerst.webp',  url: 'https://maxcybersolutions.online/store/flowerst/' },
-      { name: 'Yosoyeva',  logo: '../img/client-yosoyeva.webp',  url: 'https://maxcybersolutions.online/store/yosoyeva/' },
-    ],
     pricing: [
-      { num:'I', name:'Web Development', lede:'From a single landing page to a full storefront.',
-        tiers:[
-          { name:'Initial tool-kit',     num:'01', price:'$40 per month',       unit:'/ e-commerce', lede:'I give you the tools to create your own website.', feat:false,
-            items:['Access to the Dashboard','Custom domain','Mobile + desktop','Your own database of products','100MB Storage'] },
-          { name:'Upgrade',     num:'02', price:'$100 per month',     unit:'/ e-commerce', lede:'Higher limits and PRO-FEATURES.', feat:true,
-            items:['Access to the FULL DASHBOARD','Custom domain','Powerful front-end','Higher database limits','500MB Storage','Tech support'] },
-          { name:'Personalized Platform', num:'03', price:'$Customized',unit:'/ be the first. Order now',          lede:'Custom front-end. Custom functions', feat:false,
-            items:['Full-stack architecture','Auth, payments, admin panel','Custom APIs','Higher storage limits','Direct line during build'] },
-        ]},
-      /*
-      { num:'II', name:'2D Design', lede:'Editorial, brand, character — original illustration and motion.',
-        tiers:[
-          { name:'Spot',   num:'01', price:'$200',       unit:'/ piece', lede:'A single illustration.', feat:false,
-            items:['One key illustration','Two rounds of revision','Print-ready & web exports','Source files included','One-week delivery'] },
-          { name:'Series', num:'02', price:'$1,400',     unit:'/ set',   lede:'A coordinated set of 6–10 pieces.', feat:true,
-            items:['Up to 10 illustrations','Shared visual language','Style frames upfront','Three rounds of revision','Three-week delivery'] },
-          { name:'System', num:'03', price:'From $3,800',unit:'',        lede:'A complete visual identity in 2D.', feat:false,
-            items:['Logo & wordmark','Pattern, iconography, motion','Brand guide PDF','Master files for print + web','Six-week build','One year of small updates'] },
-        ]},
-      { num:'III', name:'3D Modeling', lede:'Props, characters, environments — game-ready or rendered.',
-        tiers:[
-          { name:'Asset',      num:'01', price:'$280',       unit:'/ model', lede:'A single prop or character bust.', feat:false,
-            items:['Low or high-poly','PBR textures included','Two rounds of revision','Game-ready FBX / GLB','Two-week delivery'] },
-          { name:'Pack',       num:'02', price:'$1,800',     unit:'/ pack',  lede:'A coherent set, ready to ship.', feat:true,
-            items:['Up to 12 assets','Shared material library','Rigged where needed','LODs on request','Four-week delivery','Engine import support'] },
-          { name:'Production', num:'03', price:'From $5,400',unit:'',        lede:'Full pipeline: model, rig, animate.', feat:false,
-            items:['Hero characters or environments','Rigging & animation','Render or engine setup','Pipeline documentation','Eight-week build','Direct line through delivery'] },
-        ]},
-      { num:'IV', name:'Sound and Voice Acting', lede:'Voice, sound design, music supervision.',
-        tiers:[
-          { name:'Voice',      num:'01', price:'$180',       unit:'/ session', lede:'A single 1-hour session.', feat:false,
-            items:['Up to 1 hour recording','Studio-quality WAV','Two takes per line','Light post-processing','48-hour turnaround'] },
-          { name:'Production', num:'02', price:'$1,200',     unit:'/ project', lede:'Full voice + sound for a short.', feat:true,
-            items:['Voice acting & narration','SFX & foley','Mix-ready stems','Three rounds of revision','Two-week delivery','Stereo & mono masters'] },
-          { name:'Soundtrack', num:'03', price:'From $3,400',unit:'',          lede:'Original music + full sound design.', feat:false,
-            items:['Composed score','Adaptive layers for games','Full sound design','Implementation support','Six-week build','Stem delivery + master'] },
-        ]},
-        */
+      { id:'basic', name:'Basic',  price:'$15', period:'/mo', feat:false,
+        items:['50 MB Storage','1 Push / day','1 website','Dashboard'] },
+      { id:'plus',  name:'Plus',   price:'$20', period:'/mo', feat:false,
+        items:['100 MB Storage','3 Pushes / day','1 website','Dashboard','MercadoPago','MercadoEnvíos'] },
+      { id:'pro',   name:'Pro',    price:'$30', period:'/mo', feat:true,
+        items:['500 MB Storage','10 Pushes / day','2 websites','Dashboard','MercadoPago','MercadoEnvíos','Customer Management','Technical Support'] },
+      { id:'ultra', name:'Ultra',  price:'$50', period:'/mo', feat:false,
+        items:['2 GB Storage','30 Pushes / day','5 websites','Dashboard','MercadoPago','MercadoEnvíos','Customer Management','Analytics','Technical Support','Developer Suggestions'] },
+      { id:'max',   name:'MAX',    price:'Custom', period:'', feat:false,
+        items:['Tell me what you need','I am at your service'] },
     ],
   };
   </script>
@@ -104,12 +97,25 @@
       </nav>
       <button class="bar__theme" id="theme-toggle" aria-label="Toggle theme">
         <span class="bar__theme-dot"></span>
-        <span id="theme-label">Dark</span>
+        <span data-theme-label>Dark</span>
       </button>
-      <a href="https://calendar.google.com/calendar/u/0/appointments/schedules/AcZssZ1zqFzLuwcYKQh1bWl7c3MD0YQSR0FhfAzpJfb7HFkioBOU7QptyDRbV5TZDEOmkvc-Rs9oR39D" class="bar__cta" target="_blank" rel="noopener">Book 30 min ↗</a>
-      <a href="https://maxcybersolutions.online/dashboard/" class="bar__cta" target="_blank" rel="noopener">Dashboard ↗</a>
+      <a href="#" data-config="calendarUrl" class="bar__cta" target="_blank" rel="noopener">Book 30 min ↗</a>
+      <a href="#" data-config="dashboardUrl" class="bar__cta" target="_blank" rel="noopener">Dashboard ↗</a>
+      <button class="bar__hamburger" id="nav-hamburger" aria-label="Menu" aria-expanded="false">
+        <span></span><span></span><span></span>
+      </button>
     </div>
   </div>
+
+  <!-- Mobile nav -->
+  <nav class="bar__mobile-menu" id="nav-mobile-menu" aria-label="Mobile navigation">
+    <button class="bar__theme bar__theme--mobile" aria-label="Toggle theme">
+      <span class="bar__theme-dot"></span>
+      <span data-theme-label>Dark</span>
+    </button>
+    <a href="#" data-config="calendarUrl" class="bar__cta" target="_blank" rel="noopener">Book 30 min ↗</a>
+    <a href="#" data-config="dashboardUrl" class="bar__cta" target="_blank" rel="noopener">Dashboard ↗</a>
+  </nav>
 
   <!-- Hero -->
   <header class="hero container">
@@ -125,7 +131,6 @@
         .
       </div>
     </div>
-
     <div class="hero__stage">
       <div class="hand hand--human">
         <img class="hand__img" src="../img/hand-human.webp" alt="Human hand reaching toward the digital world" />
@@ -137,17 +142,11 @@
         <img class="hand__img" src="../img/hand-ascii.webp" alt="ASCII hand reaching from the digital world" />
       </div>
     </div>
-
     <div class="hero__title">
-      <h1 class="display">
-        From <em>human</em> hands, to the <em>Cyberspace</em>.
-      </h1>
+      <h1 class="display">From <em>human</em> hands, to the <em>Cyberspace</em>.</h1>
     </div>
-
     <div class="hero__bottom">
-      <div class="hero__signature">
-        <span>Max</span> &mdash; design, code &amp; voice.
-      </div>
+      <div class="hero__signature"><span>Max</span> &mdash; design, code &amp; voice.</div>
       <div class="hero__scroll">Scroll</div>
     </div>
   </header>
@@ -163,15 +162,146 @@
     </div>
   </section>
 
+  <!-- How It Works -->
+  <section class="how-it-works" id="how-it-works">
+    <div class="container">
+      <div class="sec-head" data-reveal>
+        <div class="tag-mono">§ 01 &nbsp;/&nbsp; How It Works</div>
+        <div>
+          <h2 class="sec-head__title">From first call to <em>first sale.</em></h2>
+          <p class="sec-head__lede">No developers, no agencies, no guesswork. Just you, your products, and a system built to sell.</p>
+        </div>
+      </div>
+      <div class="steps-grid">
+        <div class="step" data-reveal data-delay="0">
+          <div class="step__num tag-mono">01</div>
+          <h3 class="step__title">Book a free call</h3>
+          <p class="step__desc">30 minutes. We talk about your products, your customers, and exactly what you want your store to look and feel like. No commitment, no pressure — just clarity.</p>
+        </div>
+        <div class="step" data-reveal data-delay="100">
+          <div class="step__num tag-mono">02</div>
+          <h3 class="step__title">We build it together</h3>
+          <p class="step__desc">I configure your store layout, colors, product catalog, and payment methods. You review it in real time through your Dashboard. Most stores are live within a week.</p>
+        </div>
+        <div class="step" data-reveal data-delay="200">
+          <div class="step__num tag-mono">03</div>
+          <h3 class="step__title">You start selling</h3>
+          <p class="step__desc">Customers find your store, browse your catalog, and pay directly with their preferred method. Orders appear in your Dashboard instantly. Shipping labels generated in one click.</p>
+        </div>
+        <div class="step" data-reveal data-delay="300">
+          <div class="step__num tag-mono">04</div>
+          <h3 class="step__title">We grow together</h3>
+          <p class="step__desc">I watch your analytics, suggest features, and push platform updates while you focus on your business. This system evolves with you — not against you.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Platform Features -->
+  <section class="features" id="features">
+    <div class="container">
+      <div class="sec-head" data-reveal>
+        <div class="tag-mono">§ 02 &nbsp;/&nbsp; Platform</div>
+        <div>
+          <h2 class="sec-head__title">Everything you need. <em>Nothing you don't.</em></h2>
+          <p class="sec-head__lede">Built for small business owners who want results, not complexity.</p>
+        </div>
+      </div>
+      <blockquote class="ethics-statement" data-reveal>
+        <p>I built this because I was tired of watching talented people waste money on agencies that disappear after launch, platforms that charge fees on every transaction, and software so complex it needs a manual. MaxCyberSolutions is one person who will answer your messages, fix your bugs, and celebrate your wins with you. That is the deal.</p>
+        <cite>&mdash; Maximo Appendino, founder</cite>
+      </blockquote>
+      <div class="feat-grid">
+        <div class="feat-card" data-reveal data-delay="0">
+          <div class="feat-card__label tag-mono">01</div>
+          <h3 class="feat-card__title">Real-time Dashboard</h3>
+          <p class="feat-card__desc">Add products, update prices, manage stock, and see every order the moment it comes in. No delays, no page refreshes — your business at your fingertips, anywhere.</p>
+        </div>
+        <div class="feat-card" data-reveal data-delay="80">
+          <div class="feat-card__label tag-mono">02</div>
+          <h3 class="feat-card__title">MercadoPago</h3>
+          <p class="feat-card__desc">Credit and debit cards, cash at Rapipago and PagoFácil, bank transfers, and digital wallets — all payment methods your customers already use, fully integrated with zero extra fees from my side.</p>
+        </div>
+        <div class="feat-card" data-reveal data-delay="160">
+          <div class="feat-card__label tag-mono">03</div>
+          <h3 class="feat-card__title">MercadoEnvíos</h3>
+          <p class="feat-card__desc">Shipping quotes appear automatically at checkout. You print the label from your Dashboard and drop the package at the nearest point. Tracking updates reach your customer automatically.</p>
+        </div>
+        <div class="feat-card" data-reveal data-delay="240">
+          <div class="feat-card__label tag-mono">04</div>
+          <h3 class="feat-card__title">Customer Management</h3>
+          <p class="feat-card__desc">Track your best buyers. Assign discount groups, set custom prices for wholesale clients, and see their full order history — without leaving your Dashboard.</p>
+        </div>
+        <div class="feat-card" data-reveal data-delay="320">
+          <div class="feat-card__label tag-mono">05</div>
+          <h3 class="feat-card__title">Analytics</h3>
+          <p class="feat-card__desc">Know what sells, what sits, and where your revenue comes from. Inventory levels, order trends, top products by units sold — updated daily, readable in seconds.</p>
+        </div>
+        <div class="feat-card" data-reveal data-delay="400">
+          <div class="feat-card__label tag-mono">06</div>
+          <h3 class="feat-card__title">Push Notifications</h3>
+          <p class="feat-card__desc">Alert your customers about new products, flash sales, and restocks directly through their browser. No app required — they subscribe once and you push when it counts.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FAQ -->
+  <section class="faq" id="faq">
+    <div class="container">
+      <div class="sec-head" data-reveal>
+        <div class="tag-mono">§ 03 &nbsp;/&nbsp; Questions</div>
+        <div>
+          <h2 class="sec-head__title">Answered, <em>honestly.</em></h2>
+          <p class="sec-head__lede">If yours isn't here, book a call — I'll answer it in person.</p>
+        </div>
+      </div>
+      <div class="faq-list">
+        <details class="faq-item" data-reveal>
+          <summary class="faq-item__q">Do I need any technical knowledge to manage my store?</summary>
+          <div class="faq-item__a"><p>None at all. If you can use a messaging app and fill out a form, you can run your Dashboard. I handle the code; you handle your business. Setup, updates, and fixes are all on my side.</p></div>
+        </details>
+        <details class="faq-item" data-reveal>
+          <summary class="faq-item__q">Which payment methods does MercadoPago support?</summary>
+          <div class="faq-item__a"><p>Credit and debit cards from all major banks, cash payments at Rapipago and PagoFácil, bank transfers, and MercadoPago digital wallets. All of it integrated at checkout with no extra configuration required from you.</p></div>
+        </details>
+        <details class="faq-item" data-reveal>
+          <summary class="faq-item__q">How does shipping work?</summary>
+          <div class="faq-item__a"><p>MercadoEnvíos is built into checkout. Customers see live shipping quotes before paying. Once the order is placed, you print the label from your Dashboard and drop the package at the nearest post office or pickup point — tracking is automatic from there.</p></div>
+        </details>
+        <details class="faq-item" data-reveal>
+          <summary class="faq-item__q">Can I have more than one store?</summary>
+          <div class="faq-item__a"><p>Yes. The Pro plan supports 2 websites and Ultra supports 5. Each store has its own independent catalog, orders, customers, and analytics — managed from the same Dashboard.</p></div>
+        </details>
+        <details class="faq-item" data-reveal>
+          <summary class="faq-item__q">How long does it take to launch?</summary>
+          <div class="faq-item__a"><p>Most stores go live 3 to 7 days after the first call, depending on how large the catalog is. Simple stores with fewer than 30 products can often be live within 24 hours.</p></div>
+        </details>
+        <details class="faq-item" data-reveal>
+          <summary class="faq-item__q">What happens when I need to update prices or add products?</summary>
+          <div class="faq-item__a"><p>You do it yourself in the Dashboard, in real time. No waiting, no tickets, no email threads. Changes to prices, stock, images, and descriptions appear on your storefront immediately after saving.</p></div>
+        </details>
+        <details class="faq-item" data-reveal>
+          <summary class="faq-item__q">Is there a free trial?</summary>
+          <div class="faq-item__a"><p>There's no free trial, but there is a free 30-minute call where I show you a live demo of the kind of store that fits your business. If it's not what you need after seeing it, you've lost nothing.</p></div>
+        </details>
+        <details class="faq-item" data-reveal>
+          <summary class="faq-item__q">What does Technical Support include?</summary>
+          <div class="faq-item__a"><p>Direct access to me — not a ticket system, not a chatbot, not an outsourced team. If something breaks, I fix it. If you need a feature, I add it to the roadmap and tell you honestly when it will land.</p></div>
+        </details>
+      </div>
+    </div>
+  </section>
+
   <!-- Pricing -->
   <section class="pricing" id="pricing">
     <div class="container">
-      <div class="sec-head">
-        <div class="tag-mono">§ 02 &nbsp;/&nbsp; Pricing</div>
+      <div class="sec-head" data-reveal>
+        <div class="tag-mono">§ 04 &nbsp;/&nbsp; Pricing</div>
         <div>
-          <h2 class="sec-head__title">Great Reasons to Be Part of the Internet.</h2>
+          <h2 class="sec-head__title">Simple, <em>honest pricing.</em></h2>
           <p class="sec-head__lede">
-            It gives you a much wider reach, with the elegance and style your brand deserves &mdash; Now that AIs are going to start doing the shopping, having your online catalog is practically mandatory.
+            Monthly. No transaction fees. No setup fees. Cancel anytime. Now that AI agents are beginning to do the shopping, having your catalog online is practically mandatory &mdash; and it has never cost less.
           </p>
         </div>
       </div>
@@ -185,11 +315,10 @@
         </form>
         <p class="promo-msg" id="promo-msg" aria-live="polite"></p>
       </div>
-      <div id="pricing-categories"></div>
+      <div id="pricing-tiers" class="tiers-flat"></div>
       <div class="pricing__open">
-        <p class="pricing__open-text">Something else in mind? Any project outside the tiers above is still worth a conversation.</p>
-        <a href="https://calendar.google.com/calendar/u/0/appointments/schedules/AcZssZ1zqFzLuwcYKQh1bWl7c3MD0YQSR0FhfAzpJfb7HFkioBOU7QptyDRbV5TZDEOmkvc-Rs9oR39D"
-           class="pricing__open-cta" target="_blank" rel="noopener">Book 30 min to discuss it</a>
+        <p class="pricing__open-text">Have something specific in mind that doesn't fit a tier? Any project is still worth a conversation.</p>
+        <a href="#" data-config="calendarUrl" class="pricing__open-cta" target="_blank" rel="noopener">Book 30 min to discuss it</a>
       </div>
     </div>
   </section>
@@ -200,14 +329,9 @@
       <div class="contact__free">A free conversation</div>
       <img class="contact__logo" src="../img/icon.webp" alt="MaxCyberSolutions" />
       <div class="contact__content">
-          <h2 class="contact__title">
-            Thirty minutes,<br /><em>on the house.</em>
-          </h2>
-          <p class="contact__lede">
-            Book half an hour &mdash; and we put your business to work 24 hours a day.
-          </p>
-<a href="https://calendar.google.com/calendar/u/0/appointments/schedules/AcZssZ1zqFzLuwcYKQh1bWl7c3MD0YQSR0FhfAzpJfb7HFkioBOU7QptyDRbV5TZDEOmkvc-Rs9oR39D"
-             class="contact__submit" target="_blank" rel="noopener">Book the call</a>
+        <h2 class="contact__title">Thirty minutes,<br /><em>on the house.</em></h2>
+        <p class="contact__lede">Book half an hour &mdash; and we put your business to work 24 hours a day.</p>
+        <a href="#" data-config="calendarUrl" class="contact__submit" target="_blank" rel="noopener">Book the call</a>
       </div>
     </div>
   </section>
@@ -223,6 +347,7 @@
     <div class="foot__copy">&copy; 2026 Max &nbsp;/&nbsp; All rights reserved</div>
   </footer>
 
+  <script src="../js/config.js"></script>
   <script src="../js/main.js"></script>
 </body>
 </html>
