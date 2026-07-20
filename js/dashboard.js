@@ -727,6 +727,7 @@ function renderStoresGrid() {
       <div class="store-card__name">${esc(s.name || s.slug)}</div>
       <div class="store-card__actions">
         <button class="btn-ghost btn-sm" onclick="openStore('${esc(s.id)}')">Edit →</button>
+        <button class="btn-ghost btn-sm" onclick="openCollabsModal('${esc(s.id)}','${esc(s.slug)}')" title="Manage collaborators">Collaborators</button>
         ${state.owner?.is_admin ? `<button class="btn-ghost btn-sm btn-ghost--danger" onclick="deleteStore('${esc(s.id)}')">Delete</button>` : ''}
       </div>
     </div>`).join('');
@@ -1246,7 +1247,18 @@ function setupEditorTabs() {
       document.querySelectorAll('.etab-pane').forEach(p => p.classList.remove('active'));
       tab.classList.add('active');
       document.getElementById(`etab-${tab.dataset.tab}`).classList.add('active');
-      if (tab.dataset.tab === 'orders') loadOrders();
+      if (tab.dataset.tab === 'orders')     loadOrders();
+      if (tab.dataset.tab === 'management') loadCustomers();
+      if (tab.dataset.tab === 'analytics')  loadAnalytics();
+    });
+  });
+
+  document.getElementById('btn-refresh-customers')?.addEventListener('click', loadCustomers);
+  document.getElementById('btn-refresh-analytics')?.addEventListener('click', loadAnalytics);
+  document.getElementById('cust-search')?.addEventListener('input', function() {
+    const q = this.value.toLowerCase();
+    document.querySelectorAll('.cust-row').forEach(r => {
+      r.style.display = q && !r.dataset.search.includes(q) ? 'none' : '';
     });
   });
 }
@@ -4003,4 +4015,152 @@ window.updateOrderStatus = async function(orderId, status) {
   if (!res.ok) { alert('Failed to update order status.'); return; }
   const badge = document.querySelector(`#ord-${orderId} .order-badge`);
   if (badge) { badge.textContent = status.replace('_', ' '); badge.className = `order-badge order-badge--${status}`; }
+};
+
+// ── Management tab — Customers ────────────────────────────────────────────────
+async function loadCustomers() {
+  const storeId = state.activeStore?.id;
+  if (!storeId) return;
+  const res  = await api('GET', `/api/stores/${storeId}/customers`);
+  const data = res.ok ? await safeJson(res) : {};
+  renderCustomers(data.customers || [], data.groups || []);
+}
+
+function renderCustomers(customers, groups) {
+  const list = document.getElementById('customers-list');
+  if (!list) return;
+  if (!customers.length) {
+    list.innerHTML = '<p class="status-msg" style="padding:12px">No customers yet. Use + Add to register one.</p>';
+    return;
+  }
+  list.innerHTML = customers.map(c => `
+    <div class="cust-row order-row" data-search="${esc((c.email+c.name+c.city).toLowerCase())}" style="border-bottom:1px solid var(--line-soft);padding:8px 0">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px">
+        <div style="flex:1;min-width:0">
+          <div style="font-size:13px;font-weight:500">${esc(c.name||c.email)}</div>
+          <div style="font-family:var(--mono);font-size:10px;color:var(--fg-soft)">${esc(c.email)}</div>
+          ${c.city ? `<div style="font-size:11px;color:var(--fg-soft)">${esc([c.city,c.province].filter(Boolean).join(', '))}</div>` : ''}
+        </div>
+        <div style="text-align:right;flex-shrink:0">
+          ${c.group_name ? `<div style="font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--accent)">${esc(c.group_name)}</div>` : ''}
+          ${c.discount_pct ? `<div style="font-family:var(--mono);font-size:10px;color:var(--fg-soft)">−${c.discount_pct}%</div>` : ''}
+          <button class="btn-ghost btn-sm" style="font-size:9px;margin-top:4px" onclick="removeCustomer('${esc(c.id)}')">Remove</button>
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+window.openAddCustomerForm = function() {
+  const form = document.getElementById('add-customer-form');
+  if (form) { form.style.display = form.style.display === 'none' ? '' : 'none'; }
+};
+
+window.saveCustomer = async function() {
+  const storeId = state.activeStore?.id;
+  if (!storeId) return;
+  const msg   = document.getElementById('cust-form-msg');
+  const email = document.getElementById('c-email')?.value.trim();
+  if (!email) { if(msg){msg.textContent='Email is required';msg.style.display='';msg.style.color='var(--red)';} return; }
+  const body = {
+    email,
+    name:         document.getElementById('c-name')?.value.trim()    || '',
+    phone:        document.getElementById('c-phone')?.value.trim()   || '',
+    city:         document.getElementById('c-city')?.value.trim()    || '',
+    group_name:   document.getElementById('c-group')?.value.trim()   || '',
+    discount_pct: parseInt(document.getElementById('c-discount')?.value || '0', 10),
+  };
+  const res = await api('POST', `/api/stores/${storeId}/customers`, body);
+  if (!res.ok) {
+    const d = await safeJson(res);
+    if(msg){msg.textContent=d.error||'Failed';msg.style.display='';msg.style.color='var(--red)';}
+    return;
+  }
+  if(msg){msg.textContent='Saved';msg.style.display='';msg.style.color='var(--accent)';}
+  setTimeout(() => { if(msg) msg.style.display='none'; }, 2000);
+  loadCustomers();
+};
+
+window.removeCustomer = async function(customerId) {
+  const storeId = state.activeStore?.id;
+  if (!storeId || !confirm('Remove this customer from your store?')) return;
+  await api('DELETE', `/api/stores/${storeId}/customers?customer_id=${encodeURIComponent(customerId)}`);
+  loadCustomers();
+};
+
+// ── Analytics tab ─────────────────────────────────────────────────────────────
+async function loadAnalytics() {
+  const storeId = state.activeStore?.id;
+  if (!storeId) return;
+  const res  = await api('GET', `/api/stores/${storeId}/analytics`);
+  if (!res.ok) return;
+  const data = await safeJson(res);
+  renderAnalytics(data);
+}
+
+function renderAnalytics(data) {
+  const fmtARS = c => '$' + ((c||0)/100).toLocaleString('es-AR',{minimumFractionDigits:2,maximumFractionDigits:2});
+
+  // Summary tiles
+  const stats = document.getElementById('analytics-stats');
+  if (stats) {
+    const d30 = data.last_30_days || {};
+    const totalRev = (data.order_stats||[]).reduce((s,r)=>s+(r.revenue_cents||0),0);
+    const totalOrd = (data.order_stats||[]).reduce((s,r)=>s+(r.n||0),0);
+    stats.innerHTML = [
+      { val: totalOrd,          lbl: 'Total orders' },
+      { val: fmtARS(totalRev),  lbl: 'Total revenue' },
+      { val: d30.n||0,          lbl: 'Orders (30d)' },
+      { val: fmtARS(d30.revenue_cents), lbl: 'Revenue (30d)' },
+    ].map(t=>`
+      <div style="border:1px solid var(--line);padding:12px">
+        <div style="font-family:var(--serif);font-size:24px;letter-spacing:-.02em;line-height:1">${t.val}</div>
+        <div style="font-family:var(--mono);font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--fg-soft);margin-top:3px">${t.lbl}</div>
+      </div>`).join('');
+  }
+
+  // Inventory table
+  const inv = document.getElementById('analytics-inventory');
+  if (!inv) return;
+  const products = data.inventory || [];
+  if (!products.length) { inv.innerHTML = '<p class="status-msg" style="padding:8px">No products yet.</p>'; return; }
+
+  inv.innerHTML = `<table style="width:100%;border-collapse:collapse;font-size:11px">
+    <thead><tr style="border-bottom:1px solid var(--line)">
+      <th style="text-align:left;padding:6px 4px;font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--fg-soft)">Product</th>
+      <th style="text-align:right;padding:6px 4px;font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--fg-soft)">Price</th>
+      <th style="text-align:right;padding:6px 4px;font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--fg-soft)">Stock</th>
+    </tr></thead>
+    <tbody>
+    ${products.map(p => {
+      const stockDisplay = !p.track_stock ? '∞' : (p.stock < 0 ? '∞' : p.stock);
+      const lowStock = p.track_stock && p.stock >= 0 && p.stock <= 5;
+      return `<tr style="border-bottom:1px solid var(--line-soft)">
+        <td style="padding:6px 4px">${esc(p.name)}${!p.active?'<span style="font-family:var(--mono);font-size:9px;color:var(--fg-soft);margin-left:6px">hidden</span>':''}</td>
+        <td style="padding:6px 4px;text-align:right;font-family:var(--mono)">${fmtARS(p.price_cents)}</td>
+        <td style="padding:6px 4px;text-align:right;font-family:var(--mono);color:${lowStock?'#b33':'inherit'}">${stockDisplay}${lowStock?' ⚠':''}
+          ${p.track_stock ? `<input type="number" value="${p.stock<0?0:p.stock}" min="0" style="width:52px;padding:2px 4px;font-size:10px;margin-left:6px;border:1px solid var(--line)" onchange="updateStock('${esc(p.id)}',this.value)"/>` : ''}
+        </td>
+      </tr>`;
+    }).join('')}
+    </tbody>
+  </table>`;
+}
+
+window.updateStock = async function(productId, value) {
+  const stock = parseInt(value, 10);
+  if (isNaN(stock)) return;
+  await api('PUT', `/api/products/${productId}`, { stock, track_stock: 1 });
+};
+
+// ── Collaborators modal from Storefronts page ─────────────────────────────────
+window.openCollabsModal = function(storeId, slug) {
+  // Reuse the existing collaborators section in the editor by navigating there
+  // For now open the editor and switch to config tab where collabs live
+  const store = state.stores.find(s => s.id === storeId);
+  if (!store) return;
+  openStore(storeId);
+  // After store loads, click the config tab (has collabs)
+  setTimeout(() => {
+    document.querySelector('.etab[data-tab="config"]')?.click();
+  }, 800);
 };

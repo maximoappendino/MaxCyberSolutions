@@ -51,8 +51,74 @@ async function boot() {
   document.getElementById('btn-logout').addEventListener('click', logout);
   document.getElementById('client-search').addEventListener('input', renderSidebar);
   document.getElementById('btn-new-client').addEventListener('click', () => openModal('new-client-modal'));
+  document.getElementById('btn-toggle-metrics').addEventListener('click', toggleMetrics);
 
   await loadClients();
+}
+
+function toggleMetrics() {
+  const panel   = document.getElementById('metrics-panel');
+  const sidebar = document.getElementById('a-sidebar');
+  const detail  = document.getElementById('admin-detail');
+  const active  = panel.classList.toggle('active');
+  sidebar.style.display = active ? 'none' : '';
+  detail.style.display  = active ? 'none' : '';
+  document.getElementById('btn-toggle-metrics').style.color = active ? 'var(--accent)' : '';
+  if (active) loadMetrics();
+}
+
+async function loadMetrics() {
+  const res  = await api('GET', '/api/admin/metrics');
+  if (!res.ok) return;
+  const d = await safeJson(res);
+
+  const fmtARS = c => '$' + ((c||0)/100).toLocaleString('es-AR',{minimumFractionDigits:2,maximumFractionDigits:2});
+
+  // Tiles
+  document.getElementById('metrics-tiles').innerHTML = [
+    { val: d.totals?.clients,   lbl: 'Clients'  },
+    { val: d.totals?.stores,    lbl: 'Stores'   },
+    { val: d.totals?.orders,    lbl: 'Orders'   },
+    { val: d.totals?.products,  lbl: 'Products' },
+    { val: d.totals?.customers, lbl: 'Customers'},
+    { val: fmtARS(d.totals?.revenue_cents), lbl: 'Total Revenue' },
+  ].map(t => `<div class="metric-tile"><div class="metric-tile__val">${t.val ?? 0}</div><div class="metric-tile__lbl">${t.lbl}</div></div>`).join('');
+
+  // Orders by status
+  document.getElementById('metrics-by-status').innerHTML = `
+    <table class="metrics-table"><thead><tr><th>Status</th><th>Count</th></tr></thead><tbody>
+    ${(d.orders_by_status||[]).map(r=>`<tr><td>${esc(r.status)}</td><td>${r.n}</td></tr>`).join('')}
+    </tbody></table>`;
+
+  // Stores by type
+  document.getElementById('metrics-by-type').innerHTML = `
+    <table class="metrics-table"><thead><tr><th>Type</th><th>Count</th></tr></thead><tbody>
+    ${(d.stores_by_type||[]).map(r=>`<tr><td>${esc(r.store_type||'ecommerce')}</td><td>${r.n}</td></tr>`).join('')}
+    </tbody></table>`;
+
+  // Top stores
+  document.querySelector('#metrics-top-stores tbody').innerHTML =
+    (d.top_stores||[]).map(r=>`<tr><td>/${esc(r.slug)}</td><td>${r.order_count}</td><td>${fmtARS(r.revenue_cents)}</td></tr>`).join('') ||
+    '<tr><td colspan="3" style="color:var(--ink-faint)">No data yet</td></tr>';
+
+  // Recent orders
+  document.querySelector('#metrics-recent-orders tbody').innerHTML =
+    (d.recent_orders||[]).map(r=>`<tr>
+      <td>/${esc(r.slug)}</td><td>${esc(r.customer_name)}</td>
+      <td>${esc(r.status)}</td><td>${fmtARS(r.total_cents)}</td>
+      <td style="color:var(--ink-faint)">${new Date(r.created_at).toLocaleDateString('es-AR')}</td>
+    </tr>`).join('') || '<tr><td colspan="5" style="color:var(--ink-faint)">No orders yet</td></tr>';
+
+  // Email usage
+  const eu = d.email_usage || {};
+  const pct = eu.limit ? Math.min(100,Math.round((eu.used/eu.limit)*100)) : 0;
+  document.getElementById('metrics-email').innerHTML = `
+    <div style="display:flex;align-items:center;gap:12px;margin-top:8px">
+      <div style="flex:1;height:6px;background:var(--rule);border-radius:3px;overflow:hidden">
+        <div style="height:100%;width:${pct}%;background:var(--accent);border-radius:3px"></div>
+      </div>
+      <span style="font-family:var(--mono);font-size:11px;color:var(--ink-faint)">${eu.used||0} / ${eu.limit||0} this month</span>
+    </div>`;
 }
 
 async function logout() {
@@ -325,18 +391,31 @@ function renderDetail() {
     <div class="dsection">
       <div class="dsection__title">Websites (${(c.stores || []).length})</div>
       <div id="d-stores-list">
-        ${(c.stores || []).map(s => `
+        ${(c.stores || []).map(s => {
+          const t = s.store_type || 'ecommerce';
+          return `
         <div class="store-row" data-store-id="${esc(s.id)}">
-          <span class="store-slug" id="slug-display-${esc(s.id)}" title="click to edit" style="cursor:pointer" onclick="startEditSlug('${esc(c.id)}','${esc(s.id)}','${esc(s.slug)}')">/${esc(s.slug)}</span>
-          <span class="store-name">${esc(s.name || s.slug)}</span>
-          <a class="store-link" href="/${esc(s.slug)}" target="_blank" rel="noopener" title="Open website">↗</a>
-          <button class="btn-solid" style="padding:3px 8px;font-size:9px" onclick="accessDashboard('${esc(c.id)}')" title="Access dashboard as this client">🔑</button>
-          <button class="btn-solid" style="padding:3px 8px;font-size:9px" onclick="openTransferModal('${esc(c.id)}','${esc(s.id)}')" title="Transfer website">⇄</button>
-          <button class="btn-solid" style="padding:3px 8px;font-size:9px" onclick="downloadTemplate('${esc(c.id)}','${esc(s.id)}','website')" title="Download website JSON">⤓W</button>
-          <button class="btn-solid" style="padding:3px 8px;font-size:9px" onclick="downloadTemplate('${esc(c.id)}','${esc(s.id)}','items')" title="Download items CSV">⤓I</button>
-          <button class="btn-solid" style="padding:3px 8px;font-size:9px" onclick="downloadTemplate('${esc(c.id)}','${esc(s.id)}','gallery')" title="Download gallery URLs">⤓G</button>
-          <button class="store-remove-btn" onclick="removeStore('${esc(c.id)}','${esc(s.id)}')" title="Remove website">−</button>
-        </div>`).join('') || '<div class="empty-msg">No stores yet</div>'}
+          <div style="flex:1;min-width:0">
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+              <span class="store-slug" id="slug-display-${esc(s.id)}" title="click to edit" style="cursor:pointer" onclick="startEditSlug('${esc(c.id)}','${esc(s.id)}','${esc(s.slug)}')">/${esc(s.slug)}</span>
+              <span class="store-name">${esc(s.name || s.slug)}</span>
+              <a class="store-link" href="/store/${esc(s.slug)}" target="_blank" rel="noopener" title="Open website">↗</a>
+            </div>
+            <div class="type-pills">
+              ${['ecommerce','services','memberships','reservations'].map(tp => `
+                <button class="type-pill type-pill--${tp}${t===tp?' active':''}" onclick="setStoreType('${esc(c.id)}','${esc(s.id)}','${tp}',this)">${tp}</button>
+              `).join('')}
+            </div>
+          </div>
+          <div class="store-actions">
+            <button class="btn-solid" style="padding:3px 8px;font-size:9px" onclick="accessDashboard('${esc(c.id)}')" title="Access dashboard as this client">🔑</button>
+            <button class="btn-solid" style="padding:3px 8px;font-size:9px" onclick="openTransferModal('${esc(c.id)}','${esc(s.id)}')" title="Transfer website">⇄</button>
+            <button class="btn-solid" style="padding:3px 8px;font-size:9px" onclick="downloadTemplate('${esc(c.id)}','${esc(s.id)}','website')" title="Download website JSON">⤓W</button>
+            <button class="btn-solid" style="padding:3px 8px;font-size:9px" onclick="downloadTemplate('${esc(c.id)}','${esc(s.id)}','items')" title="Download items CSV">⤓I</button>
+            <button class="btn-solid" style="padding:3px 8px;font-size:9px" onclick="downloadTemplate('${esc(c.id)}','${esc(s.id)}','gallery')" title="Download gallery URLs">⤓G</button>
+            <button class="store-remove-btn" onclick="removeStore('${esc(c.id)}','${esc(s.id)}')" title="Remove website">−</button>
+          </div>
+        </div>`;}).join('') || '<div class="empty-msg">No stores yet</div>'}
       </div>
       <div class="store-add-row">
         <input class="store-add-input" id="d-new-slug" type="text" placeholder="new-slug" oninput="checkNewSlug()" autocomplete="off"/>
@@ -688,6 +767,21 @@ window.adjustPushes = async function(id, period, delta) {
 
   if (el) el.textContent = next;
   if (state.selected?.id === id) state.selected[field] = next;
+};
+
+// ── Store type ────────────────────────────────────────────────────────────────
+window.setStoreType = async function(ownerId, storeId, type, btn) {
+  const res  = await api('PUT', `/api/admin/owners/${ownerId}/stores/${storeId}`, { store_type: type });
+  const data = await safeJson(res);
+  if (!res.ok) { flashDetailMsg(data.error || 'Failed to update store type', 'err'); return; }
+  // Update pills in the row
+  const row = btn.closest('.store-row');
+  row.querySelectorAll('.type-pill').forEach(p => {
+    p.classList.toggle('active', p.textContent.trim() === type);
+  });
+  // Update cached store data
+  const store = (state.selected?.stores || []).find(s => s.id === storeId);
+  if (store) store.store_type = type;
 };
 
 // ── Email limits ──────────────────────────────────────────────────────────────

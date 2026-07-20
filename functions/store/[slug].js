@@ -1456,7 +1456,7 @@ function renderCard(p, opts = {}) {
   data-weight="${p.weight_grams || 0}"
   data-width="${p.width_cm || 0}" data-height="${p.height_cm || 0}" data-depth="${p.depth_cm || 0}"
   onclick="sPdpOpen(this)" style="cursor:pointer">
-  ${hasImg ? `<div class="s-card__img" style="background-image:url('${esc(p.image)}');aspect-ratio:${esc(imgRatio)}"></div>` : ''}
+  ${hasImg ? `<div class="s-card__img s-card__img--lazy" data-bg="${esc(p.image)}" style="aspect-ratio:${esc(imgRatio)}"></div>` : ''}
   <div class="s-card__body">
     <div class="s-card__sku">SKU ${esc(p.sku)}</div>
     ${showCategory && p.category ? `<div class="s-card__cat">${esc(p.category)}</div>` : ''}
@@ -1902,6 +1902,30 @@ function cartHtml(slug, cbuCvu, mpToken, waNumber, waMessage) {
   };
 
   try { updateBadge(); } catch(e) { _err(e); }
+})();
+</script>
+<script>
+(function(){
+  if (!('IntersectionObserver' in window)) {
+    // Fallback: load all immediately
+    document.querySelectorAll('.s-card__img--lazy').forEach(function(el) {
+      var bg = el.getAttribute('data-bg');
+      if (bg) el.style.backgroundImage = 'url(' + JSON.stringify(bg) + ')';
+      el.classList.remove('s-card__img--lazy');
+    });
+    return;
+  }
+  var io = new IntersectionObserver(function(entries) {
+    entries.forEach(function(e) {
+      if (!e.isIntersecting) return;
+      var el = e.target;
+      var bg = el.getAttribute('data-bg');
+      if (bg) el.style.backgroundImage = 'url(' + JSON.stringify(bg) + ')';
+      el.classList.remove('s-card__img--lazy');
+      io.unobserve(el);
+    });
+  }, { rootMargin: '200px' });
+  document.querySelectorAll('.s-card__img--lazy').forEach(function(el) { io.observe(el); });
 })();
 </script>`;
 }

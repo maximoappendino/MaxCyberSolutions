@@ -271,8 +271,32 @@ const HTML = `<!DOCTYPE html>
       padding: 0; line-height: 1; }
 
     /* Store row border */
-    .store-row { gap: 6px; }
+    .store-row { gap: 6px; flex-wrap: wrap; }
     .store-actions { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
+    /* Store type pills */
+    .type-pills { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 4px; }
+    .type-pill { font-family: var(--mono); font-size: 8px; letter-spacing: 0.1em; text-transform: uppercase;
+      padding: 2px 7px; border: 1px solid var(--rule); background: transparent; cursor: pointer;
+      color: var(--ink-faint); transition: background 120ms, color 120ms, border-color 120ms; }
+    .type-pill:hover { border-color: var(--ink-faint); color: var(--ink); }
+    .type-pill.active { background: var(--ink); color: var(--cream); border-color: var(--ink); }
+    .type-pill--ecommerce.active   { background: #1c6b3a; border-color: #1c6b3a; }
+    .type-pill--services.active    { background: #1a5a8a; border-color: #1a5a8a; }
+    .type-pill--memberships.active { background: #6b2fa0; border-color: #6b2fa0; }
+    .type-pill--reservations.active{ background: #9a4200; border-color: #9a4200; }
+    /* Metrics panel */
+    .metrics-panel { display: none; flex: 1; overflow-y: auto; padding: 32px 36px 64px; max-width: 900px; }
+    .metrics-panel.active { display: block; }
+    .metrics-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px,1fr)); gap: 16px; margin-bottom: 32px; }
+    .metric-tile { border: 1px solid var(--rule); padding: 18px 16px; }
+    .metric-tile__val { font-family: var(--serif); font-size: 32px; letter-spacing: -0.02em; line-height: 1; margin-bottom: 4px; }
+    .metric-tile__lbl { font-family: var(--mono); font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-faint); }
+    .metrics-section { margin-bottom: 28px; }
+    .metrics-section__title { font-family: var(--mono); font-size: 9px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--ink-faint); margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid var(--rule-soft); }
+    .metrics-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    .metrics-table th { font-family: var(--mono); font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-faint); padding: 6px 8px; text-align: left; border-bottom: 1px solid var(--rule); }
+    .metrics-table td { padding: 8px 8px; border-bottom: 1px solid var(--rule-soft); vertical-align: top; }
+    .metrics-table tr:last-child td { border-bottom: none; }
 
     /* Misc */
     .empty-msg { font-family: var(--serif); font-style: italic;
@@ -300,6 +324,7 @@ const HTML = `<!DOCTYPE html>
   </div>
   <div class="a-bar__right">
     <button class="a-bar__link" id="btn-manage-icons" style="background:none;border:none;cursor:pointer">Icons ⊕</button>
+    <button class="a-bar__link" id="btn-toggle-metrics" style="background:none;border:none;cursor:pointer">Metrics</button>
     <a class="a-bar__link" href="/dashboard/">Dashboard ↗</a>
     <span class="a-bar__email" id="admin-email"></span>
     <button class="a-bar__logout" id="btn-logout">Sign out</button>
@@ -323,7 +348,7 @@ const HTML = `<!DOCTYPE html>
 </div>
 
 <div class="a-layout">
-  <aside class="a-sidebar">
+  <aside class="a-sidebar" id="a-sidebar">
     <div class="a-sidebar__head">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
         <div class="a-sidebar__heading" style="margin-bottom:0">Clients</div>
@@ -339,6 +364,42 @@ const HTML = `<!DOCTYPE html>
   <main id="admin-detail">
     <div class="detail-empty">Select a client from the list</div>
   </main>
+
+  <!-- Metrics panel (hidden until toggled) -->
+  <div class="metrics-panel" id="metrics-panel">
+    <div style="margin-bottom:28px">
+      <p style="font-family:var(--mono);font-size:9px;letter-spacing:.2em;text-transform:uppercase;color:var(--ink-faint);margin-bottom:6px">Platform Overview</p>
+      <h2 style="font-family:var(--serif);font-size:28px;letter-spacing:-.02em">Metrics</h2>
+    </div>
+    <div class="metrics-grid" id="metrics-tiles"></div>
+    <div class="metrics-section">
+      <div class="metrics-section__title">Orders by status</div>
+      <div id="metrics-by-status"></div>
+    </div>
+    <div class="metrics-section">
+      <div class="metrics-section__title">Stores by type</div>
+      <div id="metrics-by-type"></div>
+    </div>
+    <div class="metrics-section">
+      <div class="metrics-section__title">Top stores (by revenue)</div>
+      <table class="metrics-table" id="metrics-top-stores">
+        <thead><tr><th>Store</th><th>Orders</th><th>Revenue</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <div class="metrics-section">
+      <div class="metrics-section__title">Recent orders</div>
+      <table class="metrics-table" id="metrics-recent-orders">
+        <thead><tr><th>Store</th><th>Customer</th><th>Status</th><th>Total</th><th>Date</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <div class="metrics-section">
+      <div class="metrics-section__title">Email usage this month</div>
+      <div id="metrics-email"></div>
+    </div>
+    <button class="btn-solid" style="margin-top:8px;padding:8px 18px;font-size:10px" onclick="loadMetrics()">↻ Refresh</button>
+  </div>
 </div>
 
 <!-- ── Slug transfer modal ── -->

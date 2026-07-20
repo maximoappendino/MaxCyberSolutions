@@ -35,7 +35,7 @@ export async function onRequestGet({ params, env }) {
   if (!owner) return json({ error: 'Not found' }, 404);
 
   const { results: stores } = await env.DB.prepare(
-    'SELECT id, slug, name, created_at FROM stores WHERE owner_id = ? ORDER BY created_at DESC'
+    'SELECT id, slug, name, store_type, created_at FROM stores WHERE owner_id = ? ORDER BY created_at DESC'
   ).bind(params.id).all();
 
   return json({ ...owner, stores: stores || [] });

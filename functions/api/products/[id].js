@@ -43,16 +43,20 @@ export async function onRequestPut({ params, request, data, env }) {
     width_cm:     body.width_cm     !== undefined ? (parseInt(body.width_cm)     || 0) : (product.width_cm     || 0),
     height_cm:    body.height_cm    !== undefined ? (parseInt(body.height_cm)    || 0) : (product.height_cm    || 0),
     depth_cm:     body.depth_cm     !== undefined ? (parseInt(body.depth_cm)     || 0) : (product.depth_cm     || 0),
+    stock:        body.stock        !== undefined ? (parseInt(body.stock) ?? -1)   : (product.stock     ?? -1),
+    track_stock:  body.track_stock  !== undefined ? (body.track_stock ? 1 : 0)     : (product.track_stock ?? 0),
   };
 
   try {
     await env.DB.prepare(`
       UPDATE products
       SET name = ?, description = ?, price_cents = ?, sku = ?, in_stock = ?, metadata = ?,
-          category = ?, visible = ?, image = ?, weight_grams = ?, width_cm = ?, height_cm = ?, depth_cm = ?
+          category = ?, visible = ?, image = ?, weight_grams = ?, width_cm = ?, height_cm = ?, depth_cm = ?,
+          stock = ?, track_stock = ?
       WHERE id = ? AND store_id IN (SELECT id FROM stores WHERE owner_id = ?)
     `).bind(u.name, u.description, u.price_cents, u.sku, u.in_stock, u.metadata,
             u.category, u.visible, u.image, u.weight_grams, u.width_cm, u.height_cm, u.depth_cm,
+            u.stock, u.track_stock,
             params.id, data.owner_id).run();
   } catch (e) {
     if (e.message?.includes('UNIQUE')) return json({ error: 'SKU already exists in this store' }, 409);

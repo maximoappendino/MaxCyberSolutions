@@ -852,6 +852,7 @@ const HTML = `<!DOCTYPE html>
 
       <!-- Control Panel top tabs -->
       <div class="cp-tabbar">
+        <button class="cp-tab" id="btn-back-stores" onclick="showScreen('stores')" style="color:var(--fg-faint);padding-right:18px;border-right:1px solid var(--line);margin-right:4px">← Stores</button>
         <button class="cp-tab active" data-cp-tab="dashboard">Dashboard</button>
         <button class="cp-tab" data-cp-tab="gallery">Gallery</button>
         <button class="cp-tab" data-cp-tab="wip">(Under Development)</button>
@@ -863,12 +864,14 @@ const HTML = `<!DOCTYPE html>
       <!-- Left panel -->
       <div class="editor-left" id="editor-left">
 
-        <div class="etabs">
+        <div class="etabs" style="flex-wrap:wrap">
           <button class="etab active" data-tab="design">Design</button>
           <button class="etab" data-tab="sections">Sections</button>
           <button class="etab" data-tab="items">Items</button>
           <button class="etab" data-tab="config">Config</button>
           <button class="etab" data-tab="orders">Orders</button>
+          <button class="etab" data-tab="management">Mgmt</button>
+          <button class="etab" data-tab="analytics">Analytics</button>
         </div>
 
         <!-- Design tab -->
@@ -1470,6 +1473,49 @@ const HTML = `<!DOCTYPE html>
               <button class="btn-ghost btn-sm" id="btn-refresh-orders">↻</button>
             </div>
             <div id="orders-list"><p class="status-msg" style="padding:12px">Load an order tab to see orders.</p></div>
+          </div>
+        </div>
+
+        <!-- Management tab -->
+        <div class="etab-pane" id="etab-management">
+          <div style="padding:12px">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+              <span style="font-family:var(--mono);font-size:9px;letter-spacing:.2em;text-transform:uppercase;color:var(--fg-faint)">Customers</span>
+              <button class="btn-ghost btn-sm" id="btn-refresh-customers">↻</button>
+            </div>
+            <div style="display:flex;gap:6px;margin-bottom:10px">
+              <input id="cust-search" type="search" placeholder="Search by name or email…" style="flex:1;padding:6px 8px;font-size:11px"/>
+              <button class="btn-ghost btn-sm" onclick="openAddCustomerForm()" style="white-space:nowrap">+ Add</button>
+            </div>
+            <div id="add-customer-form" style="display:none;border:1px solid var(--line);padding:10px;margin-bottom:10px;background:var(--bg)">
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+                <div><label style="font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--fg-faint)">Email *</label><input id="c-email" type="email" style="width:100%;padding:6px 8px;font-size:12px;border:1px solid var(--line)"/></div>
+                <div><label style="font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--fg-faint)">Name</label><input id="c-name" style="width:100%;padding:6px 8px;font-size:12px;border:1px solid var(--line)"/></div>
+                <div><label style="font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--fg-faint)">Phone</label><input id="c-phone" style="width:100%;padding:6px 8px;font-size:12px;border:1px solid var(--line)"/></div>
+                <div><label style="font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--fg-faint)">City</label><input id="c-city" style="width:100%;padding:6px 8px;font-size:12px;border:1px solid var(--line)"/></div>
+                <div><label style="font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--fg-faint)">Group</label><input id="c-group" placeholder="VIP, Wholesale…" style="width:100%;padding:6px 8px;font-size:12px;border:1px solid var(--line)"/></div>
+                <div><label style="font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--fg-faint)">Discount %</label><input id="c-discount" type="number" min="0" max="100" value="0" style="width:100%;padding:6px 8px;font-size:12px;border:1px solid var(--line)"/></div>
+              </div>
+              <div style="display:flex;gap:6px">
+                <button class="btn-ghost btn-sm" onclick="saveCustomer()">Save</button>
+                <button class="btn-ghost btn-sm" onclick="document.getElementById('add-customer-form').style.display='none'">Cancel</button>
+              </div>
+              <p id="cust-form-msg" style="font-family:var(--mono);font-size:10px;margin-top:6px;display:none"></p>
+            </div>
+            <div id="customers-list"><p class="status-msg" style="padding:12px">Click the tab to load customers.</p></div>
+          </div>
+        </div>
+
+        <!-- Analytics tab -->
+        <div class="etab-pane" id="etab-analytics">
+          <div style="padding:12px">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+              <span style="font-family:var(--mono);font-size:9px;letter-spacing:.2em;text-transform:uppercase;color:var(--fg-faint)">Analytics</span>
+              <button class="btn-ghost btn-sm" id="btn-refresh-analytics">↻</button>
+            </div>
+            <div id="analytics-stats" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px"></div>
+            <div style="font-family:var(--mono);font-size:9px;letter-spacing:.2em;text-transform:uppercase;color:var(--fg-faint);margin-bottom:8px">Inventory</div>
+            <div id="analytics-inventory"><p class="status-msg" style="padding:12px">Click the tab to load analytics.</p></div>
           </div>
         </div>
 
