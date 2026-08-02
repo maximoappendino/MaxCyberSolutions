@@ -449,6 +449,10 @@ function renderStorefront(store, config, products, isPreview = false, isInspect 
     /* Gallery: minimal (2 cols, more gap) */
     .s-gallery--minimal .s-gallery__grid { gap: 20px; }
     /* Gallery: carousel */
+    @keyframes s-gcar-cont { to { transform: translateX(-50%); } }
+    .s-gcar--cont .s-gcar__track { animation: s-gcar-cont linear infinite; width: max-content; display: flex; }
+    .s-gcar--cont .s-gcar__item { width: clamp(180px, 28vw, 380px); flex-shrink: 0; padding: 0 6px; box-sizing: border-box; }
+    .s-gcar--cont:hover .s-gcar__track { animation-play-state: paused; }
     .s-gallery--carousel { overflow: visible; padding: 64px 0; }
     .s-gallery--carousel .s-gallery__title { padding: 0 var(--pad) 40px; }
     .s-gcar { position: relative; }
@@ -1262,6 +1266,10 @@ function renderReservation(s) {
   const bgStyle     = s.bg    ? `background:${esc(s.bg)};`    : '';
   const colorStyle  = s.color ? `color:${esc(s.color)};`      : '';
 
+  // Disabled weekdays: 0=Sun … 6=Sat
+  const dayFields   = ['day_sun','day_mon','day_tue','day_wed','day_thu','day_fri','day_sat'];
+  const disabledDays = dayFields.map((f, i) => s[f] === false ? i : null).filter(x => x !== null);
+
   // Build min/max date strings
   const today   = new Date();
   const maxDate = new Date(today); maxDate.setDate(today.getDate() + maxDays);
@@ -1287,7 +1295,7 @@ function renderReservation(s) {
       <div class="s-res__row">
         <div class="s-res__field">
           <label class="s-res__label" for="${uid}_date">Date</label>
-          <input class="s-res__input" id="${uid}_date" type="date" min="${esc(minStr)}" max="${esc(maxStr)}" required />
+          <input class="s-res__input" id="${uid}_date" type="date" min="${esc(minStr)}" max="${esc(maxStr)}" required oninput="${uid}_checkDay(this)" />
         </div>
         <div class="s-res__field">
           <label class="s-res__label" for="${uid}_time">Time</label>
@@ -1336,6 +1344,16 @@ function renderReservation(s) {
   </style>
   <script>
   (function(){
+    var _disabledDays=[${disabledDays.join(',')}];
+    window['${uid}_checkDay']=function(inp){
+      if(!_disabledDays.length)return;
+      var d=new Date(inp.value+'T12:00:00');
+      if(_disabledDays.includes(d.getDay())){
+        inp.value='';
+        inp.setCustomValidity('Closed on this day. Please pick another date.');
+        inp.reportValidity();
+      } else { inp.setCustomValidity(''); }
+    };
     async function ${uid}_submit(e) {
       e.preventDefault();
       const btn = document.getElementById('${uid}_btn');
@@ -1945,10 +1963,33 @@ function renderGalleryCarousel(s, images, ratio, imgFit, showCap, secStyle) {
   const speed      = Math.max(1000, parseInt(s.carouselSpeed) || 3500);
   const edgeFade   = Math.max(0, Math.min(45, parseInt(s.carouselEdgeFade)   || 0));
   const edgeShrink = Math.max(0, Math.min(45, parseInt(s.carouselEdgeShrink) || 20));
+  const continuous = !!s.carouselContinuous;
 
   const maskCSS = edgeFade > 0
     ? `-webkit-mask-image:linear-gradient(to right,transparent,black ${edgeFade}%,black ${100-edgeFade}%,transparent);mask-image:linear-gradient(to right,transparent,black ${edgeFade}%,black ${100-edgeFade}%,transparent);`
     : '';
+
+  // ── Continuous (seamless) mode ─────────────────────────────────────────────
+  if (continuous && images.length > 1) {
+    const dur = Math.max(4, Math.round(images.length * (speed / 900)));
+    const itemHtml = (img, _i) => {
+      const url = typeof img === 'string' ? img : (img.url || '');
+      const cap = typeof img === 'object'  ? (img.caption || '') : '';
+      return `<div class="s-gcar__item">
+        <img src="${esc(url)}" alt="${esc(cap)}" loading="lazy" style="aspect-ratio:${esc(ratio)};object-fit:${esc(imgFit)};display:block;width:100%" />
+        ${showCap && cap ? `<div class="s-gcar__caption">${esc(cap)}</div>` : ''}
+      </div>`;
+    };
+    const allItems = [...images, ...images].map(itemHtml).join('');
+    return `<section class="s-gallery s-gallery--carousel"${secStyle ? ` style="${secStyle}"` : ''}>
+  ${s.title ? `<h2 class="s-gallery__title">${esc(s.title)}</h2>` : ''}
+  <div class="s-gcar s-gcar--cont">
+    <div class="s-gcar__outer" style="${maskCSS}">
+      <div class="s-gcar__track" style="animation-duration:${dur}s">${allItems}</div>
+    </div>
+  </div>
+</section>`;
+  }
 
   const itemsHtml = images.map((img, idx) => {
     const url = typeof img === 'string' ? img : (img.url || '');

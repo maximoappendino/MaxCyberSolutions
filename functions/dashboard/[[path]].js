@@ -342,10 +342,61 @@ const HTML = `<!DOCTYPE html>
     .cp-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
     .cp-panel { display: none; flex: 1; overflow: hidden; }
     .cp-panel.active { display: flex; }
-    #cp-dashboard { flex-direction: row; }
-    #cp-gallery { flex-direction: column; align-items: stretch; }
-    #cp-orders  { flex-direction: column; align-items: stretch; }
-    #cp-wip { align-items: center; justify-content: center; }
+    #cp-dashboard     { flex-direction: row; }
+    #cp-gallery       { flex-direction: column; align-items: stretch; }
+    #cp-orders        { flex-direction: column; align-items: stretch; }
+    #cp-reservations  { flex-direction: row; }
+    #cp-wip           { align-items: center; justify-content: center; }
+
+    /* ── Reservations tab ── */
+    .rv-wrap { display: flex; flex: 1; overflow: hidden; }
+    .rv-cal { flex-shrink: 0; width: 260px; border-right: 1px solid var(--line); display: flex; flex-direction: column; }
+    .rv-cal__nav { display: flex; align-items: center; justify-content: space-between; padding: 9px 10px; border-bottom: 1px solid var(--line-soft); flex-shrink: 0; }
+    .rv-cal__navtitle { font-family: var(--mono); font-size: 9px; letter-spacing: .12em; font-weight: 600; text-transform: uppercase; }
+    .rv-cal__navbtn { background: none; border: none; cursor: pointer; font-size: 18px; color: var(--fg-faint); padding: 0 5px; line-height: 1; }
+    .rv-cal__navbtn:hover { color: var(--fg); }
+    .rv-cal__body { flex: 1; overflow-y: auto; padding: 8px 6px; }
+    .rv-cal__wdays { display: grid; grid-template-columns: repeat(7,1fr); margin-bottom: 2px; }
+    .rv-cal__wday { font-family: var(--mono); font-size: 8px; text-align: center; padding: 3px 0; color: var(--fg-faint); }
+    .rv-cal__days { display: grid; grid-template-columns: repeat(7,1fr); gap: 2px; }
+    .rv-cal__day { aspect-ratio: 1; display: flex; align-items: center; justify-content: center; cursor: pointer; border-radius: 4px; font-size: 11px; position: relative; border: 1px solid transparent; transition: background 120ms; }
+    .rv-cal__day:hover:not(.empty) { background: var(--line-soft); }
+    .rv-cal__day.today { font-weight: 700; color: var(--accent); }
+    .rv-cal__day.selected { background: var(--accent) !important; color: #fff !important; border-color: var(--accent); }
+    .rv-cal__day.has-rv::after { content:''; position:absolute; bottom:2px; width:4px; height:4px; border-radius:50%; background:var(--accent); }
+    .rv-cal__day.selected.has-rv::after { background:rgba(255,255,255,.65); }
+    .rv-cal__day.empty { pointer-events: none; }
+    .rv-cal__day.drop-ok { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, var(--bg)); }
+    .rv-day { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0; }
+    .rv-day__hdr { padding: 9px 12px; border-bottom: 1px solid var(--line-soft); display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+    .rv-day__title { font-family: var(--mono); font-size: 9px; letter-spacing: .08em; font-weight: 600; flex: 1; text-transform: uppercase; }
+    .rv-day__count { font-family: var(--mono); font-size: 9px; color: var(--fg-faint); }
+    .rv-day__list  { flex: 1; overflow-y: auto; padding: 8px 10px; }
+    .rv-day__empty { font-size: 12px; color: var(--fg-faint); padding: 28px 6px; text-align: center; }
+    .rv-item { background: var(--line-soft); border: 1px solid var(--line); border-radius: 6px; padding: 10px 12px; margin-bottom: 6px; cursor: grab; transition: box-shadow 150ms; }
+    .rv-item:active { cursor: grabbing; box-shadow: 0 4px 12px rgba(0,0,0,.14); }
+    .rv-item.dragging { opacity: 0.4; }
+    .rv-item__time { font-family: var(--mono); font-size: 10px; color: var(--accent); margin-bottom: 3px; }
+    .rv-item__name { font-size: 13px; font-weight: 500; }
+    .rv-item__sub  { font-size: 11px; color: var(--fg-faint); margin-top: 2px; }
+    .rv-item__badges { display: flex; gap: 5px; flex-wrap: wrap; margin-top: 6px; }
+    .rv-item__badge { font-family: var(--mono); font-size: 8px; letter-spacing: .08em; text-transform: uppercase; padding: 1px 5px; border: 1px solid; }
+    .rv-item__badge--confirmed { color: #1a6b3a; border-color: #1a6b3a; }
+    .rv-item__badge--pending   { color: #9a6200; border-color: #9a6200; }
+    .rv-item__badge--cancelled { color: var(--fg-faint); border-color: var(--fg-faint); }
+    .rv-item__actions { display: flex; gap: 5px; margin-top: 8px; }
+    .rv-edit-form { border-top: 1px solid var(--line); margin-top: 8px; padding-top: 8px; }
+    .rv-notes-area { flex-shrink: 0; border-top: 1px solid var(--line-soft); padding: 10px 12px; }
+    .rv-notes-label { font-family: var(--mono); font-size: 8px; letter-spacing: .12em; text-transform: uppercase; color: var(--fg-faint); display: block; margin-bottom: 5px; }
+    .rv-notes-area textarea { width: 100%; box-sizing: border-box; resize: none; font-family: var(--mono); font-size: 11px; background: var(--line-soft); border: 1px solid var(--line); border-radius: 4px; padding: 6px 8px; color: var(--fg); }
+
+    /* Gallery upload progress */
+    .gallery-upload-bar { height: 28px; background: var(--line-soft); display: flex; align-items: center; gap: 10px; padding: 0 14px; border-bottom: 1px solid var(--line); position: relative; overflow: hidden; flex-shrink: 0; }
+    .gallery-upload-bar__fill { position: absolute; left: 0; top: 0; bottom: 0; background: var(--accent); opacity: 0.22; transition: width 80ms linear; width: 0%; }
+    .gallery-upload-bar__pct { font-family: var(--mono); font-size: 9px; letter-spacing: .1em; position: relative; z-index: 1; color: var(--fg); }
+    /* Global thin upload bar (for section-image uploads) */
+    .global-upload-bar { position: fixed; top: 0; left: 0; right: 0; height: 3px; z-index: 9000; background: transparent; pointer-events: none; }
+    .global-upload-bar__fill { height: 100%; background: var(--accent); transition: width 80ms linear; width: 0%; }
 
     /* Gallery panel */
     .gallery-pane { display: flex; flex-direction: column; width: 100%; }
@@ -1090,6 +1141,7 @@ const HTML = `<!DOCTYPE html>
         <button class="cp-tab active" data-cp-tab="dashboard">Dashboard</button>
         <button class="cp-tab" data-cp-tab="gallery">Gallery</button>
         <button class="cp-tab" data-cp-tab="orders">Orders</button>
+        <button class="cp-tab" data-cp-tab="reservations">Reservations</button>
         <button class="cp-tab" data-cp-tab="finance">Finance</button>
         <button class="cp-tab" data-cp-tab="wip">(Under Development)</button>
       </div>
@@ -1756,6 +1808,11 @@ const HTML = `<!DOCTYPE html>
 
       </div><!-- /cp-dashboard -->
 
+      <!-- Global upload progress indicator -->
+      <div id="global-upload-bar" class="global-upload-bar" hidden>
+        <div id="global-upload-bar-fill" class="global-upload-bar__fill"></div>
+      </div>
+
       <!-- Gallery panel -->
       <div class="cp-panel" id="cp-gallery">
         <div class="gallery-pane">
@@ -1763,6 +1820,10 @@ const HTML = `<!DOCTYPE html>
             <span class="gallery-pane__title">Image Gallery</span>
             <button class="btn-ghost btn-sm" id="btn-gallery-upload">+ Upload</button>
             <button class="btn-ghost btn-sm" id="btn-gallery-refresh">↻</button>
+          </div>
+          <div id="gallery-upload-bar" class="gallery-upload-bar" hidden>
+            <div class="gallery-upload-bar__fill" id="gallery-upload-bar-fill"></div>
+            <span class="gallery-upload-bar__pct" id="gallery-upload-bar-pct">0%</span>
           </div>
           <div class="gallery-pane__grid" id="gallery-pane-grid">
             <div class="gallery-drop-hint">Drop images here to upload</div>
@@ -1788,6 +1849,44 @@ const HTML = `<!DOCTYPE html>
             <button class="btn-ghost btn-sm" id="btn-refresh-orders">↻</button>
           </div>
           <div id="orders-list"><p class="status-msg" style="padding:12px">Select the Orders tab to load orders.</p></div>
+        </div>
+      </div>
+
+      <!-- Reservations panel -->
+      <div class="cp-panel" id="cp-reservations">
+        <div class="rv-wrap">
+          <div class="rv-cal">
+            <div class="rv-cal__nav">
+              <button class="rv-cal__navbtn" id="rv-cal-prev">&#8249;</button>
+              <span class="rv-cal__navtitle" id="rv-cal-title"></span>
+              <button class="rv-cal__navbtn" id="rv-cal-next">&#8250;</button>
+            </div>
+            <div class="rv-cal__body">
+              <div class="rv-cal__wdays">
+                <div class="rv-cal__wday">Su</div>
+                <div class="rv-cal__wday">Mo</div>
+                <div class="rv-cal__wday">Tu</div>
+                <div class="rv-cal__wday">We</div>
+                <div class="rv-cal__wday">Th</div>
+                <div class="rv-cal__wday">Fr</div>
+                <div class="rv-cal__wday">Sa</div>
+              </div>
+              <div class="rv-cal__days" id="rv-cal-days"></div>
+            </div>
+          </div>
+          <div class="rv-day">
+            <div class="rv-day__hdr">
+              <span class="rv-day__title" id="rv-day-title">Select a date</span>
+              <span class="rv-day__count" id="rv-day-count"></span>
+            </div>
+            <div class="rv-day__list" id="rv-day-list">
+              <p class="rv-day__empty">Select a date to view reservations.</p>
+            </div>
+            <div class="rv-notes-area">
+              <label class="rv-notes-label">Notes &amp; Reminders</label>
+              <textarea id="rv-notes-ta" rows="3" placeholder="Reminders for the selected day…"></textarea>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -2449,7 +2548,7 @@ const HTML = `<!DOCTYPE html>
       errPayment:     'Subscription error. Please try again.',
     };
   </script>
-  <script src="/js/dashboard.js?v=20260802b"></script>
+  <script src="/js/dashboard.js?v=20260802c"></script>
   <script src="/js/checkout.js?v=20260802a"></script>
 </body>
 </html>`;

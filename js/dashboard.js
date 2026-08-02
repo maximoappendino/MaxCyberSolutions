@@ -117,7 +117,7 @@ const SECTION_TYPES = {
       title: '', layout: 'classic', columns: 3,
       ratio: '1/1', hoverEffect: 'zoom', clickAction: 'lightbox',
       bg: '', color: '', images: [],
-      carouselSpeed: 3500, carouselEdgeFade: 0, carouselEdgeShrink: 20,
+      carouselSpeed: 3500, carouselEdgeFade: 0, carouselEdgeShrink: 20, carouselContinuous: false,
     },
   },
   'floating-cta': {
@@ -181,7 +181,7 @@ const SECTION_TYPES = {
     },
   },
   reservation: {
-    label: 'Reservations (tracked)', icon: '🗓',
+    label: 'Reservation Form', icon: '🗓',
     defaults: {
       title: 'Book an appointment',
       service_name: 'Appointment',
@@ -192,6 +192,9 @@ const SECTION_TYPES = {
       max_days: 30,
       confirm_msg: 'Your reservation is confirmed.',
       bg: '', color: '',
+      day_sun: true, day_mon: true, day_tue: true, day_wed: true,
+      day_thu: true, day_fri: true, day_sat: true,
+      max_overlapping: 1,
     },
   },
   location: {
@@ -625,6 +628,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   setupNewStoreForm();
   setupCpTabs();
   setupGallery();
+  setupRvCalendar();
   setupImgEditor();
   setupImgPicker();
   setupEditorTabs();
@@ -1078,11 +1082,12 @@ function setupCpTabs() {
       document.querySelectorAll('.cp-tab').forEach(t => t.classList.remove('active'));
       document.querySelectorAll('.cp-panel').forEach(p => p.classList.remove('active'));
       tab.classList.add('active');
-      const panelId = { dashboard: 'cp-dashboard', gallery: 'cp-gallery', orders: 'cp-orders', finance: 'cp-finance', wip: 'cp-wip' }[tab.dataset.cpTab];
+      const panelId = { dashboard: 'cp-dashboard', gallery: 'cp-gallery', orders: 'cp-orders', reservations: 'cp-reservations', finance: 'cp-finance', wip: 'cp-wip' }[tab.dataset.cpTab];
       document.getElementById(panelId)?.classList.add('active');
-      if (tab.dataset.cpTab === 'gallery') loadGallery();
-      if (tab.dataset.cpTab === 'orders')  loadOrders();
-      if (tab.dataset.cpTab === 'finance') initFinance();
+      if (tab.dataset.cpTab === 'gallery')      loadGallery();
+      if (tab.dataset.cpTab === 'orders')       loadOrders();
+      if (tab.dataset.cpTab === 'reservations') loadReservations();
+      if (tab.dataset.cpTab === 'finance')      initFinance();
     });
   });
 }
@@ -1145,15 +1150,43 @@ window.deleteGalleryImg = async function(i) {
   renderGalleryGrid();
 };
 
+function uploadWithXHR(fd, onProgress) {
+  return new Promise(resolve => {
+    const xhr = new XMLHttpRequest();
+    xhr.upload.addEventListener('progress', e => {
+      if (e.lengthComputable) onProgress?.(Math.round(e.loaded / e.total * 100));
+    });
+    xhr.addEventListener('load', () => {
+      try { resolve({ ok: xhr.status >= 200 && xhr.status < 300, data: JSON.parse(xhr.responseText) }); }
+      catch { resolve({ ok: false, data: {} }); }
+    });
+    xhr.addEventListener('error', () => resolve({ ok: false, data: {} }));
+    xhr.open('POST', '/api/upload');
+    xhr.send(fd);
+  });
+}
+
 async function galleryUploadFile(file) {
   if (!file || !state.activeStore) return null;
   const fd = new FormData();
   fd.append('file', file);
   fd.append('store_id', state.activeStore.id);
-  const res  = await fetch('/api/upload', { method: 'POST', body: fd });
-  const data = await safeJson(res);
-  if (!res.ok) { alert(data.error || 'Upload failed'); return null; }
-  return data.url;
+
+  const bar  = document.getElementById('gallery-upload-bar');
+  const fill = document.getElementById('gallery-upload-bar-fill');
+  const pct  = document.getElementById('gallery-upload-bar-pct');
+  if (bar) { bar.hidden = false; fill.style.width = '0%'; }
+
+  try {
+    const { ok, data } = await uploadWithXHR(fd, p => {
+      if (fill) fill.style.width = p + '%';
+      if (pct)  pct.textContent  = p + '%';
+    });
+    if (!ok) { alert(data.error || 'Upload failed'); return null; }
+    return data.url;
+  } finally {
+    if (bar) { bar.hidden = true; if (fill) fill.style.width = '0%'; }
+  }
 }
 
 function setupGallery() {
@@ -2537,6 +2570,7 @@ function buildSectionFields(s, i) {
         fieldToggle('Show captions', 'showCaptions', !!s.showCaptions),
       ]),
       fieldGroup('Carousel (when "Carousel" layout selected)', [
+        fieldToggle('Continuous scroll (seamless loop, no arrows)', 'carouselContinuous', !!s.carouselContinuous),
         fieldRange('Slide speed', 'carouselSpeed', s.carouselSpeed ?? 3500, 1000, 9000, 500, 'ms'),
         fieldRange('Edge fade', 'carouselEdgeFade', s.carouselEdgeFade ?? 0, 0, 45, 1, '%'),
         fieldRange('Edge shrink', 'carouselEdgeShrink', s.carouselEdgeShrink ?? 20, 0, 45, 1, '%'),
@@ -2764,6 +2798,15 @@ function buildSectionFields(s, i) {
         fieldTextarea('Available time slots (one per line, e.g. 09:00)', 'available_hours',
           esc(s.available_hours || '09:00\n10:00\n11:00\n14:00\n15:00\n16:00'), 6),
         field('number', 'Max days in advance', 'max_days', esc(String(s.max_days || 30))),
+        `<div class="form-field"><label>Open days</label>
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;padding-top:4px">
+            ${[['day_sun','Sun'],['day_mon','Mon'],['day_tue','Tue'],['day_wed','Wed'],
+               ['day_thu','Thu'],['day_fri','Fri'],['day_sat','Sat']].map(([f,l]) =>
+              fieldToggle(l, f, s[f] !== false)).join('')}
+          </div>
+        </div>`,
+        field('number', 'Max overlapping bookings', 'max_overlapping', s.max_overlapping ?? 1,
+          'e.g. tables at a restaurant or barbers in a shop'),
       ]),
       fieldGroup('Confirmation', [
         field('text', 'Confirmation message', 'confirm_msg', esc(s.confirm_msg || 'Your reservation is confirmed.')),
@@ -3178,10 +3221,13 @@ async function handleImgUpload(e) {
   fd.append('file', file);
   fd.append('store_id', state.activeStore.id);
 
+  const gBar  = document.getElementById('global-upload-bar');
+  const gFill = document.getElementById('global-upload-bar-fill');
+  if (gBar) { gBar.hidden = false; gFill.style.width = '0%'; }
+
   try {
-    const res  = await fetch('/api/upload', { method: 'POST', body: fd });
-    const data = await safeJson(res);
-    if (!res.ok) { alert(data.error || 'Upload failed'); return; }
+    const { ok, data } = await uploadWithXHR(fd, p => { if (gFill) gFill.style.width = p + '%'; });
+    if (!ok) { alert(data.error || 'Upload failed'); return; }
     const url = data.url;
 
     if (target.type === 'logo') {
@@ -3215,6 +3261,7 @@ async function handleImgUpload(e) {
       renderProductImgPreview(url);
     }
   } finally {
+    if (gBar) { gBar.hidden = true; if (gFill) gFill.style.width = '0%'; }
     state.imgUploadTarget = null;
   }
 }
@@ -4407,9 +4454,8 @@ function renderOrders(orders) {
 
   list.innerHTML = orders.map(o => {
     const date       = new Date(o.created_at).toLocaleDateString('es-AR', { day:'2-digit', month:'short' });
-    const isRes      = o.order_type === 'reservation';
-    const typeBadge  = isRes ? `<span class="order-badge" style="background:#2d6a4f;color:#fff">reservation</span>` : '';
-    const resAt      = isRes && o.reservation_at
+    const isRes = o.order_type === 'reservation';
+    const resAt = isRes && o.reservation_at
       ? `<div class="order-detail__row"><span class="order-detail__key">Appointment</span><span>${esc(new Date(o.reservation_at).toLocaleString('es-AR',{dateStyle:'medium',timeStyle:'short'}))}</span></div>`
       : '';
     const resNotes   = isRes && o.reservation_notes
@@ -4422,7 +4468,6 @@ function renderOrders(orders) {
     <div class="order-row" id="ord-${esc(o.id)}">
       <div class="order-row__head">
         <span class="order-name">${esc(o.customer_name)}</span>
-        ${typeBadge}
         <span class="order-badge order-badge--${esc(o.status)}">${esc(o.status.replace('_',' '))}</span>
         <span class="order-amt">${fmtARS(o.total_cents)}</span>
       </div>
@@ -4464,6 +4509,181 @@ window.updateOrderStatus = async function(orderId, status) {
   const badge = document.querySelector(`#ord-${orderId} .order-badge`);
   if (badge) { badge.textContent = status.replace('_', ' '); badge.className = `order-badge order-badge--${status}`; }
 };
+
+// ── Reservations Calendar ─────────────────────────────────────────────────────
+let _rvYear   = new Date().getFullYear();
+let _rvMonth  = new Date().getMonth();
+let _rvDate   = null;
+let _rvData   = [];
+let _rvDragId = null;
+
+async function loadReservations() {
+  if (!state.activeStore) return;
+  const listEl = document.getElementById('rv-day-list');
+  if (listEl) listEl.innerHTML = '<p class="rv-day__empty">Loading…</p>';
+  const res = await api('GET', `/api/stores/${state.activeStore.id}/orders?type=reservation&limit=500`);
+  _rvData = res.ok ? ((await safeJson(res)) || []) : [];
+  if (!Array.isArray(_rvData)) _rvData = [];
+  renderRvCalendar();
+  if (_rvDate) renderRvDay(_rvDate);
+  else if (listEl) listEl.innerHTML = '<p class="rv-day__empty">Select a date to view reservations.</p>';
+}
+
+function rvDotDates() {
+  return new Set(_rvData.filter(r => r.reservation_at && r.status !== 'cancelled').map(r => r.reservation_at.slice(0, 10)));
+}
+
+function renderRvCalendar() {
+  const titleEl = document.getElementById('rv-cal-title');
+  const daysEl  = document.getElementById('rv-cal-days');
+  if (!titleEl || !daysEl) return;
+  const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  titleEl.textContent = `${MONTHS[_rvMonth]} ${_rvYear}`;
+  const todayStr  = new Date().toISOString().slice(0, 10);
+  const dots      = rvDotDates();
+  const firstDay  = new Date(_rvYear, _rvMonth, 1).getDay();
+  const lastDay   = new Date(_rvYear, _rvMonth + 1, 0).getDate();
+  let html = '';
+  for (let i = 0; i < firstDay; i++) html += '<div class="rv-cal__day empty"></div>';
+  for (let d = 1; d <= lastDay; d++) {
+    const ds  = `${_rvYear}-${String(_rvMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const cls = ['rv-cal__day', ds===todayStr?'today':'', ds===_rvDate?'selected':'', dots.has(ds)?'has-rv':''].filter(Boolean).join(' ');
+    html += `<div class="${cls}" onclick="rvSelectDate('${ds}')" ondragover="event.preventDefault();this.classList.add('drop-ok')" ondragleave="this.classList.remove('drop-ok')" ondrop="rvDropOnDate(event,'${ds}')">${d}</div>`;
+  }
+  daysEl.innerHTML = html;
+}
+
+window.rvSelectDate = function(ds) {
+  _rvDate = ds;
+  renderRvCalendar();
+  renderRvDay(ds);
+  const ta  = document.getElementById('rv-notes-ta');
+  const key = `rv_note_${state.activeStore?.id}_${ds}`;
+  if (ta) { ta.value = localStorage.getItem(key) || ''; ta.oninput = () => localStorage.setItem(key, ta.value); }
+};
+
+function renderRvDay(ds) {
+  const listEl  = document.getElementById('rv-day-list');
+  const titleEl = document.getElementById('rv-day-title');
+  const countEl = document.getElementById('rv-day-count');
+  if (!listEl || !titleEl) return;
+  const d = new Date(ds + 'T12:00:00');
+  titleEl.textContent = d.toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric', year:'numeric' });
+  const items = _rvData.filter(r => r.reservation_at && r.reservation_at.slice(0,10) === ds)
+    .sort((a, b) => a.reservation_at < b.reservation_at ? -1 : 1);
+  if (countEl) countEl.textContent = items.length ? `${items.length} reservation${items.length!==1?'s':''}` : '';
+  if (!items.length) { listEl.innerHTML = '<p class="rv-day__empty">No reservations for this day.</p>'; return; }
+  listEl.innerHTML = items.map(r => {
+    const timeStr = r.reservation_at
+      ? new Date(r.reservation_at).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',hour12:false})
+      : '—';
+    const badgeCls = r.status==='confirmed' ? 'rv-item__badge--confirmed' : r.status==='cancelled' ? 'rv-item__badge--cancelled' : 'rv-item__badge--pending';
+    return `<div class="rv-item" id="rvi-${esc(r.id)}" draggable="true"
+      ondragstart="rvDragStart(event,'${esc(r.id)}')"
+      ondragend="document.getElementById('rvi-${esc(r.id)}')?.classList.remove('dragging')">
+      <div class="rv-item__time">${timeStr}</div>
+      <div class="rv-item__name">${esc(r.customer_name)}</div>
+      <div class="rv-item__sub">${esc(r.customer_email)}${r.customer_phone?' · '+esc(r.customer_phone):''}</div>
+      ${r.reservation_notes?`<div class="rv-item__sub">${esc(r.reservation_notes)}</div>`:''}
+      <div class="rv-item__badges"><span class="rv-item__badge ${badgeCls}">${esc(r.status)}</span></div>
+      <div class="rv-item__actions">
+        <button class="btn-ghost btn-sm" onclick="rvToggleEdit('${esc(r.id)}')">Edit</button>
+        <button class="btn-ghost btn-sm" style="color:#b33" onclick="rvRemove('${esc(r.id)}')">Remove</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+window.rvDragStart = function(e, id) {
+  _rvDragId = id;
+  document.getElementById('rvi-'+id)?.classList.add('dragging');
+  e.dataTransfer.effectAllowed = 'move';
+};
+
+window.rvDropOnDate = async function(e, newDate) {
+  e.currentTarget.classList.remove('drop-ok');
+  const id = _rvDragId; _rvDragId = null;
+  if (!id) return;
+  const r = _rvData.find(x => x.id === id);
+  if (!r || !r.reservation_at) return;
+  const oldTime = new Date(r.reservation_at).toTimeString().slice(0, 5);
+  const newAt   = newDate + 'T' + oldTime;
+  const res = await api('PUT', `/api/orders/${id}`, { reservation_at: newAt });
+  if (!res.ok) { alert('Failed to move reservation'); return; }
+  r.reservation_at = new Date(newAt).toISOString();
+  renderRvCalendar();
+  renderRvDay(_rvDate);
+};
+
+window.rvToggleEdit = function(id) {
+  const el = document.getElementById('rvi-'+id);
+  if (!el) return;
+  const existing = el.querySelector('.rv-edit-form');
+  if (existing) { existing.remove(); return; }
+  const r = _rvData.find(x => x.id === id);
+  if (!r) return;
+  const timeVal = r.reservation_at
+    ? new Date(r.reservation_at).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',hour12:false})
+    : '';
+  const form = document.createElement('div');
+  form.className = 'rv-edit-form';
+  form.innerHTML = `<div style="display:flex;gap:8px;margin-top:10px">
+    <div style="flex:1;display:flex;flex-direction:column;gap:4px">
+      <label style="font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:.1em;color:var(--fg-faint)">Time</label>
+      <input type="time" id="rve-t-${esc(id)}" value="${esc(timeVal)}" style="padding:5px 8px;font-size:12px;border:1px solid var(--line);background:var(--bg);color:var(--fg)" />
+    </div>
+    <div style="flex:1;display:flex;flex-direction:column;gap:4px">
+      <label style="font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:.1em;color:var(--fg-faint)">Status</label>
+      <select id="rve-s-${esc(id)}" style="padding:5px 8px;font-size:12px;border:1px solid var(--line);background:var(--bg);color:var(--fg)">
+        ${['pending','confirmed','cancelled'].map(sv=>`<option value="${sv}"${sv===r.status?' selected':''}>${sv}</option>`).join('')}
+      </select>
+    </div>
+  </div>
+  <div style="display:flex;gap:6px;margin-top:8px">
+    <button class="btn-ghost btn-sm" onclick="rvSaveEdit('${esc(id)}')">Save</button>
+    <button class="btn-ghost btn-sm" onclick="this.closest('.rv-edit-form').remove()">Cancel</button>
+  </div>`;
+  el.appendChild(form);
+};
+
+window.rvSaveEdit = async function(id) {
+  const r = _rvData.find(x => x.id === id);
+  if (!r) return;
+  const tEl = document.getElementById('rve-t-'+id);
+  const sEl = document.getElementById('rve-s-'+id);
+  const datePart = (r.reservation_at || _rvDate || '').slice(0, 10);
+  const body = {};
+  if (datePart && tEl?.value) body.reservation_at = datePart + 'T' + tEl.value;
+  if (sEl?.value && sEl.value !== r.status) body.status = sEl.value;
+  if (!Object.keys(body).length) { el?.querySelector?.('.rv-edit-form')?.remove(); return; }
+  const res = await api('PUT', `/api/orders/${id}`, body);
+  if (!res.ok) { alert('Failed to save'); return; }
+  if (body.reservation_at) r.reservation_at = new Date(body.reservation_at).toISOString();
+  if (body.status) r.status = body.status;
+  renderRvCalendar();
+  renderRvDay(_rvDate);
+};
+
+window.rvRemove = async function(id) {
+  if (!askConfirm('Cancel this reservation?')) return;
+  const res = await api('PUT', `/api/orders/${id}`, { status: 'cancelled' });
+  if (!res.ok) { alert('Failed'); return; }
+  const r = _rvData.find(x => x.id === id);
+  if (r) r.status = 'cancelled';
+  renderRvCalendar();
+  renderRvDay(_rvDate);
+};
+
+function setupRvCalendar() {
+  document.getElementById('rv-cal-prev')?.addEventListener('click', () => {
+    _rvMonth--; if (_rvMonth < 0) { _rvMonth = 11; _rvYear--; }
+    renderRvCalendar();
+  });
+  document.getElementById('rv-cal-next')?.addEventListener('click', () => {
+    _rvMonth++; if (_rvMonth > 11) { _rvMonth = 0; _rvYear++; }
+    renderRvCalendar();
+  });
+}
 
 // ── Management tab — Customers ────────────────────────────────────────────────
 async function loadCustomers() {

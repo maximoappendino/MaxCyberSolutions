@@ -9,11 +9,13 @@ export async function onRequestGet({ params, request, data, env }) {
 
   const url    = new URL(request.url);
   const status = url.searchParams.get('status') || '';
-  const limit  = Math.min(100, parseInt(url.searchParams.get('limit') || '50', 10));
+  const type   = url.searchParams.get('type')   || '';
+  const limit  = Math.min(500, parseInt(url.searchParams.get('limit') || '50', 10));
 
   let query  = 'SELECT * FROM orders WHERE store_id = ?';
   const bind = [params.id];
   if (status) { query += ' AND status = ?'; bind.push(status); }
+  if (type)   { query += ' AND order_type = ?'; bind.push(type); }
   query += ' ORDER BY created_at DESC LIMIT ?';
   bind.push(limit);
 

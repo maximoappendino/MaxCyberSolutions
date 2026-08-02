@@ -28,8 +28,8 @@ export async function onRequestPut({ params, request, data, env }) {
   const order = await ownedOrder(params.id, data.owner_id, env);
   if (!order) return json({ error: 'Not found' }, 404);
 
-  const VALID = new Set(['pending', 'awaiting_transfer', 'paid', 'processing', 'shipped', 'delivered', 'cancelled']);
-  const { status, notes } = body ?? {};
+  const VALID = new Set(['pending', 'awaiting_transfer', 'paid', 'processing', 'shipped', 'delivered', 'cancelled', 'confirmed']);
+  const { status, notes, reservation_at, reservation_notes } = body ?? {};
 
   const sets = ["updated_at = datetime('now')"];
   const vals = [];
@@ -38,7 +38,9 @@ export async function onRequestPut({ params, request, data, env }) {
     if (!VALID.has(status)) return json({ error: 'Invalid status' }, 400);
     sets.push('status = ?'); vals.push(status);
   }
-  if (notes !== undefined) { sets.push('notes = ?'); vals.push(notes); }
+  if (notes !== undefined)             { sets.push('notes = ?');             vals.push(notes); }
+  if (reservation_at !== undefined)    { sets.push('reservation_at = ?');    vals.push(reservation_at); }
+  if (reservation_notes !== undefined) { sets.push('reservation_notes = ?'); vals.push(reservation_notes); }
 
   if (sets.length === 1) return json({ error: 'Nothing to update' }, 400);
 
