@@ -448,6 +448,40 @@ function renderStorefront(store, config, products, isPreview = false, isInspect 
     .s-gallery--featured .s-gallery__item:first-child { grid-column: span 2; grid-row: span 2; }
     /* Gallery: minimal (2 cols, more gap) */
     .s-gallery--minimal .s-gallery__grid { gap: 20px; }
+    /* Gallery: carousel */
+    .s-gallery--carousel { overflow: visible; padding: 64px 0; }
+    .s-gallery--carousel .s-gallery__title { padding: 0 var(--pad) 40px; }
+    .s-gcar { position: relative; }
+    .s-gcar__outer { overflow: hidden; }
+    .s-gcar__track { display: flex; will-change: transform; user-select: none; }
+    .s-gcar__item {
+      flex-shrink: 0; padding: 0 6px; box-sizing: border-box;
+      transition: transform 480ms cubic-bezier(.4,0,.2,1), opacity 480ms ease;
+      cursor: grab;
+    }
+    .s-gcar__item:active { cursor: grabbing; }
+    .s-gcar__item img { width: 100%; display: block; }
+    .s-gcar__caption {
+      text-align: center; font-family: var(--mono);
+      font-size: 11px; letter-spacing: 0.08em; padding: 8px 0 0; opacity: 0.6;
+    }
+    .s-gcar__dots { display: flex; gap: 6px; justify-content: center; padding-top: 18px; }
+    .s-gcar__dot {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: currentColor; opacity: 0.25;
+      border: none; padding: 0; cursor: pointer; transition: opacity 200ms;
+    }
+    .s-gcar__dot--active { opacity: 1; }
+    .s-gcar__nav {
+      position: absolute; top: 50%; transform: translateY(-50%);
+      background: rgba(255,255,255,.88); border: none;
+      width: 36px; height: 36px; border-radius: 50%;
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+      font-size: 22px; z-index: 2; transition: background 150ms;
+    }
+    .s-gcar__nav--prev { left: 10px; }
+    .s-gcar__nav--next { right: 10px; }
+    .s-gcar__nav:hover { background: #fff; }
 
     /* ── Rich text / Text Block ── */
     .s-rich { padding: 64px var(--pad); }
@@ -1886,6 +1920,8 @@ function renderGallery(s) {
     fg ? `color:${esc(fg)}`     : '',
   ].filter(Boolean).join(';');
 
+  if (layout === 'carousel') return renderGalleryCarousel(s, images, ratio, imgFit, showCap, secStyle);
+
   const hoverClass  = hoverEffect && hoverEffect !== 'none' ? ` s-gallery__item--${esc(hoverEffect)}` : '';
   const gridCols    = layout === 'list' ? '1fr' : `repeat(${cols}, 1fr)`;
 
@@ -1902,6 +1938,104 @@ function renderGallery(s) {
     }).join('')}
   </div>
 </section>`;
+}
+
+function renderGalleryCarousel(s, images, ratio, imgFit, showCap, secStyle) {
+  const uid        = 'sgc' + Math.random().toString(36).slice(2, 8);
+  const speed      = Math.max(1000, parseInt(s.carouselSpeed) || 3500);
+  const edgeFade   = Math.max(0, Math.min(45, parseInt(s.carouselEdgeFade)   || 0));
+  const edgeShrink = Math.max(0, Math.min(45, parseInt(s.carouselEdgeShrink) || 20));
+
+  const maskCSS = edgeFade > 0
+    ? `-webkit-mask-image:linear-gradient(to right,transparent,black ${edgeFade}%,black ${100-edgeFade}%,transparent);mask-image:linear-gradient(to right,transparent,black ${edgeFade}%,black ${100-edgeFade}%,transparent);`
+    : '';
+
+  const itemsHtml = images.map((img, idx) => {
+    const url = typeof img === 'string' ? img : (img.url || '');
+    const cap = typeof img === 'object'  ? (img.caption || '') : '';
+    return `<div class="s-gcar__item" data-idx="${idx}">
+      <img src="${esc(url)}" alt="${esc(cap)}" loading="lazy" style="aspect-ratio:${esc(ratio)};object-fit:${esc(imgFit)}" />
+      ${showCap && cap ? `<div class="s-gcar__caption">${esc(cap)}</div>` : ''}
+    </div>`;
+  }).join('');
+
+  const dotsHtml = images.length > 1
+    ? `<div class="s-gcar__dots" id="${uid}_d">
+        ${images.map((_, i) => `<button class="s-gcar__dot${i===0?' s-gcar__dot--active':''}" data-dot="${i}" aria-label="Slide ${i+1}"></button>`).join('')}
+      </div>`
+    : '';
+
+  return `<section class="s-gallery s-gallery--carousel"${secStyle ? ` style="${secStyle}"` : ''}>
+  ${s.title ? `<h2 class="s-gallery__title">${esc(s.title)}</h2>` : ''}
+  <div class="s-gcar" id="${uid}">
+    <div class="s-gcar__outer" style="${maskCSS}">
+      <div class="s-gcar__track" id="${uid}_t">${itemsHtml}</div>
+    </div>
+    <button class="s-gcar__nav s-gcar__nav--prev" id="${uid}_p" aria-label="Previous">&#8249;</button>
+    <button class="s-gcar__nav s-gcar__nav--next" id="${uid}_n" aria-label="Next">&#8250;</button>
+  </div>
+  ${dotsHtml}
+</section>
+<script>
+(function(){
+  var wrap=document.getElementById('${uid}');
+  var track=document.getElementById('${uid}_t');
+  if(!wrap||!track)return;
+  var items=[].slice.call(track.children),n=items.length;
+  if(!n)return;
+  var SPEED=${speed},SHRINK=${edgeShrink}/100;
+  var cur=0,timer=null,dragging=false,sx=0,dx=0;
+
+  function iw(){ return Math.round(wrap.offsetWidth*(SHRINK>0?0.72:1)); }
+  function posFor(i){ var w=iw(); return i*w-(wrap.offsetWidth-w)/2; }
+
+  function applyScales(){
+    if(SHRINK<=0)return;
+    items.forEach(function(el,i){
+      var d=Math.abs(i-cur); d=Math.min(d,n-d);
+      var sc=Math.max(0.5,1-SHRINK*Math.min(d,2));
+      el.style.transform='scale('+sc+')';
+      el.style.opacity=d===0?'1':d===1?String(Math.max(0.3,1-SHRINK*0.8)):'0.4';
+    });
+  }
+
+  function goTo(i,anim){
+    cur=((i%n)+n)%n;
+    track.style.transition=anim===false?'none':'transform 480ms cubic-bezier(.4,0,.2,1)';
+    track.style.transform='translateX('+(-posFor(cur))+'px)';
+    applyScales();
+    var de=document.getElementById('${uid}_d');
+    if(de)de.querySelectorAll('.s-gcar__dot').forEach(function(d,j){d.classList.toggle('s-gcar__dot--active',j===cur);});
+  }
+
+  function layout(){
+    var w=iw();
+    items.forEach(function(el){el.style.width=w+'px';el.style.flexShrink='0';});
+    goTo(cur,false);
+  }
+  layout();
+  window.addEventListener('resize',layout);
+
+  function startTimer(){ if(n>1)timer=setInterval(function(){goTo(cur+1,true);},SPEED); }
+  function resetTimer(){ clearInterval(timer);startTimer(); }
+  startTimer();
+
+  document.getElementById('${uid}_p').addEventListener('click',function(){goTo(cur-1,true);resetTimer();});
+  document.getElementById('${uid}_n').addEventListener('click',function(){goTo(cur+1,true);resetTimer();});
+  var de=document.getElementById('${uid}_d');
+  if(de)de.querySelectorAll('.s-gcar__dot').forEach(function(d){d.addEventListener('click',function(){goTo(+d.dataset.dot,true);resetTimer();});});
+
+  function onStart(x){dragging=true;sx=x;dx=0;track.style.transition='none';}
+  function onMove(x){if(!dragging)return;dx=x-sx;track.style.transform='translateX('+(-posFor(cur)+dx)+'px)';}
+  function onEnd(){if(!dragging)return;dragging=false;if(Math.abs(dx)>44){goTo(dx<0?cur+1:cur-1,true);resetTimer();}else{goTo(cur,true);}dx=0;}
+  track.addEventListener('mousedown',function(e){onStart(e.clientX);e.preventDefault();});
+  window.addEventListener('mousemove',function(e){onMove(e.clientX);});
+  window.addEventListener('mouseup',onEnd);
+  track.addEventListener('touchstart',function(e){onStart(e.touches[0].clientX);},{passive:true});
+  track.addEventListener('touchmove',function(e){onMove(e.touches[0].clientX);},{passive:true});
+  track.addEventListener('touchend',onEnd);
+})();
+</script>`;
 }
 
 function renderRichText(s) {

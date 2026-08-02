@@ -117,6 +117,7 @@ const SECTION_TYPES = {
       title: '', layout: 'classic', columns: 3,
       ratio: '1/1', hoverEffect: 'zoom', clickAction: 'lightbox',
       bg: '', color: '', images: [],
+      carouselSpeed: 3500, carouselEdgeFade: 0, carouselEdgeShrink: 20,
     },
   },
   'floating-cta': {
@@ -2514,8 +2515,8 @@ function buildSectionFields(s, i) {
       fieldTextarea('Title (optional)', 'title', esc(s.title || '')),
       fieldGroup('Layout', [
         fieldSelect('Gallery layout', 'layout', s.layout || 'classic',
-          ['classic','list','featured','minimal'],
-          ['Classic Grid','List','Featured (first image large)','Minimal (2-col, spacious)']),
+          ['classic','list','featured','minimal','carousel'],
+          ['Classic Grid','List','Featured (first image large)','Minimal (2-col, spacious)','Carousel']),
         `<div class="form-row">
           ${fieldSelect('Columns', 'columns', String(s.columns||3), ['2','3','4','5','6'], ['2','3','4','5','6'])}
           ${fieldSelect('Image ratio', 'ratio', s.ratio || '1/1',
@@ -2534,6 +2535,11 @@ function buildSectionFields(s, i) {
           ['none','lightbox','url'],
           ['None','Open lightbox','Open URL']),
         fieldToggle('Show captions', 'showCaptions', !!s.showCaptions),
+      ]),
+      fieldGroup('Carousel (when "Carousel" layout selected)', [
+        fieldRange('Slide speed', 'carouselSpeed', s.carouselSpeed ?? 3500, 1000, 9000, 500, 'ms'),
+        fieldRange('Edge fade', 'carouselEdgeFade', s.carouselEdgeFade ?? 0, 0, 45, 1, '%'),
+        fieldRange('Edge shrink', 'carouselEdgeShrink', s.carouselEdgeShrink ?? 20, 0, 45, 1, '%'),
       ]),
       fieldGroup('Colours', [
         `<div class="form-field">
