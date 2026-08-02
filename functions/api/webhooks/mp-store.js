@@ -1,6 +1,8 @@
 // POST /api/webhooks/mp-store?order={orderId}
 // Mercado Pago IPN webhook for storefront orders.
 import { json } from '../../_lib/helpers.js';
+import { verifyMpSignature } from '../../_lib/mp-verify.js';
+import { autoCreateOrderIncome } from '../../_lib/finance.js';
 import { sendEmail, canSendEmail, incrementEmailCount, emailPaymentConfirmedOwner, emailPaymentConfirmedCustomer } from '../../_lib/email.js';
 
 export async function onRequestPost({ request, env }) {
@@ -12,6 +14,10 @@ export async function onRequestPost({ request, env }) {
   const paymentId = String(body.data?.id || '');
   const orderId   = url.searchParams.get('order') || '';
   if (!paymentId || !orderId) return json({ ok: true });
+
+  if (!await verifyMpSignature(request, paymentId, env)) {
+    return json({ error: 'Invalid signature' }, 400);
+  }
 
   const row = await env.DB.prepare(`
     SELECT o.status, o.customer_name, o.customer_email, o.total_cents,
@@ -36,6 +42,14 @@ export async function onRequestPost({ request, env }) {
     await env.DB.prepare(
       "UPDATE orders SET status='paid', payment_id=?, updated_at=datetime('now') WHERE id=? AND status='pending'"
     ).bind(paymentId, orderId).run();
+
+    // Auto-import into finance ledger (idempotent)
+    const storeRow = await env.DB.prepare(
+      'SELECT store_id FROM orders WHERE id = ?'
+    ).bind(orderId).first();
+    if (storeRow?.store_id) {
+      await autoCreateOrderIncome(storeRow.store_id, orderId, row.total_cents, env);
+    }
 
     if (await canSendEmail(env, row.owner_id)) {
       const base      = env.PUBLIC_URL || 'https://maxcybersolutions.online';

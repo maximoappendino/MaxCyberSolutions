@@ -60,19 +60,20 @@
     strings: {
       dark: 'Scuro', light: 'Chiaro',
       commission: 'Commissiona', mostChosen: 'Più scelto',
+      ctaSubscribe: 'Iscriviti',
       ctaMax: 'Parliamo',
       contactAlert: 'Grazie — Max ti contatterà entro un giorno.',
       promoSuccess: '✦ ARGENTINA — 20% di sconto applicato', promoInvalid: 'Codice non valido',
     },
     pricing: [
       { id:'basic', name:'Basic',  price:'$15', period:'/mese', feat:false,
-        items:['50 MB di spazio','1 Notifica / giorno','1 sito web','Dashboard'] },
+        items:['50 MB di spazio','1 aggiornamento del sito / giorno','1 sito web','Dashboard'] },
       { id:'plus',  name:'Plus',   price:'$20', period:'/mese', feat:false,
-        items:['100 MB di spazio','3 Notifiche / giorno','1 sito web','Dashboard','MercadoPago','MercadoEnvíos'] },
+        items:['100 MB di spazio','3 aggiornamenti del sito / giorno','1 sito web','Dashboard','MercadoPago','MercadoEnvíos'] },
       { id:'pro',   name:'Pro',    price:'$30', period:'/mese', feat:true,
-        items:['500 MB di spazio','10 Notifiche / giorno','2 siti web','Dashboard','MercadoPago','MercadoEnvíos','Gestione clienti','Supporto tecnico'] },
+        items:['500 MB di spazio','10 aggiornamenti del sito / giorno','2 siti web','Dashboard','MercadoPago','MercadoEnvíos','Gestione clienti','Supporto tecnico'] },
       { id:'ultra', name:'Ultra',  price:'$50', period:'/mese', feat:false,
-        items:['2 GB di spazio','30 Notifiche / giorno','5 siti web','Dashboard','MercadoPago','MercadoEnvíos','Gestione clienti','Analisi','Supporto tecnico','Suggerimenti da sviluppatore'] },
+        items:['2 GB di spazio','30 aggiornamenti del sito / giorno','5 siti web','Dashboard','MercadoPago','MercadoEnvíos','Gestione clienti','Analisi','Supporto tecnico','Suggerimenti da sviluppatore'] },
       { id:'max',   name:'MAX',    price:'Su misura', period:'', feat:false,
         items:['Dimmi cosa ti serve','Sono al tuo servizio'] },
     ],
@@ -99,7 +100,7 @@
         <span class="bar__theme-dot"></span>
         <span data-theme-label>Scuro</span>
       </button>
-      <a href="#" data-config="calendarUrl" class="bar__cta" target="_blank" rel="noopener">Prenota 30 min ↗</a>
+      <a href="#" data-config="whatsappUrl" class="bar__cta" target="_blank" rel="noopener">WhatsApp ↗</a>
       <a href="#" data-config="dashboardUrl" class="bar__cta" target="_blank" rel="noopener">Pannello di Controllo ↗</a>
       <button class="bar__hamburger" id="nav-hamburger" aria-label="Menu" aria-expanded="false">
         <span></span><span></span><span></span>
@@ -113,7 +114,7 @@
       <span class="bar__theme-dot"></span>
       <span data-theme-label>Scuro</span>
     </button>
-    <a href="#" data-config="calendarUrl" class="bar__cta" target="_blank" rel="noopener">Prenota 30 min ↗</a>
+    <a href="#" data-config="whatsappUrl" class="bar__cta" target="_blank" rel="noopener">WhatsApp ↗</a>
     <a href="#" data-config="dashboardUrl" class="bar__cta" target="_blank" rel="noopener">Pannello di Controllo ↗</a>
   </nav>
 
@@ -175,8 +176,8 @@
       <div class="steps-grid">
         <div class="step" data-reveal data-delay="0">
           <div class="step__num tag-mono">01</div>
-          <h3 class="step__title">Prenota una chiamata gratuita</h3>
-          <p class="step__desc">30 minuti. Parliamo dei tuoi prodotti, dei tuoi clienti e di come vuoi che appaia il tuo negozio. Nessun impegno, nessuna pressione — solo chiarezza.</p>
+          <h3 class="step__title">Scrivimi su WhatsApp</h3>
+          <p class="step__desc">Mandami un messaggio. Raccontami dei tuoi prodotti, dei tuoi clienti e di come vuoi che appaia il tuo negozio. Rispondo entro un giorno e da lì procediamo.</p>
         </div>
         <div class="step" data-reveal data-delay="100">
           <div class="step__num tag-mono">02</div>
@@ -283,7 +284,7 @@
         </details>
         <details class="faq-item" data-reveal>
           <summary class="faq-item__q">C'è una prova gratuita?</summary>
-          <div class="faq-item__a"><p>Non c'è una prova gratuita, ma c'è una chiamata gratuita di 30 minuti dove ti mostro una demo dal vivo del tipo di negozio adatto al tuo business. Se dopo averla vista non è quello che cerchi, non hai perso nulla.</p></div>
+          <div class="faq-item__a"><p>Non c'è una prova gratuita, ma c'è una conversazione gratuita su WhatsApp dove ti mostro una demo dal vivo del tipo di negozio adatto al tuo business. Se dopo averla vista non è quello che cerchi, non hai perso nulla.</p></div>
         </details>
         <details class="faq-item" data-reveal>
           <summary class="faq-item__q">Cosa include il Supporto Tecnico?</summary>
@@ -318,8 +319,59 @@
       <div id="pricing-tiers" class="tiers-flat"></div>
       <div class="pricing__open">
         <p class="pricing__open-text">Hai qualcosa di specifico in mente che non rientra in nessun piano? Qualsiasi progetto vale una conversazione.</p>
-        <a href="#" data-config="calendarUrl" class="pricing__open-cta" target="_blank" rel="noopener">Prenota 30 min per parlarne</a>
+        <a href="#" data-config="whatsappUrl" class="pricing__open-cta" target="_blank" rel="noopener">Scrivimi su WhatsApp</a>
       </div>
+    </div>
+  </section>
+
+  <!-- Modulo di contatto -->
+  <section class="section lead-section" data-reveal>
+    <div class="container">
+      <p class="section__tag" data-reveal data-delay="0">Contattami</p>
+      <h2 class="section__title" data-reveal data-delay="1">Raccontami della<br /><em>tua attività.</em></h2>
+      <p class="section__lede" data-reveal data-delay="2">Compila i tuoi dati e ti scrivo su WhatsApp entro un giorno.</p>
+      <form id="lead-form" class="lead-form" data-reveal data-delay="3">
+        <div class="lead-grid">
+          <div class="lead-group">
+            <label class="lead-label" for="lf-fname">Nome</label>
+            <input class="lead-field" id="lf-fname" name="fname" type="text" required autocomplete="given-name" />
+          </div>
+          <div class="lead-group">
+            <label class="lead-label" for="lf-lname">Cognome</label>
+            <input class="lead-field" id="lf-lname" name="lname" type="text" required autocomplete="family-name" />
+          </div>
+          <div class="lead-group">
+            <label class="lead-label" for="lf-phone">Telefono</label>
+            <input class="lead-field" id="lf-phone" name="phone" type="tel" required autocomplete="tel" />
+          </div>
+          <div class="lead-group">
+            <label class="lead-label" for="lf-email">E-mail</label>
+            <input class="lead-field" id="lf-email" name="email" type="email" required autocomplete="email" />
+          </div>
+          <div class="lead-group">
+            <label class="lead-label" for="lf-brand">Business / Brand <span class="lead-optional">(opzionale)</span></label>
+            <input class="lead-field" id="lf-brand" name="brand" type="text" autocomplete="organization" />
+          </div>
+          <div class="lead-group">
+            <label class="lead-label" for="lf-btype">Tipo di attività <span class="lead-optional">(opzionale)</span></label>
+            <input class="lead-field" id="lf-btype" name="btype" type="text" />
+          </div>
+        </div>
+        <div class="lead-group">
+          <label class="lead-label" for="lf-storetype">Tipo di negozio <span class="lead-optional">(opzionale)</span></label>
+          <select class="lead-field lead-field--select" id="lf-storetype" name="storetype">
+            <option value="">Scegli…</option>
+            <option value="E-commerce">E-commerce</option>
+            <option value="Servizi">Servizi</option>
+            <option value="Abbonamenti">Abbonamenti</option>
+            <option value="Prenotazioni">Prenotazioni</option>
+          </select>
+        </div>
+        <div class="lead-submit-row">
+          <button type="submit" class="lead-submit">Invia su WhatsApp <span aria-hidden="true">→</span></button>
+          <p class="lead-note">Rispondo entro un giorno. Niente spam.</p>
+        </div>
+      </form>
     </div>
   </section>
 
@@ -329,9 +381,9 @@
       <div class="contact__free">Una conversazione gratuita</div>
       <img class="contact__logo" src="../img/icon.webp" alt="MaxCyberSolutions" />
       <div class="contact__content">
-        <h2 class="contact__title">Trenta minuti,<br /><em>offerti da me.</em></h2>
-        <p class="contact__lede">Prenota mezz'ora &mdash; e mettiamo la tua attività al lavoro 24 ore su 24.</p>
-        <a href="#" data-config="calendarUrl" class="contact__submit" target="_blank" rel="noopener">Prenota la chiamata</a>
+        <h2 class="contact__title">Un messaggio,<br /><em>di distanza.</em></h2>
+        <p class="contact__lede">Scrivimi su WhatsApp &mdash; e mettiamo la tua attività al lavoro 24 ore su 24.</p>
+        <a href="#" data-config="whatsappUrl" class="contact__submit" target="_blank" rel="noopener">Scrivi su WhatsApp</a>
       </div>
     </div>
   </section>
@@ -347,7 +399,64 @@
     <div class="foot__copy">&copy; 2026 Max &nbsp;/&nbsp; Tutti i diritti riservati</div>
   </footer>
 
+  <!-- Checkout modal -->
+  <div id="checkout-modal" class="co-modal" hidden aria-modal="true" role="dialog" aria-labelledby="co-plan-name">
+    <div class="co-modal__backdrop"></div>
+    <div class="co-modal__box">
+      <button class="co-modal__close" id="co-close" aria-label="Chiudi">&times;</button>
+      <div class="co-modal__head">
+        <div class="co-modal__plan" id="co-plan-name"></div>
+        <div class="co-modal__price" id="co-plan-price"></div>
+      </div>
+
+      <!-- Passo 1: dati account -->
+      <div class="co-step" id="co-step-info">
+        <div class="co-group">
+          <label class="co-label" for="co-email">Email <span class="co-required">*</span></label>
+          <input class="co-input" id="co-email" type="email" autocomplete="email" placeholder="tu@esempio.com" />
+        </div>
+        <div class="co-group">
+          <label class="co-label" for="co-password">Password <span class="co-required">*</span></label>
+          <div class="co-pw-wrap">
+            <input class="co-input co-input--pw" id="co-password" type="password" autocomplete="new-password" placeholder="Min. 8 caratteri" />
+            <button type="button" class="co-pw-toggle" id="co-pw-toggle" aria-label="Mostra/nascondi password">&#128065;</button>
+          </div>
+        </div>
+        <div class="co-group">
+          <label class="co-label" for="co-brand">Business / Marchio <span class="co-optional">(opzionale)</span></label>
+          <input class="co-input" id="co-brand" type="text" autocomplete="organization" placeholder="Il nome del tuo marchio" />
+        </div>
+        <p class="co-msg" id="co-msg" hidden></p>
+        <button class="co-btn" id="co-next">Continua &rarr;</button>
+        <p class="co-note">Abbonamento mensile &middot; Cancella quando vuoi</p>
+      </div>
+
+      <!-- Passo 2: carta -->
+      <div class="co-step" id="co-step-card" hidden>
+        <div id="cardPayment-container"></div>
+      </div>
+
+      <!-- Passo 3: successo -->
+      <div class="co-step" id="co-step-success" hidden>
+        <p class="co-success">Pagamento approvato &mdash; reindirizzamento al tuo pannello&hellip;</p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    window.CO_STRINGS = {
+      locale:         'it-IT',
+      errEmail:       'Inserisci un indirizzo email valido.',
+      errPassword:    'La password deve avere almeno 8 caratteri.',
+      errConfig:      'Errore di configurazione. Riprova.',
+      errUnavailable: 'Il pagamento online non è disponibile adesso.',
+      errSdk:         'Impossibile caricare il modulo di pagamento. Riprova.',
+      errBrick:       'Impossibile inizializzare il pagamento. Riprova.',
+      errPayment:     'Errore di abbonamento. Riprova.',
+    };
+  </script>
   <script src="../js/config.js"></script>
   <script src="../js/main.js"></script>
+  <script src="../js/checkout.js"></script>
 </body>
 </html>

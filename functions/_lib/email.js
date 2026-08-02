@@ -1,6 +1,9 @@
+// Store-facing transactional emails (order confirmations, payment receipts)
 const FROM = 'MaxCyberSolutions <no-reply@maxcybersolutions.online>';
+// Platform emails from Max directly (account verify, billing, subscription notices)
+const FROM_MAX = 'Max <max@maxcybersolutions.online>';
 
-export async function sendEmail(env, { to, subject, html }) {
+export async function sendEmail(env, { to, subject, html, from }) {
   if (!env.RESEND_API_KEY) return { ok: false };
   const res = await fetch('https://api.resend.com/emails', {
     method: 'POST',
@@ -8,9 +11,14 @@ export async function sendEmail(env, { to, subject, html }) {
       'Authorization': `Bearer ${env.RESEND_API_KEY}`,
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ from: FROM, to, subject, html }),
+    body: JSON.stringify({ from: from || FROM, to, subject, html }),
   });
   return { ok: res.ok };
+}
+
+// Platform emails bypass the per-owner monthly counter — they're system-generated
+export async function sendPlatformEmail(env, { to, subject, html }) {
+  return sendEmail(env, { to, subject, html, from: FROM_MAX });
 }
 
 export async function canSendEmail(env, ownerId) {
@@ -110,6 +118,42 @@ export function emailPaymentConfirmedOwner({ order, storeName, dashboardUrl }) {
     <p style="margin:0 0 20px;color:#8a8070;font-size:13px">#${ref} · ${String(storeName).replace(/</g,'&lt;')}</p>
     <p style="font-size:14px;margin:0 0 20px">El pago del pedido de <strong>${String(order.customer_name || '').replace(/</g,'&lt;')}</strong> fue confirmado por ${fmtARS(order.total_cents || 0)}.</p>
     <a href="${dashboardUrl}" style="display:inline-block;background:#1c1a16;color:#fff;padding:12px 24px;font-size:11px;letter-spacing:.12em;text-transform:uppercase;text-decoration:none">Ver pedido →</a>
+  `);
+}
+
+// ── Platform email templates ──────────────────────────────────────────────────
+
+export function emailVerify({ verifyUrl }) {
+  return baseLayout(`
+    <h2 style="margin:0 0 8px;font-size:22px;letter-spacing:-.01em">Verify your email</h2>
+    <p style="font-size:14px;margin:0 0 24px;color:#45403a">Click the button below to confirm your address and activate your MaxCyberSolutions account. This link expires in 24 hours.</p>
+    <a href="${verifyUrl}" style="display:inline-block;background:#1c1a16;color:#fff;padding:13px 28px;font-size:11px;letter-spacing:.14em;text-transform:uppercase;text-decoration:none">Verify email →</a>
+    <p style="font-size:12px;color:#8a8070;margin-top:20px">If you didn't create this account, you can safely ignore this email.</p>
+    <p style="font-size:12px;color:#8a8070;word-break:break-all;margin-top:8px">Or copy this link: ${verifyUrl}</p>
+  `);
+}
+
+export function emailWelcomeOwner({ email, planName, dashboardUrl }) {
+  return baseLayout(`
+    <h2 style="margin:0 0 8px;font-size:22px;letter-spacing:-.01em">Welcome — you're all set.</h2>
+    <p style="font-size:14px;margin:0 0 16px;color:#45403a">Your <strong>${String(planName).replace(/</g,'&lt;')}</strong> subscription is active. Your store dashboard is ready.</p>
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:20px">
+      <tr><td style="padding:6px 0;font-size:12px;color:#8a8070;width:100px">Account</td><td style="font-size:13px">${String(email).replace(/</g,'&lt;')}</td></tr>
+      <tr><td style="padding:6px 0;font-size:12px;color:#8a8070">Plan</td><td style="font-size:13px">${String(planName).replace(/</g,'&lt;')}</td></tr>
+      <tr><td style="padding:6px 0;font-size:12px;color:#8a8070">Billing</td><td style="font-size:13px">Monthly — cancel anytime from your dashboard</td></tr>
+    </table>
+    <a href="${dashboardUrl}" style="display:inline-block;background:#1c1a16;color:#fff;padding:13px 28px;font-size:11px;letter-spacing:.14em;text-transform:uppercase;text-decoration:none">Open Dashboard →</a>
+    <p style="font-size:12px;color:#8a8070;margin-top:20px">Questions? Reply to this email — I'm Max and I'll get back to you personally.</p>
+  `);
+}
+
+export function emailSubscriptionPastDue({ planName, dashboardUrl }) {
+  return baseLayout(`
+    <h2 style="margin:0 0 8px;font-size:22px;letter-spacing:-.01em">Payment failed</h2>
+    <p style="font-size:14px;margin:0 0 16px;color:#45403a">We couldn't process the renewal charge for your <strong>${String(planName).replace(/</g,'&lt;')}</strong> plan. Your store is temporarily unavailable until payment is resolved.</p>
+    <p style="font-size:13px;color:#45403a;margin:0 0 24px">To reactivate your store, update your payment method or re-subscribe from your dashboard.</p>
+    <a href="${dashboardUrl}" style="display:inline-block;background:#c44;color:#fff;padding:13px 28px;font-size:11px;letter-spacing:.14em;text-transform:uppercase;text-decoration:none">Update payment →</a>
+    <p style="font-size:12px;color:#8a8070;margin-top:20px">If you believe this is an error, reply to this email.</p>
   `);
 }
 

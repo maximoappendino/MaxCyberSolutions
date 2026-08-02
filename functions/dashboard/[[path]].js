@@ -121,6 +121,42 @@ const HTML = `<!DOCTYPE html>
     .d-bar__actions { display: flex; align-items: center; gap: 6px; }
     .d-bar__right   { display: flex; align-items: center; gap: 10px; margin-left: auto; }
     .d-bar__email   { font-family: var(--mono); font-size: 10px; color: var(--fg-faint); }
+    /* Notification bell */
+    .d-bar__notif { position: relative; background: none; border: none; padding: 6px 8px; color: var(--fg-faint); font-size: 16px; line-height: 1; transition: color 120ms ease; }
+    .d-bar__notif:hover { color: var(--fg); }
+    .d-bar__notif-badge {
+      position: absolute; top: 2px; right: 2px;
+      background: var(--accent); color: #fff;
+      font-family: var(--mono); font-size: 8px; font-weight: 600;
+      min-width: 14px; height: 14px; border-radius: 7px;
+      display: flex; align-items: center; justify-content: center; padding: 0 3px;
+      pointer-events: none;
+    }
+    .d-notif-panel {
+      position: absolute; top: calc(var(--bar-h) + 4px); right: 60px;
+      width: 340px; background: var(--bg); border: 1px solid var(--line);
+      box-shadow: 0 8px 24px rgba(0,0,0,.12); z-index: 200;
+      display: flex; flex-direction: column; max-height: 480px;
+    }
+    .d-notif-panel__head { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; border-bottom: 1px solid var(--line-soft); }
+    .d-notif-panel__title { font-family: var(--mono); font-size: 10px; letter-spacing: .13em; text-transform: uppercase; }
+    .d-notif-panel__mark-all { font-family: var(--mono); font-size: 9px; letter-spacing: .1em; text-transform: uppercase; background: none; border: none; color: var(--accent); cursor: pointer; }
+    .d-notif-list { overflow-y: auto; flex: 1; }
+    .d-notif-item { padding: 12px 16px; border-bottom: 1px solid var(--line-soft); cursor: pointer; transition: background 120ms ease; }
+    .d-notif-item:hover { background: var(--accent-soft); }
+    .d-notif-item--unread { background: color-mix(in srgb, var(--accent) 4%, var(--bg)); }
+    .d-notif-item__title { font-size: 13px; font-weight: 500; margin-bottom: 3px; }
+    .d-notif-item__body  { font-size: 12px; color: var(--fg-faint); line-height: 1.4; }
+    .d-notif-item__time  { font-family: var(--mono); font-size: 9px; letter-spacing: .08em; color: var(--fg-faint); margin-top: 4px; }
+    .d-notif-empty { padding: 28px; text-align: center; font-family: var(--mono); font-size: 10px; letter-spacing: .1em; color: var(--fg-faint); }
+    /* Verification banner */
+    .d-verify-banner {
+      background: color-mix(in srgb, var(--accent) 10%, var(--bg));
+      border-bottom: 1px solid var(--accent);
+      padding: 10px 20px; display: flex; align-items: center; gap: 12px;
+      font-family: var(--mono); font-size: 10px; letter-spacing: .1em;
+    }
+    .d-verify-banner a { color: var(--accent); text-decoration: underline; cursor: pointer; }
     .d-bar__logout  {
       font-family: var(--mono); font-size: 10px; letter-spacing: 0.12em;
       text-transform: uppercase; padding: 6px 12px;
@@ -256,14 +292,15 @@ const HTML = `<!DOCTYPE html>
     .editor-wrap { display: flex; flex-direction: column; height: 100vh; padding-top: var(--bar-h); overflow: hidden; }
 
     /* Control Panel tabs */
-    .cp-tabbar { display: flex; align-items: center; border-bottom: 1px solid var(--line); flex-shrink: 0; background: var(--bg); }
-    .cp-tab { font-family: var(--mono); font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase; padding: 9px 16px; border: none; background: transparent; color: var(--fg-faint); border-bottom: 2px solid transparent; margin-bottom: -1px; transition: color 160ms; cursor: pointer; }
+    .cp-tabbar { display: flex; align-items: center; border-bottom: 1px solid var(--line); flex-shrink: 0; background: var(--bg); overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    .cp-tab { font-family: var(--mono); font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase; padding: 9px 16px; border: none; background: transparent; color: var(--fg-faint); border-bottom: 2px solid transparent; margin-bottom: -1px; transition: color 160ms; cursor: pointer; flex-shrink: 0; white-space: nowrap; }
     .cp-tab:hover { color: var(--fg); }
     .cp-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
     .cp-panel { display: none; flex: 1; overflow: hidden; }
     .cp-panel.active { display: flex; }
     #cp-dashboard { flex-direction: row; }
     #cp-gallery { flex-direction: column; align-items: stretch; }
+    #cp-orders  { flex-direction: column; align-items: stretch; }
     #cp-wip { align-items: center; justify-content: center; }
 
     /* Gallery panel */
@@ -343,10 +380,10 @@ const HTML = `<!DOCTYPE html>
 
 
     /* Editor tabs */
-    .etabs { display: flex; border-bottom: 1px solid var(--line); flex-shrink: 0; }
-    .etab  { flex: 1; font-family: var(--mono); font-size: 9px; letter-spacing: 0.12em;
-      text-transform: uppercase; padding: 10px 4px; border: none; background: transparent;
-      color: var(--fg-faint); border-bottom: 2px solid transparent; margin-bottom: -1px; transition: color 160ms; }
+    .etabs { display: flex; border-bottom: 1px solid var(--line); flex-shrink: 0; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    .etab  { flex-shrink: 0; font-family: var(--mono); font-size: 9px; letter-spacing: 0.12em;
+      text-transform: uppercase; padding: 10px 14px; border: none; background: transparent;
+      color: var(--fg-faint); border-bottom: 2px solid transparent; margin-bottom: -1px; transition: color 160ms; white-space: nowrap; }
     .etab.active { color: var(--accent); border-bottom-color: var(--accent); }
     .etab-pane { display: none; flex: 1; overflow-y: auto; }
     .etab-pane.active { display: flex; flex-direction: column; }
@@ -634,6 +671,107 @@ const HTML = `<!DOCTYPE html>
       .editor-right { height: 50vh; }
       .d-bar__email { display: none; }
     }
+
+    /* ══════════════════════ FINANCE ══════════════════════ */
+    #cp-finance { flex-direction: column; align-items: stretch; overflow: hidden; }
+    .fin-wrap { display: flex; flex-direction: column; width: 100%; height: 100%; overflow: hidden; }
+    .fin-tabbar { display: flex; border-bottom: 1px solid var(--line); flex-shrink: 0; background: var(--bg); overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    .fin-tab { font-family: var(--mono); font-size: 9px; letter-spacing: 0.13em; text-transform: uppercase; padding: 9px 18px; border: none; background: transparent; color: var(--fg-faint); border-bottom: 2px solid transparent; margin-bottom: -1px; cursor: pointer; white-space: nowrap; transition: color 160ms; flex-shrink: 0; }
+    .fin-tab:hover  { color: var(--fg); }
+    .fin-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+    .fin-pane { display: none; flex: 1; overflow-y: auto; padding: 24px; }
+    .fin-pane.active { display: block; }
+    .fin-toolbar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 18px; }
+    .fin-toolbar input, .fin-toolbar select { flex: none; width: auto; padding: 6px 10px; font-size: 12px; }
+    .fin-toolbar-spacer { flex: 1; }
+
+    /* Stat cards */
+    .fin-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 24px; }
+    .fin-card { border: 1px solid var(--line); padding: 18px 16px; }
+    .fin-card__label { font-family: var(--mono); font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--fg-faint); margin-bottom: 6px; }
+    .fin-card__value { font-family: var(--serif); font-size: 26px; letter-spacing: -0.02em; line-height: 1; }
+    .fin-card__delta { font-family: var(--mono); font-size: 10px; margin-top: 6px; color: var(--fg-faint); }
+    .fin-card__delta--up   { color: #22c55e; }
+    .fin-card__delta--down { color: #ef4444; }
+    .fin-card--income  .fin-card__value { color: #22c55e; }
+    .fin-card--expense .fin-card__value { color: #ef4444; }
+
+    /* Charts */
+    .fin-charts-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
+    .fin-chart-box { border: 1px solid var(--line); padding: 16px; }
+    .fin-chart-box__label { font-family: var(--mono); font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--fg-faint); margin-bottom: 12px; }
+    .fin-bar-list { display: flex; flex-direction: column; gap: 8px; }
+    .fin-bar-item { display: flex; align-items: center; gap: 10px; }
+    .fin-bar-item__label { font-size: 12px; width: 120px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex-shrink: 0; }
+    .fin-bar-item__track { flex: 1; height: 6px; background: var(--line-soft); }
+    .fin-bar-item__fill  { height: 100%; transition: width 400ms; }
+    .fin-bar-item__amt   { font-family: var(--mono); font-size: 10px; color: var(--fg-faint); width: 72px; text-align: right; flex-shrink: 0; }
+
+    /* Contacts top list */
+    .fin-top-list { display: flex; flex-direction: column; gap: 6px; }
+    .fin-top-row  { display: flex; align-items: center; gap: 10px; font-size: 12px; padding: 6px 0; border-bottom: 1px solid var(--line-soft); }
+    .fin-top-row__name { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .fin-top-row__amt  { font-family: var(--mono); font-size: 11px; flex-shrink: 0; }
+
+    /* Transactions table */
+    .fin-table-wrap { overflow-x: auto; }
+    .fin-table { width: 100%; border-collapse: collapse; min-width: 640px; }
+    .fin-table th { font-family: var(--mono); font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--fg-faint); text-align: left; padding: 6px 10px; border-bottom: 1px solid var(--line); background: var(--bg); position: sticky; top: 0; }
+    .fin-table td { padding: 9px 10px; border-bottom: 1px solid var(--line-soft); font-size: 13px; vertical-align: middle; }
+    .fin-table tr.fin-voided td { opacity: 0.38; text-decoration: line-through; }
+    .fin-table tr.fin-voided td:last-child { text-decoration: none; }
+    .fin-cat-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 5px; vertical-align: middle; }
+    .fin-type-pill { font-family: var(--mono); font-size: 9px; padding: 2px 7px; border: 1px solid; text-transform: uppercase; letter-spacing: 0.08em; }
+    .fin-type-pill--income  { color: #22c55e; border-color: #22c55e; }
+    .fin-type-pill--expense { color: #ef4444; border-color: #ef4444; }
+    .fin-amount--income  { font-family: var(--mono); color: #22c55e; }
+    .fin-amount--expense { font-family: var(--mono); color: #ef4444; }
+    .fin-tx-actions { display: flex; gap: 6px; align-items: center; }
+    .fin-pager { display: flex; gap: 8px; align-items: center; margin-top: 16px; font-family: var(--mono); font-size: 11px; color: var(--fg-faint); }
+
+    /* Contacts */
+    .fin-toggle { display: flex; }
+    .fin-toggle-btn { font-family: var(--mono); font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; padding: 7px 16px; border: 1px solid var(--line); background: transparent; color: var(--fg-faint); cursor: pointer; transition: all 120ms; }
+    .fin-toggle-btn:first-child { border-right: none; }
+    .fin-toggle-btn.active { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+    .fin-contacts-table { width: 100%; border-collapse: collapse; }
+    .fin-contacts-table th { font-family: var(--mono); font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--fg-faint); text-align: left; padding: 6px 10px; border-bottom: 1px solid var(--line); }
+    .fin-contacts-table td { padding: 10px; border-bottom: 1px solid var(--line-soft); font-size: 13px; vertical-align: middle; }
+    .fin-contacts-table tr:hover td { background: var(--accent-soft); cursor: pointer; }
+
+    /* Reports */
+    .fin-pl-section { margin-bottom: 24px; }
+    .fin-pl-title { font-family: var(--mono); font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--fg-faint); margin-bottom: 10px; }
+    .fin-pl-table { width: 100%; border-collapse: collapse; margin-bottom: 8px; }
+    .fin-pl-table td { padding: 7px 8px; border-bottom: 1px solid var(--line-soft); font-size: 13px; }
+    .fin-pl-table td:last-child { text-align: right; font-family: var(--mono); }
+    .fin-pl-total { font-family: var(--serif); font-size: 15px; font-weight: 500; border-top: 1px solid var(--line) !important; }
+    .fin-net-row  { font-family: var(--serif); font-size: 18px; padding: 14px 8px; display: flex; justify-content: space-between; border-top: 2px solid var(--fg); margin-top: 4px; }
+
+    /* SVG trend chart */
+    .fin-svg-chart { width: 100%; overflow: visible; }
+
+    /* Modal */
+    .fin-modal-overlay { position: fixed; inset: 0; z-index: 600; background: rgba(0,0,0,.5); display: none; align-items: flex-start; justify-content: center; padding: 40px 16px; overflow-y: auto; }
+    .fin-modal-overlay.active { display: flex; }
+    .fin-modal { background: var(--bg); color: var(--fg); width: min(580px, 100%); padding: 28px 24px; position: relative; }
+    .fin-modal__title { font-family: var(--serif); font-size: 22px; letter-spacing: -0.01em; margin: 0 0 20px; }
+    .fin-modal__close { position: absolute; top: 12px; right: 12px; background: none; border: none; font-size: 18px; color: var(--fg-faint); cursor: pointer; padding: 4px 8px; }
+    .fin-modal__grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .fin-modal__field { display: flex; flex-direction: column; gap: 4px; }
+    .fin-modal__field--full { grid-column: 1/-1; }
+    .fin-type-toggle { display: flex; gap: 0; }
+    .fin-type-btn { flex: 1; font-family: var(--mono); font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; padding: 9px; border: 1px solid var(--line); background: transparent; color: var(--fg-faint); cursor: pointer; transition: all 120ms; }
+    .fin-type-btn:first-child { border-right: none; }
+    .fin-type-btn.active[data-t="income"]  { background: #22c55e; color: #fff; border-color: #22c55e; }
+    .fin-type-btn.active[data-t="expense"] { background: #ef4444; color: #fff; border-color: #ef4444; }
+    .fin-modal__actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 20px; }
+
+    @media (max-width: 700px) {
+      .fin-cards { grid-template-columns: 1fr; }
+      .fin-charts-row { grid-template-columns: 1fr; }
+      .fin-modal__grid { grid-template-columns: 1fr; }
+    }
   </style>
 </head>
 <body>
@@ -662,8 +800,28 @@ const HTML = `<!DOCTYPE html>
       <button class="btn-push" id="btn-push-live" style="display:none">🚀 Push Live</button>
       <a class="d-bar__admin-link" id="d-admin-link" href="/admin/" style="display:none;font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;padding:5px 10px;border:1px solid var(--accent);color:var(--accent);text-decoration:none">Admin Panel ↗</a>
       <span class="d-bar__email" id="d-email"></span>
+      <button class="d-bar__notif" id="d-notif-btn" aria-label="Notifications" title="Notifications">
+        🔔<span class="d-bar__notif-badge" id="d-notif-badge" hidden>0</span>
+      </button>
       <button class="d-bar__logout" id="d-logout">Sign out</button>
     </div>
+  </div>
+
+  <!-- Notification panel (positioned absolute relative to bar) -->
+  <div class="d-notif-panel" id="d-notif-panel" hidden>
+    <div class="d-notif-panel__head">
+      <span class="d-notif-panel__title">Notifications</span>
+      <button class="d-notif-panel__mark-all" id="d-notif-mark-all">Mark all read</button>
+    </div>
+    <div class="d-notif-list" id="d-notif-list">
+      <p class="d-notif-empty">No notifications</p>
+    </div>
+  </div>
+
+  <!-- Email verification banner (shown when email_verified=false) -->
+  <div class="d-verify-banner" id="d-verify-banner" hidden>
+    ✉ Please verify your email address to unlock store creation.
+    &nbsp;<a id="d-resend-link">Resend verification email</a>
   </div>
 
   <!-- ── Onboarding ── -->
@@ -721,15 +879,30 @@ const HTML = `<!DOCTYPE html>
     </div>
   </div>
 
-  <!-- ── Paused ── -->
+  <!-- ── Paused (admin or subscription lapse) ── -->
   <div class="screen" id="screen-paused">
     <div class="login-wrap">
       <div class="login-box" style="text-align:center">
         <div style="font-size:48px;margin-bottom:16px">⏸</div>
         <span class="login-box__tag">MaxCyberSolutions</span>
-        <h1 class="login-box__title" style="margin-top:8px">Account Paused</h1>
-        <p class="login-box__sub" style="margin-top:12px">Your dashboard has been temporarily paused by the administrator. Your website is still visible to visitors. Please contact support to resume access.</p>
-        <button class="login-submit" style="margin-top:32px;max-width:260px;align-self:center" onclick="logout()">Sign out</button>
+        <h1 class="login-box__title" style="margin-top:8px" id="paused-title">Account Paused</h1>
+        <p class="login-box__sub" style="margin-top:12px" id="paused-body">Your dashboard has been temporarily paused. Please contact support to resume access.</p>
+        <a href="https://maxcybersolutions.online/#pricing" class="login-submit" id="paused-resubscribe" style="display:none;margin-top:20px;max-width:260px;align-self:center;text-decoration:none">Re-subscribe →</a>
+        <button class="login-submit" style="margin-top:16px;max-width:260px;align-self:center" onclick="logout()">Sign out</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Client upsell (role=client, no subscription) ── -->
+  <div class="screen" id="screen-upsell">
+    <div class="login-wrap">
+      <div class="login-box" style="text-align:center">
+        <div style="font-size:48px;margin-bottom:16px">🏪</div>
+        <span class="login-box__tag">MaxCyberSolutions</span>
+        <h1 class="login-box__title" style="margin-top:8px">Unlock your store</h1>
+        <p class="login-box__sub" style="margin-top:12px">You have a free account. Subscribe to a plan to create and manage your online store.</p>
+        <a href="https://maxcybersolutions.online/#pricing" class="login-submit" style="display:block;margin-top:28px;max-width:260px;align-self:center;text-decoration:none">See plans →</a>
+        <button class="login-submit" style="margin-top:12px;max-width:260px;align-self:center;background:transparent;color:var(--fg);border-color:var(--line)" onclick="logout()">Sign out</button>
       </div>
     </div>
   </div>
@@ -745,9 +918,7 @@ const HTML = `<!DOCTYPE html>
         </div>
         <div class="login-tabs">
           <button class="login-tab active" data-tab="signin">Sign in</button>
-<!-- #################################################################
-          <button class="login-tab" data-tab="register">Register</button>
-#################################################################### -->
+          <button class="login-tab" data-tab="register">Create account</button>
         </div>
         <form class="login-form" id="login-form">
           <div class="login-field">
@@ -793,11 +964,6 @@ const HTML = `<!DOCTYPE html>
             <div class="action-card__icon">⬆</div>
             <div class="action-card__title">Upgrade plan</div>
             <div class="action-card__sub">Unlock more features and higher limits</div>
-          </button>
-          <button class="action-card" onclick="actionRequest('more-storage')">
-            <div class="action-card__icon">🗄</div>
-            <div class="action-card__title">More storage</div>
-            <div class="action-card__sub">Request additional image storage space</div>
           </button>
           <button class="action-card" onclick="actionRequest('slug-change')">
             <div class="action-card__icon">🔗</div>
@@ -855,6 +1021,8 @@ const HTML = `<!DOCTYPE html>
         <button class="cp-tab" id="btn-back-stores" onclick="showScreen('stores')" style="color:var(--fg-faint);padding-right:18px;border-right:1px solid var(--line);margin-right:4px">← Stores</button>
         <button class="cp-tab active" data-cp-tab="dashboard">Dashboard</button>
         <button class="cp-tab" data-cp-tab="gallery">Gallery</button>
+        <button class="cp-tab" data-cp-tab="orders">Orders</button>
+        <button class="cp-tab" data-cp-tab="finance">Finance</button>
         <button class="cp-tab" data-cp-tab="wip">(Under Development)</button>
       </div>
 
@@ -864,12 +1032,11 @@ const HTML = `<!DOCTYPE html>
       <!-- Left panel -->
       <div class="editor-left" id="editor-left">
 
-        <div class="etabs" style="flex-wrap:wrap">
+        <div class="etabs">
           <button class="etab active" data-tab="design">Design</button>
           <button class="etab" data-tab="sections">Sections</button>
           <button class="etab" data-tab="items">Items</button>
           <button class="etab" data-tab="config">Config</button>
-          <button class="etab" data-tab="orders">Orders</button>
           <button class="etab" data-tab="management">Mgmt</button>
           <button class="etab" data-tab="analytics">Analytics</button>
         </div>
@@ -1085,7 +1252,6 @@ const HTML = `<!DOCTYPE html>
                 <span class="float-panel__label">Floating Buttons</span>
                 <div style="display:flex;gap:4px">
                   <button class="btn-ghost btn-sm" id="btn-add-float-btn">+ Button</button>
-                  <button class="btn-ghost btn-sm" id="btn-add-social-links">⊕ Social</button>
                 </div>
               </div>
               <div class="float-btn-list" id="float-btn-list"></div>
@@ -1456,26 +1622,6 @@ const HTML = `<!DOCTYPE html>
           </div>
         </div>
 
-        <!-- Orders tab -->
-        <div class="etab-pane" id="etab-orders">
-          <div class="orders-pane" id="orders-pane">
-            <div class="orders-toolbar">
-              <select id="orders-status-filter" style="flex:1;padding:6px 8px;font-size:11px">
-                <option value="">All orders</option>
-                <option value="pending">Pending</option>
-                <option value="awaiting_transfer">Awaiting Transfer</option>
-                <option value="paid">Paid</option>
-                <option value="processing">Processing</option>
-                <option value="shipped">Shipped</option>
-                <option value="delivered">Delivered</option>
-                <option value="cancelled">Cancelled</option>
-              </select>
-              <button class="btn-ghost btn-sm" id="btn-refresh-orders">↻</button>
-            </div>
-            <div id="orders-list"><p class="status-msg" style="padding:12px">Load an order tab to see orders.</p></div>
-          </div>
-        </div>
-
         <!-- Management tab -->
         <div class="etab-pane" id="etab-management">
           <div style="padding:12px">
@@ -1556,6 +1702,234 @@ const HTML = `<!DOCTYPE html>
           </div>
         </div>
       </div>
+
+      <!-- Orders panel -->
+      <div class="cp-panel" id="cp-orders">
+        <div class="orders-pane">
+          <div class="orders-toolbar">
+            <select id="orders-status-filter" style="flex:1;padding:6px 8px;font-size:11px">
+              <option value="">All orders</option>
+              <option value="pending">Pending</option>
+              <option value="awaiting_transfer">Awaiting Transfer</option>
+              <option value="paid">Paid</option>
+              <option value="processing">Processing</option>
+              <option value="shipped">Shipped</option>
+              <option value="delivered">Delivered</option>
+              <option value="cancelled">Cancelled</option>
+            </select>
+            <button class="btn-ghost btn-sm" id="btn-refresh-orders">↻</button>
+          </div>
+          <div id="orders-list"><p class="status-msg" style="padding:12px">Select the Orders tab to load orders.</p></div>
+        </div>
+      </div>
+
+      <!-- Finance panel -->
+      <div class="cp-panel" id="cp-finance">
+        <div class="fin-wrap">
+
+          <!-- Finance sub-tab bar -->
+          <div class="fin-tabbar">
+            <button class="fin-tab active" data-fin-tab="overview">Overview</button>
+            <button class="fin-tab" data-fin-tab="transactions">Transactions</button>
+            <button class="fin-tab" data-fin-tab="contacts">Contacts</button>
+            <button class="fin-tab" data-fin-tab="reports">Reports</button>
+          </div>
+
+          <!-- Overview -->
+          <div class="fin-pane active" id="fin-overview">
+            <div class="fin-cards" id="fin-cards">
+              <div class="fin-card"><div class="fin-card__label">This month — income</div><div class="fin-card__value" id="fin-ov-income">—</div><div class="fin-card__delta" id="fin-ov-income-d"></div></div>
+              <div class="fin-card fin-card--expense"><div class="fin-card__label">This month — expenses</div><div class="fin-card__value" id="fin-ov-expense">—</div><div class="fin-card__delta" id="fin-ov-expense-d"></div></div>
+              <div class="fin-card"><div class="fin-card__label">This month — net profit</div><div class="fin-card__value" id="fin-ov-profit">—</div><div class="fin-card__delta" id="fin-ov-profit-d"></div></div>
+            </div>
+            <div class="fin-charts-row">
+              <div class="fin-chart-box">
+                <div class="fin-chart-box__label">6-month trend</div>
+                <svg class="fin-svg-chart" id="fin-trend-svg" height="100" viewBox="0 0 400 100" preserveAspectRatio="none"></svg>
+              </div>
+              <div class="fin-chart-box">
+                <div class="fin-chart-box__label">This month by category</div>
+                <div class="fin-bar-list" id="fin-cat-bars"></div>
+              </div>
+            </div>
+            <div class="fin-charts-row">
+              <div class="fin-chart-box">
+                <div class="fin-chart-box__label">Top clients</div>
+                <div class="fin-top-list" id="fin-top-clients"></div>
+              </div>
+              <div class="fin-chart-box">
+                <div class="fin-chart-box__label">Top providers</div>
+                <div class="fin-top-list" id="fin-top-providers"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Transactions -->
+          <div class="fin-pane" id="fin-transactions">
+            <div class="fin-toolbar">
+              <input type="date" id="fin-tx-from" title="From date" />
+              <input type="date" id="fin-tx-to" title="To date" />
+              <select id="fin-tx-type" style="min-width:100px">
+                <option value="">All types</option>
+                <option value="income">Income</option>
+                <option value="expense">Expense</option>
+              </select>
+              <select id="fin-tx-cat" style="min-width:130px"><option value="">All categories</option></select>
+              <div class="fin-toolbar-spacer"></div>
+              <button class="btn-ghost btn-sm" id="btn-fin-tx-filter">Filter</button>
+              <button class="btn-accent btn-sm" onclick="openFinTxModal()">+ Add</button>
+            </div>
+            <div class="fin-table-wrap">
+              <table class="fin-table">
+                <thead><tr>
+                  <th>Date</th><th>Type</th><th>Category</th>
+                  <th>Contact</th><th>Method</th><th>Amount</th>
+                  <th>Notes</th><th></th>
+                </tr></thead>
+                <tbody id="fin-tx-body"></tbody>
+              </table>
+            </div>
+            <div class="fin-pager" id="fin-tx-pager"></div>
+          </div>
+
+          <!-- Contacts -->
+          <div class="fin-pane" id="fin-contacts-pane">
+            <div class="fin-toolbar">
+              <div class="fin-toggle">
+                <button class="fin-toggle-btn active" data-ctype="client" onclick="setFinContactType('client',this)">Clients</button>
+                <button class="fin-toggle-btn" data-ctype="provider" onclick="setFinContactType('provider',this)">Providers</button>
+              </div>
+              <div class="fin-toolbar-spacer"></div>
+              <button class="btn-accent btn-sm" onclick="openFinContactModal()">+ Add</button>
+            </div>
+            <table class="fin-contacts-table">
+              <thead><tr>
+                <th>Name</th><th>Contact</th>
+                <th style="text-align:right">Total income</th>
+                <th style="text-align:right">Total expense</th>
+                <th style="text-align:right">Balance</th>
+                <th>Last tx</th>
+              </tr></thead>
+              <tbody id="fin-contacts-body"></tbody>
+            </table>
+          </div>
+
+          <!-- Reports -->
+          <div class="fin-pane" id="fin-reports-pane">
+            <div class="fin-toolbar">
+              <input type="date" id="fin-rpt-from" />
+              <input type="date" id="fin-rpt-to" />
+              <button class="btn-ghost btn-sm" onclick="loadFinReports()">Generate</button>
+              <div class="fin-toolbar-spacer"></div>
+              <button class="btn-ghost btn-sm" onclick="exportFinCsv()">CSV Export</button>
+              <button class="btn-ghost btn-sm" onclick="window.print()">Print / PDF</button>
+            </div>
+            <div id="fin-rpt-output"></div>
+          </div>
+
+        </div><!-- /fin-wrap -->
+
+        <!-- Add Transaction Modal -->
+        <div class="fin-modal-overlay" id="fin-tx-modal" onclick="if(event.target===this)closeFinTxModal()">
+          <div class="fin-modal">
+            <button class="fin-modal__close" onclick="closeFinTxModal()">✕</button>
+            <h3 class="fin-modal__title">Add transaction</h3>
+            <div class="fin-type-toggle" style="margin-bottom:16px">
+              <button class="fin-type-btn active" data-t="income" onclick="setFinTxType('income',this)">Income</button>
+              <button class="fin-type-btn" data-t="expense" onclick="setFinTxType('expense',this)">Expense</button>
+            </div>
+            <div class="fin-modal__grid">
+              <div class="fin-modal__field">
+                <label for="fin-tx-amount">Amount ($)</label>
+                <input type="number" id="fin-tx-amount" min="0.01" step="0.01" placeholder="0.00" />
+              </div>
+              <div class="fin-modal__field">
+                <label for="fin-tx-date">Date</label>
+                <input type="date" id="fin-tx-date" />
+              </div>
+              <div class="fin-modal__field">
+                <label for="fin-tx-cat-sel">Category</label>
+                <select id="fin-tx-cat-sel"></select>
+              </div>
+              <div class="fin-modal__field">
+                <label for="fin-tx-contact-sel">Contact (optional)</label>
+                <select id="fin-tx-contact-sel"><option value="">— none —</option></select>
+              </div>
+              <div class="fin-modal__field">
+                <label for="fin-tx-method">Payment method</label>
+                <select id="fin-tx-method">
+                  <option value="cash">Cash</option>
+                  <option value="bank_transfer">Bank transfer</option>
+                  <option value="mercadopago" selected>MercadoPago</option>
+                  <option value="card">Card</option>
+                  <option value="check">Check</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
+              <div class="fin-modal__field">
+                <label for="fin-tx-receipt">Receipt (optional)</label>
+                <input type="file" id="fin-tx-receipt" accept="image/*,.pdf" style="font-size:12px;padding:5px" />
+              </div>
+              <div class="fin-modal__field fin-modal__field--full">
+                <label for="fin-tx-notes">Notes</label>
+                <textarea id="fin-tx-notes" rows="2" style="resize:vertical"></textarea>
+              </div>
+            </div>
+            <div class="fin-modal__actions">
+              <button class="btn-ghost" onclick="closeFinTxModal()">Cancel</button>
+              <button class="btn-solid" id="btn-fin-tx-submit" onclick="submitFinTx()">Add transaction</button>
+            </div>
+            <p class="status-msg" id="fin-tx-msg" style="text-align:right;margin-top:8px"></p>
+          </div>
+        </div>
+
+        <!-- Add Contact Modal -->
+        <div class="fin-modal-overlay" id="fin-contact-modal" onclick="if(event.target===this)closeFinContactModal()">
+          <div class="fin-modal">
+            <button class="fin-modal__close" onclick="closeFinContactModal()">✕</button>
+            <h3 class="fin-modal__title" id="fin-contact-modal-title">Add contact</h3>
+            <div class="fin-modal__grid">
+              <div class="fin-modal__field fin-modal__field--full">
+                <label for="fin-con-name">Name *</label>
+                <input type="text" id="fin-con-name" />
+              </div>
+              <div class="fin-modal__field fin-modal__field--full">
+                <label for="fin-con-info">Phone / Email</label>
+                <input type="text" id="fin-con-info" />
+              </div>
+              <div class="fin-modal__field fin-modal__field--full">
+                <label for="fin-con-notes">Notes</label>
+                <textarea id="fin-con-notes" rows="2" style="resize:vertical"></textarea>
+              </div>
+            </div>
+            <div class="fin-modal__actions">
+              <button class="btn-ghost" onclick="closeFinContactModal()">Cancel</button>
+              <button class="btn-solid" id="btn-fin-con-submit" onclick="submitFinContact()">Save</button>
+            </div>
+            <p class="status-msg" id="fin-con-msg" style="text-align:right;margin-top:8px"></p>
+          </div>
+        </div>
+
+        <!-- Contact Detail Modal -->
+        <div class="fin-modal-overlay" id="fin-contact-detail" onclick="if(event.target===this)document.getElementById('fin-contact-detail').classList.remove('active')">
+          <div class="fin-modal" style="width:min(700px,100%)">
+            <button class="fin-modal__close" onclick="document.getElementById('fin-contact-detail').classList.remove('active')">✕</button>
+            <h3 class="fin-modal__title" id="fin-cd-name">Contact</h3>
+            <div style="display:flex;gap:24px;margin-bottom:16px">
+              <div><div class="fin-card__label">Balance</div><div id="fin-cd-balance" style="font-family:var(--serif);font-size:22px"></div></div>
+              <div><div class="fin-card__label">Total income</div><div id="fin-cd-income" style="font-family:var(--mono);font-size:14px;color:#22c55e"></div></div>
+              <div><div class="fin-card__label">Total expense</div><div id="fin-cd-expense" style="font-family:var(--mono);font-size:14px;color:#ef4444"></div></div>
+            </div>
+            <div class="fin-table-wrap" style="max-height:340px;overflow-y:auto">
+              <table class="fin-table" style="min-width:auto">
+                <thead><tr><th>Date</th><th>Type</th><th>Category</th><th>Amount</th><th>Notes</th></tr></thead>
+                <tbody id="fin-cd-body"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /cp-finance -->
 
       <!-- Under Development panel -->
       <div class="cp-panel" id="cp-wip">

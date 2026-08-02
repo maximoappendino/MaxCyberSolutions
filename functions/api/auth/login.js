@@ -1,9 +1,14 @@
 import { json, uuid, sessionCookie } from '../../_lib/helpers.js';
 import { verifyPassword } from '../../_lib/auth.js';
+import { rateLimit } from '../../_lib/ratelimit.js';
 
 const SESSION_TTL_SECONDS = 7 * 24 * 60 * 60; // 7 days
 
 export async function onRequestPost({ request, env }) {
+  const ip  = request.headers.get('CF-Connecting-IP') || 'unknown';
+  const ok  = await rateLimit(env, `login:${ip}`, 10);
+  if (!ok) return json({ error: 'Too many attempts — try again in a minute' }, 429);
+
   let body;
   try { body = await request.json(); }
   catch { return json({ error: 'Invalid JSON' }, 400); }

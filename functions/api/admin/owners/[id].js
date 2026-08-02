@@ -25,7 +25,6 @@ export async function onRequestGet({ params, env }) {
       o.push_daily_used, o.push_weekly_used,
       o.push_daily_reset, o.push_weekly_reset,
       o.email_monthly_limit, o.email_monthly_used, o.email_monthly_reset,
-      o.plain_password,
       o.created_at,
       (SELECT COUNT(*) FROM products p JOIN stores s ON s.id = p.store_id WHERE s.owner_id = o.id) AS product_count
     FROM owners o
@@ -75,7 +74,7 @@ export async function onRequestPatch({ params, request, env }) {
   if (!owner) return json({ error: 'Not found' }, 404);
 
   const { salt, hash } = await hashPassword(password);
-  await env.DB.prepare('UPDATE owners SET salt = ?, hash = ?, plain_password = ? WHERE id = ?').bind(salt, hash, password, params.id).run();
+  await env.DB.prepare('UPDATE owners SET salt = ?, hash = ? WHERE id = ?').bind(salt, hash, params.id).run();
   return json({ ok: true });
 }
 

@@ -19,6 +19,7 @@ document.addEventListener('DOMContentLoaded', () => {
   highlightActiveLang();
   initHamburger();
   initFAQ();
+  initLeadForm();
   initScrollReveal();
 });
 
@@ -142,7 +143,13 @@ function renderTier(t) {
     </div>
   </div>
   <ul class="tier__list">${t.items.map(i => `<li><span>${esc(i)}</span></li>`).join('')}</ul>
-  <a href="#contact" class="tier__cta">${isMax ? esc(S.ctaMax || S.commission) : esc(S.commission)}</a>
+  ${isMax
+    ? `<a href="#contact" class="tier__cta">${esc(S.ctaMax || S.commission)}</a>`
+    : `<button type="button" class="tier__cta"
+         data-checkout-plan="${esc(t.id)}"
+         data-checkout-name="${esc(t.name)}"
+         data-checkout-price="${esc(t.price + (t.period || ''))}">${esc(S.ctaSubscribe || S.commission)}</button>`
+  }
 </div>`;
 }
 
@@ -268,7 +275,7 @@ function initShader(canvas, id) {
   const card = canvas.closest('.tier');
   card.addEventListener('mouseenter', () => {
     if (!rafId) { t0 = null; rafId = requestAnimationFrame(frame); }
-    canvas.style.opacity = '1';
+    canvas.style.opacity = '0.45';
   });
   card.addEventListener('mouseleave', () => {
     canvas.style.opacity = '0';
@@ -318,6 +325,29 @@ function initFAQ() {
         });
       }
     });
+  });
+}
+
+// ── Lead capture form → WhatsApp ──────────────────────────────────────────────
+function initLeadForm() {
+  const form = document.getElementById('lead-form');
+  if (!form) return;
+  form.addEventListener('submit', e => {
+    e.preventDefault();
+    const fd  = new FormData(form);
+    const get = k => (fd.get(k) || '').trim();
+    const lines = [
+      `*MaxCyberSolutions — Nueva consulta*`,
+      `Nombre: ${get('fname')} ${get('lname')}`,
+      `Tel: ${get('phone')}`,
+      `Email: ${get('email')}`,
+    ];
+    if (get('brand'))     lines.push(`Negocio: ${get('brand')}`);
+    if (get('btype'))     lines.push(`Rubro: ${get('btype')}`);
+    if (get('storetype')) lines.push(`Tipo de tienda: ${get('storetype')}`);
+    const msg = encodeURIComponent(lines.join('\n'));
+    window.open(`${CONF.whatsappUrl || 'https://wa.me/5493517146520'}?text=${msg}`, '_blank', 'noopener');
+    form.reset();
   });
 }
 

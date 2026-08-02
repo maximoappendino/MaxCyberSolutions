@@ -564,8 +564,8 @@ section { padding-top: var(--pad-section); padding-bottom: var(--pad-section); p
 }
 
 @media (max-width: 768px) {
-  .bar__cta   { display: none; }
-  .bar__theme { display: none; }
+  .bar__right .bar__cta   { display: none; }
+  .bar__right .bar__theme { display: none; }
   .bar__hamburger { display: flex; }
 }
 @media (max-width: 640px) {
@@ -718,3 +718,122 @@ section { padding-top: var(--pad-section); padding-bottom: var(--pad-section); p
   }
   .tiers-flat .tier { border: 1px solid var(--line); min-height: auto; }
 }
+
+/* ── Lead capture form ────────────────────────────────────────────────────── */
+.lead-section { border-top: 1px solid var(--line); }
+.lead-form {
+  max-width: 680px;
+  display: flex; flex-direction: column; gap: 20px;
+}
+.lead-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 20px;
+}
+.lead-group { display: flex; flex-direction: column; gap: 5px; }
+.lead-label {
+  font-family: var(--mono); font-size: 10px;
+  letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--fg-faint); display: block;
+}
+.lead-optional {
+  font-style: italic; letter-spacing: 0; text-transform: none;
+  font-size: 9px; opacity: 0.75;
+}
+.lead-field {
+  font-family: var(--sans); font-size: 14px; color: var(--fg);
+  background: transparent; border: 1px solid var(--line);
+  padding: 11px 14px; outline: none; width: 100%;
+  transition: border-color 160ms ease;
+}
+.lead-field:focus { border-color: var(--accent); }
+.lead-field::placeholder { color: var(--fg-faint); font-size: 13px; }
+.lead-field--select { appearance: none; cursor: pointer;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%237a736a' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 14px center;
+  padding-right: 36px;
+}
+.lead-submit-row {
+  display: flex; align-items: center; gap: 20px; flex-wrap: wrap;
+}
+.lead-submit {
+  font-family: var(--mono); font-size: 11px;
+  letter-spacing: 0.18em; text-transform: uppercase;
+  padding: 14px 28px; background: var(--fg); color: var(--bg);
+  border: 1px solid var(--fg); cursor: pointer;
+  display: inline-flex; align-items: center; gap: 12px;
+  transition: opacity 160ms ease; white-space: nowrap;
+}
+.lead-submit:hover { opacity: 0.85; }
+.lead-note {
+  font-family: var(--mono); font-size: 10px;
+  letter-spacing: 0.1em; color: var(--fg-faint); margin: 0;
+}
+@media (max-width: 640px) {
+  .lead-grid { grid-template-columns: 1fr; gap: 16px; }
+  .lead-submit-row { flex-direction: column; align-items: flex-start; }
+}
+
+/* ── Tier CTA as button (non-MAX plans open checkout modal) ──────────────── */
+button.tier__cta {
+  background: none; border: none; width: 100%;
+  text-align: left; font-family: var(--mono);
+}
+
+/* ── Checkout modal ──────────────────────────────────────────────────────── */
+.co-modal { position: fixed; inset: 0; z-index: 900; display: flex; align-items: center; justify-content: center; }
+.co-modal[hidden] { display: none; }
+.co-modal__backdrop { position: absolute; inset: 0; background: rgba(0,0,0,0.55); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); }
+.co-modal__box {
+  position: relative; z-index: 1;
+  background: var(--bg); border: 1px solid var(--line);
+  width: min(520px, calc(100vw - 32px));
+  max-height: calc(100dvh - 48px); overflow-y: auto;
+  padding: 36px 36px 40px;
+  display: flex; flex-direction: column; gap: 24px;
+}
+.co-modal__close {
+  position: absolute; top: 14px; right: 18px;
+  background: none; border: none; cursor: pointer;
+  font-size: 22px; line-height: 1; padding: 4px 8px;
+  color: var(--fg-faint); transition: color 120ms ease;
+}
+.co-modal__close:hover { color: var(--fg); }
+.co-modal__head { display: flex; flex-direction: column; gap: 6px; border-bottom: 1px solid var(--line-soft); padding-bottom: 20px; }
+.co-modal__plan  { font-family: var(--serif); font-size: 22px; }
+.co-modal__price { font-family: var(--mono); font-size: 11px; letter-spacing: 0.14em; color: var(--fg-faint); }
+.co-step { display: flex; flex-direction: column; gap: 14px; }
+.co-group { display: flex; flex-direction: column; gap: 5px; }
+.co-label {
+  font-family: var(--mono); font-size: 10px;
+  letter-spacing: 0.14em; text-transform: uppercase; color: var(--fg-faint); display: block;
+}
+.co-required { color: var(--accent); letter-spacing: 0; }
+.co-optional { font-style: italic; text-transform: none; letter-spacing: 0; font-size: 9px; opacity: 0.75; }
+.co-pw-wrap { position: relative; display: flex; }
+.co-input--pw { flex: 1; padding-right: 48px; }
+.co-pw-toggle {
+  position: absolute; right: 0; top: 0; bottom: 0;
+  width: 44px; background: none; border: none; cursor: pointer;
+  font-size: 16px; display: flex; align-items: center; justify-content: center; color: var(--fg-faint);
+}
+.co-pw-toggle:hover { color: var(--fg); }
+.co-input {
+  font-family: var(--sans); font-size: 14px; color: var(--fg);
+  background: transparent; border: 1px solid var(--line);
+  padding: 11px 14px; outline: none; width: 100%;
+  transition: border-color 160ms ease;
+}
+.co-input:focus { border-color: var(--accent); }
+.co-input::placeholder { color: var(--fg-faint); font-size: 13px; }
+.co-btn {
+  font-family: var(--mono); font-size: 11px;
+  letter-spacing: 0.18em; text-transform: uppercase;
+  padding: 14px 28px; background: var(--fg); color: var(--bg);
+  border: 1px solid var(--fg); cursor: pointer;
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  transition: opacity 160ms ease; width: 100%;
+}
+.co-btn:hover { opacity: 0.85; }
+.co-note { font-family: var(--mono); font-size: 10px; letter-spacing: 0.1em; color: var(--fg-faint); margin: 0; text-align: center; }
+.co-msg { font-family: var(--mono); font-size: 11px; letter-spacing: 0.1em; color: var(--fg-faint); margin: 0; }
+.co-msg--error { color: #c44; }
+.co-success { font-family: var(--serif); font-size: 18px; text-align: center; padding: 24px 0; line-height: 1.5; }

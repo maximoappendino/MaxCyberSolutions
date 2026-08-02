@@ -801,6 +801,101 @@ function renderStorefront(store, config, products, isPreview = false, isInspect 
     .s-powered:hover { opacity: 1; }
     .s-powered img { height: 14px; width: auto; }
 
+    /* ── Calendar ────────────────────────────────────────────────────────── */
+    .s-cal { padding: var(--pad) 0; }
+    .s-cal__inner { max-width: 700px; margin: 0 auto; padding: 0 var(--pad); }
+    .s-cal__title { font-family: var(--serif); font-size: clamp(22px,4vw,36px); letter-spacing: -.02em; margin: 0 0 24px; }
+    .s-cal__grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+    .s-cal__left { display: flex; flex-direction: column; gap: 12px; }
+    .s-cal__month-nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+    .s-cal__month-label { font-family: var(--mono); font-size: 11px; letter-spacing: .1em; text-transform: uppercase; }
+    .s-cal__nav-btn { background: none; border: 1px solid var(--line); color: var(--fg); width: 30px; height: 30px;
+      cursor: pointer; font-size: 14px; display: flex; align-items: center; justify-content: center; transition: border-color 150ms; }
+    .s-cal__nav-btn:hover { border-color: var(--accent); }
+    .s-cal__days-head { display: grid; grid-template-columns: repeat(7,1fr); gap: 2px; margin-bottom: 4px; }
+    .s-cal__day-name { font-family: var(--mono); font-size: 9px; letter-spacing: .08em; text-transform: uppercase;
+      color: var(--fg-faint); text-align: center; padding: 4px 0; }
+    .s-cal__days { display: grid; grid-template-columns: repeat(7,1fr); gap: 2px; }
+    .s-cal__day { aspect-ratio: 1; display: flex; align-items: center; justify-content: center;
+      font-size: 13px; border: 1px solid transparent; cursor: pointer; transition: border-color 150ms, background 150ms; }
+    .s-cal__day:not(.s-cal__day--empty):hover { border-color: var(--accent); }
+    .s-cal__day--empty { cursor: default; }
+    .s-cal__day--past { opacity: .3; cursor: default; pointer-events: none; }
+    .s-cal__day--selected { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .s-cal__day--in-range { background: color-mix(in srgb, var(--accent) 20%, transparent); }
+    .s-cal__day--range-end { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .s-cal__right { display: flex; flex-direction: column; gap: 10px; }
+    .s-cal__right-label { font-family: var(--mono); font-size: 10px; letter-spacing: .1em; text-transform: uppercase; color: var(--fg-faint); margin-bottom: 2px; }
+    .s-cal__slots { display: grid; grid-template-columns: repeat(auto-fill, minmax(70px,1fr)); gap: 6px; }
+    .s-cal__slot { border: 1px solid var(--line); padding: 7px 4px; text-align: center;
+      font-family: var(--mono); font-size: 11px; cursor: pointer; transition: border-color 150ms, background 150ms; }
+    .s-cal__slot:hover { border-color: var(--accent); }
+    .s-cal__slot--selected { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .s-cal__cta { margin-top: 16px; }
+    .s-cal__btn { background: var(--fg); color: var(--bg); border: none; cursor: pointer;
+      font-family: var(--mono); font-size: 10px; letter-spacing: .14em; text-transform: uppercase;
+      padding: 14px 28px; transition: opacity 150ms; width: 100%; }
+    .s-cal__btn:hover { opacity: .8; }
+    .s-cal__btn:disabled { opacity: .35; cursor: default; }
+    /* Calendar popup */
+    .s-cal-popup { position: fixed; inset: 0; z-index: 600; background: rgba(0,0,0,.5);
+      display: none; align-items: center; justify-content: center; padding: 16px; }
+    .s-cal-popup.active { display: flex; }
+    .s-cal-popup__box { background: var(--bg); color: var(--fg); width: min(440px,100%);
+      padding: 28px 24px; position: relative; }
+    .s-cal-popup__title { font-family: var(--serif); font-size: 22px; letter-spacing: -.01em; margin: 0 0 16px; }
+    .s-cal-popup__close { position: absolute; top: 12px; right: 12px; background: none; border: none;
+      font-size: 18px; color: var(--fg-faint); cursor: pointer; }
+    .s-cal-popup__fields { display: flex; flex-direction: column; gap: 10px; }
+    .s-cal-popup__field { display: flex; flex-direction: column; gap: 4px; }
+    .s-cal-popup__label { font-family: var(--mono); font-size: 9px; letter-spacing: .1em; text-transform: uppercase; color: var(--fg-faint); }
+    .s-cal-popup__input { border: 1px solid var(--line); background: transparent; color: var(--fg);
+      padding: 9px 12px; font-size: 14px; font-family: var(--sans); outline: none; transition: border-color 150ms; }
+    .s-cal-popup__input:focus { border-color: var(--accent); }
+    .s-cal-popup__submit { margin-top: 12px; background: var(--fg); color: var(--bg); border: none;
+      cursor: pointer; font-family: var(--mono); font-size: 10px; letter-spacing: .14em;
+      text-transform: uppercase; padding: 14px; width: 100%; transition: opacity 150ms; }
+    .s-cal-popup__submit:hover { opacity: .8; }
+    @media (max-width: 700px) {
+      .s-cal__grid { grid-template-columns: 1fr; }
+    }
+
+    /* ── Location ────────────────────────────────────────────────────────── */
+    .s-loc { padding: var(--pad) 0; }
+    .s-loc__inner { max-width: 900px; margin: 0 auto; padding: 0 var(--pad); }
+    .s-loc__title { font-family: var(--serif); font-size: clamp(22px,4vw,36px); letter-spacing: -.02em; margin: 0 0 20px; }
+    .s-loc__map { width: 100%; border: none; display: block; }
+    .s-loc__address { font-family: var(--mono); font-size: 11px; letter-spacing: .06em;
+      color: var(--fg-faint); margin-top: 12px; }
+
+    /* ── Carousel ────────────────────────────────────────────────────────── */
+    .s-caro { padding: var(--pad) 0; overflow: hidden; position: relative; }
+    .s-caro__inner { max-width: 1100px; margin: 0 auto; }
+    .s-caro__title { font-family: var(--serif); font-size: clamp(22px,4vw,36px); letter-spacing: -.02em;
+      margin: 0 0 20px; padding: 0 var(--pad); }
+    .s-caro__viewport { position: relative; overflow: hidden; }
+    .s-caro__fade-l, .s-caro__fade-r { position: absolute; top: 0; bottom: 0; width: 80px; z-index: 2; pointer-events: none; }
+    .s-caro__fade-l { left: 0; background: linear-gradient(to right, var(--bg), transparent); }
+    .s-caro__fade-r { right: 0; background: linear-gradient(to left, var(--bg), transparent); }
+    .s-caro__track { display: flex; transition: transform 0ms linear; will-change: transform; }
+    .s-caro__slide { flex-shrink: 0; width: 100%; position: relative; overflow: hidden; }
+    .s-caro__slide img { width: 100%; height: 100%; display: block; }
+    .s-caro__slide--cover img { object-fit: cover; }
+    .s-caro__slide--contain img { object-fit: contain; }
+    .s-caro__caption { position: absolute; bottom: 0; left: 0; right: 0;
+      background: linear-gradient(transparent, rgba(0,0,0,.55));
+      color: #fff; padding: 24px 20px 16px;
+      font-family: var(--serif); font-size: 17px; }
+    .s-caro__nav { display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 12px; padding: 0 var(--pad); }
+    .s-caro__arr { background: none; border: 1px solid var(--line); color: var(--fg);
+      width: 34px; height: 34px; display: flex; align-items: center; justify-content: center;
+      cursor: pointer; font-size: 16px; transition: border-color 150ms; flex-shrink: 0; }
+    .s-caro__arr:hover { border-color: var(--accent); }
+    .s-caro__dots { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; }
+    .s-caro__dot { width: 7px; height: 7px; border-radius: 50%; background: var(--line);
+      cursor: pointer; border: none; padding: 0; transition: background 150ms; }
+    .s-caro__dot.active { background: var(--accent); }
+
     /* ── Product Detail Popup ─────────────────────────────────────────────── */
     .s-pdp-overlay { position:fixed;inset:0;z-index:600;background:rgba(0,0,0,.55);
       display:none;align-items:center;justify-content:center;padding:16px; }
@@ -876,6 +971,371 @@ function renderStorefront(store, config, products, isPreview = false, isInspect 
 </html>`;
 }
 
+// ── Calendar ──────────────────────────────────────────────────────────────────
+
+function renderCalendar(s) {
+  const title        = s.title        || 'Make a reservation';
+  const mode         = s.mode         || 'single-day';
+  const minTime      = s.minTime      || '09:00';
+  const maxTime      = s.maxTime      || '20:00';
+  const interval     = parseInt(s.timeInterval) || 30;
+  const maxDays      = parseInt(s.maxDays) || 90;
+  const popupTitle   = s.popupTitle   || 'Your details';
+  const rawFields    = s.popupFields  || 'Name\nPhone\nEmail';
+  const notifyMethod = s.notifyMethod || 'whatsapp';
+  const notifyEmail  = s.notifyEmail  || '';
+  const waNumber     = s.whatsappNumber || '';
+  const confirmMsg   = s.confirmMessage || 'Thank you! Your request has been sent.';
+  const bgStyle      = s.bg    ? `background:${esc(s.bg)};` : '';
+  const colorStyle   = s.color ? `color:${esc(s.color)};`  : '';
+
+  const popupFields = rawFields.split('\n').filter(f => f.trim()).map((f, i) => {
+    const isOptional = f.toLowerCase().includes('optional');
+    const label = f.replace(/\s*\(optional\)/i, '').trim();
+    const inputName = 'cal_f' + i;
+    return `<div class="s-cal-popup__field">
+      <label class="s-cal-popup__label" for="${inputName}">${esc(label)}${isOptional ? '' : ' *'}</label>
+      <input class="s-cal-popup__input" id="${inputName}" name="${inputName}" type="text" ${isOptional ? '' : 'required'} placeholder="${esc(label)}" />
+    </div>`;
+  }).join('');
+
+  const uniqueId = 'scal_' + Math.random().toString(36).slice(2, 8);
+
+  return `<section class="s-cal" style="${bgStyle}${colorStyle}" id="${uniqueId}">
+  <div class="s-cal__inner">
+    ${title ? `<h2 class="s-cal__title">${esc(title)}</h2>` : ''}
+    <div class="s-cal__grid">
+      <div class="s-cal__left">
+        <div class="s-cal__month-nav">
+          <button class="s-cal__nav-btn" onclick="${uniqueId}_prevMonth()">‹</button>
+          <span class="s-cal__month-label" id="${uniqueId}_mlabel"></span>
+          <button class="s-cal__nav-btn" onclick="${uniqueId}_nextMonth()">›</button>
+        </div>
+        <div class="s-cal__days-head">
+          ${['Su','Mo','Tu','We','Th','Fr','Sa'].map(d => `<div class="s-cal__day-name">${d}</div>`).join('')}
+        </div>
+        <div class="s-cal__days" id="${uniqueId}_days"></div>
+      </div>
+      <div class="s-cal__right" id="${uniqueId}_right">
+        ${mode === 'single-day' ? `<div>
+          <div class="s-cal__right-label">Select a time</div>
+          <div class="s-cal__slots" id="${uniqueId}_slots"></div>
+        </div>` : `<div>
+          <div class="s-cal__right-label">Check-out date</div>
+          <div class="s-cal__days-head">
+            ${['Su','Mo','Tu','We','Th','Fr','Sa'].map(d => `<div class="s-cal__day-name">${d}</div>`).join('')}
+          </div>
+          <div class="s-cal__days" id="${uniqueId}_days2"></div>
+        </div>`}
+        <div class="s-cal__cta">
+          <button class="s-cal__btn" id="${uniqueId}_ctabtn" disabled onclick="${uniqueId}_openPopup()">Continue →</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Calendar popup -->
+<div class="s-cal-popup" id="${uniqueId}_popup" onclick="if(event.target===this)${uniqueId}_closePopup()">
+  <div class="s-cal-popup__box">
+    <button class="s-cal-popup__close" onclick="${uniqueId}_closePopup()">✕</button>
+    <h3 class="s-cal-popup__title">${esc(popupTitle)}</h3>
+    <form class="s-cal-popup__fields" id="${uniqueId}_form" onsubmit="${uniqueId}_submit(event)">
+      ${popupFields}
+      <button type="submit" class="s-cal-popup__submit">Confirm</button>
+    </form>
+  </div>
+</div>
+
+<script>
+(function(){
+  var UID      = ${JSON.stringify(uniqueId)};
+  var MODE     = ${JSON.stringify(mode)};
+  var MIN_TIME = ${JSON.stringify(minTime)};
+  var MAX_TIME = ${JSON.stringify(maxTime)};
+  var INTERVAL = ${JSON.stringify(interval)};
+  var MAX_DAYS = ${JSON.stringify(maxDays)};
+  var NOTIFY   = ${JSON.stringify(notifyMethod)};
+  var WA_NUM   = ${JSON.stringify(waNumber)};
+  var EMAIL    = ${JSON.stringify(notifyEmail)};
+  var CONFIRM  = ${JSON.stringify(confirmMsg)};
+
+  var today    = new Date(); today.setHours(0,0,0,0);
+  var viewYear = today.getFullYear(), viewMonth = today.getMonth();
+  var selDate1 = null, selDate2 = null, selTime = null;
+  var MONTHS   = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+
+  function $(id){ return document.getElementById(UID + '_' + id); }
+
+  function pad(n){ return String(n).padStart(2,'0'); }
+
+  function dateKey(d){ return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate()); }
+
+  function buildCalendar(containerId, clickFn, rangeStart) {
+    var el = $(containerId);
+    if (!el) return;
+    el.innerHTML = '';
+    var first = new Date(viewYear, viewMonth, 1);
+    var startDay = first.getDay();
+    for (var i = 0; i < startDay; i++) {
+      var blank = document.createElement('div');
+      blank.className = 's-cal__day s-cal__day--empty';
+      el.appendChild(blank);
+    }
+    var daysInMonth = new Date(viewYear, viewMonth+1, 0).getDate();
+    for (var d = 1; d <= daysInMonth; d++) {
+      var dt = new Date(viewYear, viewMonth, d);
+      var btn = document.createElement('div');
+      var isPast = dt < today;
+      var isTooFar = MAX_DAYS > 0 && (dt - today) / 86400000 > MAX_DAYS;
+      var cls = 's-cal__day';
+      if (isPast || isTooFar) cls += ' s-cal__day--past';
+      var k = dateKey(dt);
+      if (selDate1 && k === dateKey(selDate1)) cls += ' s-cal__day--selected';
+      if (MODE === 'date-range' && selDate1 && selDate2) {
+        if (dt > selDate1 && dt < selDate2) cls += ' s-cal__day--in-range';
+        if (selDate2 && k === dateKey(selDate2)) cls += ' s-cal__day--range-end';
+      }
+      btn.className = cls;
+      btn.textContent = d;
+      if (!isPast && !isTooFar) btn.onclick = (function(date){ return function(){ clickFn(date); }; })(dt);
+      el.appendChild(btn);
+    }
+  }
+
+  function buildSlots() {
+    var slotsEl = $('slots');
+    if (!slotsEl) return;
+    slotsEl.innerHTML = '';
+    if (!selDate1) return;
+    var minH = parseInt(MIN_TIME.split(':')[0]), minM = parseInt(MIN_TIME.split(':')[1]||0);
+    var maxH = parseInt(MAX_TIME.split(':')[0]), maxM = parseInt(MAX_TIME.split(':')[1]||0);
+    var cur = minH * 60 + minM, end = maxH * 60 + maxM;
+    while (cur < end) {
+      var h = Math.floor(cur/60), m = cur%60;
+      var label = pad(h)+':'+pad(m);
+      var btn = document.createElement('div');
+      btn.className = 's-cal__slot' + (selTime === label ? ' s-cal__slot--selected' : '');
+      btn.textContent = label;
+      btn.onclick = (function(t){ return function(){
+        selTime = t;
+        buildSlots();
+        updateCta();
+      }; })(label);
+      slotsEl.appendChild(btn);
+      cur += INTERVAL;
+    }
+  }
+
+  function updateCta() {
+    var btn = $('ctabtn');
+    if (!btn) return;
+    var ready = MODE === 'single-day' ? (selDate1 && selTime) : (selDate1 && selDate2);
+    btn.disabled = !ready;
+  }
+
+  function render() {
+    var lbl = $(UID.split('_').pop() ? 'mlabel' : 'mlabel');
+    var mlabel = $('mlabel');
+    if (mlabel) mlabel.textContent = MONTHS[viewMonth] + ' ' + viewYear;
+    buildCalendar('days', function(dt) {
+      if (MODE === 'single-day') {
+        selDate1 = dt;
+        selTime = null;
+        buildSlots();
+      } else {
+        if (!selDate1 || (selDate1 && selDate2)) {
+          selDate1 = dt; selDate2 = null;
+        } else if (dt > selDate1) {
+          selDate2 = dt;
+          buildCalendar('days2', function(dt2) {
+            selDate2 = dt2; updateCta(); render();
+          });
+        } else {
+          selDate1 = dt; selDate2 = null;
+        }
+      }
+      updateCta();
+      render();
+    });
+    if (MODE === 'date-range') {
+      buildCalendar('days2', function(dt) {
+        if (selDate1 && dt > selDate1) { selDate2 = dt; } else { selDate1 = dt; selDate2 = null; }
+        updateCta(); render();
+      });
+    }
+  }
+
+  window[UID+'_prevMonth'] = function() {
+    viewMonth--; if (viewMonth < 0) { viewMonth = 11; viewYear--; }
+    render();
+  };
+  window[UID+'_nextMonth'] = function() {
+    viewMonth++; if (viewMonth > 11) { viewMonth = 0; viewYear++; }
+    render();
+  };
+  window[UID+'_openPopup']  = function() { $('popup').classList.add('active'); };
+  window[UID+'_closePopup'] = function() { $('popup').classList.remove('active'); };
+
+  window[UID+'_submit'] = function(e) {
+    e.preventDefault();
+    var form  = $('form');
+    var inputs = form.querySelectorAll('input');
+    var parts = [];
+    inputs.forEach(function(inp) {
+      var lbl = form.querySelector('label[for="' + inp.id + '"]');
+      var labelText = lbl ? lbl.textContent.replace(/\\s*\\*$/, '').trim() : inp.name;
+      if (inp.value.trim()) parts.push(labelText + ': ' + inp.value.trim());
+    });
+    var dateStr = selDate1 ? dateKey(selDate1) : '';
+    var timeStr = selTime || '';
+    var dateRangeStr = selDate2 ? dateKey(selDate2) : '';
+    var summary = MODE === 'single-day'
+      ? ('Date: ' + dateStr + '\\nTime: ' + timeStr)
+      : ('From: ' + dateStr + '\\nTo: ' + dateRangeStr);
+    var fullMsg = summary + '\\n' + parts.join('\\n');
+
+    if (NOTIFY === 'email' && EMAIL) {
+      var subject = encodeURIComponent('New Booking Request');
+      var body    = encodeURIComponent(fullMsg);
+      window.location.href = 'mailto:' + EMAIL + '?subject=' + subject + '&body=' + body;
+    } else {
+      var waBase = WA_NUM ? 'https://wa.me/' + WA_NUM.replace(/\\D/g,'') : 'https://wa.me/';
+      window.open(waBase + '?text=' + encodeURIComponent(fullMsg), '_blank');
+    }
+    $('popup').classList.remove('active');
+    form.reset();
+    alert(CONFIRM);
+  };
+
+  render();
+})();
+</script>`;
+}
+
+// ── Location ──────────────────────────────────────────────────────────────────
+
+function renderLocation(s) {
+  const title       = s.title       || 'Find us';
+  const address     = s.address     || '';
+  const height      = parseInt(s.height) || 420;
+  const zoom        = parseInt(s.zoom)   || 15;
+  const showAddress = s.showAddress !== false;
+  const addressText = s.addressText || address;
+  const bgStyle     = s.bg    ? `background:${esc(s.bg)};` : '';
+  const colorStyle  = s.color ? `color:${esc(s.color)};`  : '';
+
+  if (!address) return '';
+
+  const mapSrc = `https://www.google.com/maps?q=${encodeURIComponent(address)}&z=${zoom}&output=embed`;
+
+  return `<section class="s-loc" style="${bgStyle}${colorStyle}">
+  <div class="s-loc__inner">
+    ${title ? `<h2 class="s-loc__title">${esc(title)}</h2>` : ''}
+    <iframe class="s-loc__map" src="${esc(mapSrc)}" height="${height}" allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade" title="Map"></iframe>
+    ${showAddress && addressText ? `<p class="s-loc__address">${esc(addressText)}</p>` : ''}
+  </div>
+</section>`;
+}
+
+// ── Carousel ──────────────────────────────────────────────────────────────────
+
+function renderCarousel(s) {
+  const title       = s.title || '';
+  const slides      = Array.isArray(s.slides) ? s.slides : [];
+  const height      = parseInt(s.height)     || 320;
+  const speed       = parseInt(s.speed)      || 4000;
+  const transition  = parseInt(s.transition) || 300;
+  const edgeFade    = s.edgeFade    !== false;
+  const pauseOnHover= s.pauseOnHover !== false;
+  const autoplay    = s.autoplay    !== false;
+  const loop        = s.loop        !== false;
+  const showDots    = s.showDots    !== false;
+  const showArrows  = s.showArrows  !== false;
+  const itemFit     = s.itemFit     || 'cover';
+  const bgStyle     = s.bg    ? `background:${esc(s.bg)};` : '';
+  const colorStyle  = s.color ? `color:${esc(s.color)};`  : '';
+
+  if (!slides.length) return '';
+
+  const uniqueId = 'scaro_' + Math.random().toString(36).slice(2, 8);
+
+  const slidesHtml = slides.map((sl) => {
+    const img  = sl.image   || '';
+    const cap  = sl.caption || '';
+    const link = sl.link    || '';
+    const imgEl = img
+      ? `<img src="${esc(img)}" alt="${esc(cap)}" style="height:${height}px;object-fit:${esc(itemFit)};width:100%;display:block" loading="lazy" />`
+      : `<div style="height:${height}px;background:var(--line-soft)"></div>`;
+    const inner = link
+      ? `<a href="${esc(link)}" class="s-caro__slide s-caro__slide--${esc(itemFit)}" style="height:${height}px" target="_blank" rel="noopener">${imgEl}${cap ? `<div class="s-caro__caption">${esc(cap)}</div>` : ''}</a>`
+      : `<div class="s-caro__slide s-caro__slide--${esc(itemFit)}" style="height:${height}px">${imgEl}${cap ? `<div class="s-caro__caption">${esc(cap)}</div>` : ''}</div>`;
+    return inner;
+  }).join('');
+
+  const dots = showDots ? slides.map((_, i) =>
+    `<button class="s-caro__dot${i === 0 ? ' active' : ''}" onclick="${uniqueId}_go(${i})" aria-label="Slide ${i+1}"></button>`
+  ).join('') : '';
+
+  return `<section class="s-caro" style="${bgStyle}${colorStyle}" id="${uniqueId}">
+  <div class="s-caro__inner">
+    ${title ? `<h2 class="s-caro__title">${esc(title)}</h2>` : ''}
+    <div class="s-caro__viewport">
+      ${edgeFade ? '<div class="s-caro__fade-l"></div><div class="s-caro__fade-r"></div>' : ''}
+      <div class="s-caro__track" id="${uniqueId}_track">${slidesHtml}</div>
+    </div>
+    ${showDots || showArrows ? `<div class="s-caro__nav">
+      ${showArrows ? `<button class="s-caro__arr" onclick="${uniqueId}_prev()" aria-label="Previous">‹</button>` : ''}
+      ${showDots ? `<div class="s-caro__dots" id="${uniqueId}_dots">${dots}</div>` : ''}
+      ${showArrows ? `<button class="s-caro__arr" onclick="${uniqueId}_next()" aria-label="Next">›</button>` : ''}
+    </div>` : ''}
+  </div>
+</section>
+<script>
+(function(){
+  var UID      = ${JSON.stringify(uniqueId)};
+  var N        = ${JSON.stringify(slides.length)};
+  var SPEED    = ${JSON.stringify(speed)};
+  var TRANS    = ${JSON.stringify(transition)};
+  var AUTOPLAY = ${JSON.stringify(autoplay)};
+  var LOOP     = ${JSON.stringify(loop)};
+  var PAUSE    = ${JSON.stringify(pauseOnHover)};
+  var cur = 0, timer = null;
+  var track = document.getElementById(UID + '_track');
+  var dotsEl = document.getElementById(UID + '_dots');
+
+  function setTrans(ms) { track.style.transition = 'transform ' + ms + 'ms ease'; }
+  function go(idx) {
+    if (!LOOP) idx = Math.max(0, Math.min(N-1, idx));
+    else idx = ((idx % N) + N) % N;
+    cur = idx;
+    setTrans(TRANS);
+    track.style.transform = 'translateX(-' + (cur * 100) + '%)';
+    if (dotsEl) {
+      var dotEls = dotsEl.querySelectorAll('.s-caro__dot');
+      dotEls.forEach(function(d,i){ d.classList.toggle('active', i===cur); });
+    }
+  }
+  function startTimer() {
+    if (!AUTOPLAY || N < 2) return;
+    timer = setInterval(function(){ go(cur+1); }, SPEED);
+  }
+  function stopTimer() { clearInterval(timer); }
+
+  window[UID + '_go']   = go;
+  window[UID + '_prev'] = function(){ stopTimer(); go(cur-1); startTimer(); };
+  window[UID + '_next'] = function(){ stopTimer(); go(cur+1); startTimer(); };
+
+  if (PAUSE) {
+    var viewport = track.parentElement;
+    viewport.addEventListener('mouseenter', stopTimer);
+    viewport.addEventListener('mouseleave', startTimer);
+  }
+  startTimer();
+})();
+</script>`;
+}
+
 // ── Section dispatcher ────────────────────────────────────────────────────────
 
 function renderSection(section, products, config) {
@@ -888,6 +1348,9 @@ function renderSection(section, products, config) {
     case 'image-gallery': return renderGallery(section);
     case 'rich-text':     return renderRichText(section);
     case 'footer':        return renderFooter(section, config);
+    case 'calendar':      return renderCalendar(section);
+    case 'location':      return renderLocation(section);
+    case 'carousel':      return renderCarousel(section);
     default:              return '';
   }
 }

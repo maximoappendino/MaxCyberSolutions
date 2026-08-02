@@ -6,7 +6,7 @@ export async function onRequestGet({ params, env }) {
   if (!owner) return json({ error: 'Not found' }, 404);
 
   const { results } = await env.DB.prepare(
-    'SELECT id, email, plain_password, created_at FROM collaborators WHERE owner_id = ? ORDER BY created_at ASC'
+    'SELECT id, email, created_at FROM collaborators WHERE owner_id = ? ORDER BY created_at ASC'
   ).bind(params.id).all();
 
   return json(results || []);
@@ -34,8 +34,8 @@ export async function onRequestPost({ params, request, env }) {
   const { salt, hash } = await hashPassword(password);
   const id = uuid();
   await env.DB.prepare(
-    'INSERT INTO collaborators (id, owner_id, email, salt, hash, plain_password) VALUES (?, ?, ?, ?, ?, ?)'
-  ).bind(id, params.id, normalEmail, salt, hash, password).run();
+    'INSERT INTO collaborators (id, owner_id, email, salt, hash) VALUES (?, ?, ?, ?, ?)'
+  ).bind(id, params.id, normalEmail, salt, hash).run();
 
   return json({ id, email: normalEmail }, 201);
 }

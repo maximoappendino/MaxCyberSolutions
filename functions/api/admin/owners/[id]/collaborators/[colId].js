@@ -24,6 +24,6 @@ export async function onRequestPatch({ params, request, env }) {
   if (!password || password.length < 6) return json({ error: 'Password must be at least 6 characters' }, 400);
 
   const { salt, hash } = await hashPassword(password);
-  await env.DB.prepare('UPDATE collaborators SET salt = ?, hash = ?, plain_password = ? WHERE id = ?').bind(salt, hash, password, params.colId).run();
+  await env.DB.prepare('UPDATE collaborators SET salt = ?, hash = ? WHERE id = ?').bind(salt, hash, params.colId).run();
   return json({ ok: true });
 }

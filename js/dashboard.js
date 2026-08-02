@@ -161,6 +161,53 @@ const SECTION_TYPES = {
       privacyUrl: '', termsUrl: '', refundUrl: '',
     },
   },
+  calendar: {
+    label: 'Calendar Booking', icon: '📅',
+    defaults: {
+      title: 'Make a reservation',
+      mode: 'single-day',
+      minTime: '09:00', maxTime: '20:00',
+      timeInterval: 30,
+      minDays: 0, maxDays: 90,
+      popupTitle: 'Your details',
+      popupFields: 'Name\nPhone\nEmail\nNotes (optional)',
+      notifyMethod: 'whatsapp',
+      notifyEmail: '',
+      whatsappNumber: '',
+      confirmMessage: 'Thank you! Your request has been sent.',
+      bg: '', color: '',
+    },
+  },
+  location: {
+    label: 'Location / Map', icon: '📍',
+    defaults: {
+      title: 'Find us',
+      address: '',
+      height: 420,
+      zoom: 15,
+      showAddress: true,
+      addressText: '',
+      bg: '', color: '',
+    },
+  },
+  carousel: {
+    label: 'Carousel', icon: '⟳',
+    defaults: {
+      title: '',
+      slides: [],
+      speed: 4000,
+      transition: 300,
+      edgeFade: true,
+      pauseOnHover: true,
+      autoplay: true,
+      loop: true,
+      showDots: true,
+      showArrows: true,
+      height: 320,
+      itemFit: 'cover',
+      bg: '', color: '',
+    },
+  },
 };
 
 const PANEL_SIZES = { small: '280px', medium: '360px', large: '440px' };
@@ -602,14 +649,57 @@ async function checkAuth() {
 }
 
 function onAuthenticated() {
-  document.getElementById('d-bar').style.display    = '';
-  document.getElementById('d-email').textContent    = state.owner.email;
+  document.getElementById('d-bar').style.display = '';
+  document.getElementById('d-email').textContent = state.owner.email;
   const adminLink = document.getElementById('d-admin-link');
   if (adminLink) adminLink.style.display = state.owner.is_admin ? '' : 'none';
-  if (state.owner.status === 'paused') {
+
+  initNotificationBell();
+
+  // Role-based routing
+  const role   = state.owner.role   || 'owner';
+  const status = state.owner.status || 'active';
+  const subSt  = state.owner.subscription_status || 'active';
+
+  if (status === 'paused' || status === 'frozen') {
+    // Distinguish admin pause from subscription lapse
+    const isPastDue = ['past_due', 'cancelled', 'paused'].includes(subSt);
+    const titleEl   = document.getElementById('paused-title');
+    const bodyEl    = document.getElementById('paused-body');
+    const resubBtn  = document.getElementById('paused-resubscribe');
+    if (titleEl && isPastDue) {
+      titleEl.textContent = subSt === 'past_due' ? 'Payment failed' : 'Subscription cancelled';
+      bodyEl.textContent  = subSt === 'past_due'
+        ? 'Your renewal payment failed. Your store is temporarily unavailable. Re-subscribe to reactivate it.'
+        : 'Your subscription has been cancelled and your store is no longer active. Re-subscribe to bring it back.';
+      if (resubBtn) resubBtn.style.display = '';
+    }
     showScreen('paused');
     return;
   }
+
+  if (role === 'client') {
+    showScreen('upsell');
+    return;
+  }
+
+  // Show email verification banner (non-blocking — owner can still use the dashboard)
+  const verifyBanner = document.getElementById('d-verify-banner');
+  if (verifyBanner) verifyBanner.hidden = !!state.owner.email_verified;
+
+  // Wire up resend link
+  document.getElementById('d-resend-link')?.addEventListener('click', async () => {
+    const link = document.getElementById('d-resend-link');
+    if (!link) return;
+    link.textContent = 'Sending…';
+    try {
+      await api('POST', '/api/auth/resend-verification', { email: state.owner.email });
+      link.textContent = 'Sent! Check your inbox.';
+    } catch {
+      link.textContent = 'Could not send — try again.';
+    }
+  });
+
   if (state.owner.onboarded === 0) {
     setupOnboarding();
     showScreen('onboard');
@@ -621,11 +711,109 @@ function onAuthenticated() {
 async function logout() {
   await api('POST', '/api/auth/logout');
   state.owner = null;
-  document.getElementById('d-bar').style.display = 'none';
-  // Always re-enable the sign-in button (may have been left disabled on previous login)
+  document.getElementById('d-bar').style.display   = 'none';
+  document.getElementById('d-verify-banner').hidden = true;
+  closeNotifPanel();
   const loginBtn = document.getElementById('login-submit');
   if (loginBtn) loginBtn.disabled = false;
   showScreen('login');
+}
+
+// ── Notification bell ─────────────────────────────────────────────────────────
+let _notifOpen = false;
+
+function initNotificationBell() {
+  const btn   = document.getElementById('d-notif-btn');
+  const panel = document.getElementById('d-notif-panel');
+  if (!btn || !panel) return;
+
+  btn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    _notifOpen ? closeNotifPanel() : openNotifPanel();
+  });
+
+  document.addEventListener('click', (e) => {
+    if (_notifOpen && !panel.contains(e.target) && e.target !== btn) closeNotifPanel();
+  });
+
+  document.getElementById('d-notif-mark-all')?.addEventListener('click', async () => {
+    await api('POST', '/api/notifications/mark-read', {});
+    await loadNotifications();
+  });
+
+  loadNotifications();
+}
+
+async function loadNotifications() {
+  try {
+    const res  = await api('GET', '/api/notifications?limit=20');
+    if (!res.ok) return;
+    const data = await res.json();
+    renderNotifBadge(data.unread_count || 0);
+    renderNotifList(data.notifications || []);
+  } catch (_) {}
+}
+
+function renderNotifBadge(count) {
+  const badge = document.getElementById('d-notif-badge');
+  if (!badge) return;
+  badge.textContent = count > 99 ? '99+' : String(count);
+  badge.hidden      = count === 0;
+  // Also update state so other code can read it
+  if (state.owner) state.owner.unread_notifications = count;
+}
+
+function renderNotifList(notifs) {
+  const list = document.getElementById('d-notif-list');
+  if (!list) return;
+  if (!notifs.length) {
+    list.innerHTML = '<p class="d-notif-empty">No notifications</p>';
+    return;
+  }
+  list.innerHTML = notifs.map(n => `
+    <div class="d-notif-item ${n.read ? '' : 'd-notif-item--unread'}"
+         data-notif-id="${esc(n.id)}"
+         data-notif-link="${esc(n.link || '')}">
+      <div class="d-notif-item__title">${esc(n.title)}</div>
+      ${n.body ? `<div class="d-notif-item__body">${esc(n.body)}</div>` : ''}
+      <div class="d-notif-item__time">${fmtRelTime(n.created_at)}</div>
+    </div>
+  `).join('');
+
+  list.querySelectorAll('.d-notif-item').forEach(el => {
+    el.addEventListener('click', async () => {
+      const id   = el.dataset.notifId;
+      const link = el.dataset.notifLink;
+      if (id) await api('POST', '/api/notifications/mark-read', { id });
+      el.classList.remove('d-notif-item--unread');
+      await loadNotifications();
+      if (link && link !== '/dashboard/' && link !== '/dashboard') {
+        closeNotifPanel();
+      }
+    });
+  });
+}
+
+function openNotifPanel() {
+  document.getElementById('d-notif-panel').hidden = false;
+  _notifOpen = true;
+  loadNotifications();
+}
+
+function closeNotifPanel() {
+  const panel = document.getElementById('d-notif-panel');
+  if (panel) panel.hidden = true;
+  _notifOpen = false;
+}
+
+function fmtRelTime(iso) {
+  if (!iso) return '';
+  const d    = new Date(iso.replace(' ', 'T') + 'Z');
+  const diff = Date.now() - d.getTime();
+  if (diff < 60000)      return 'Just now';
+  if (diff < 3600000)    return `${Math.floor(diff / 60000)}m ago`;
+  if (diff < 86400000)   return `${Math.floor(diff / 3600000)}h ago`;
+  return `${Math.floor(diff / 86400000)}d ago`;
 }
 
 // ── Login ─────────────────────────────────────────────────────────────────────
@@ -664,12 +852,13 @@ function setupLoginForm() {
       }
 
       if (isReg) {
-        const lr = await api('POST', '/api/auth/login', { email, password });
-        const ld = await safeJson(lr);
-        if (lr.ok) { state.owner = ld; onAuthenticated(); }
-        else {
-          setMsg('login-msg', 'Account created — please sign in.', 'success');
-          document.querySelector('.login-tab[data-tab="signin"]').click();
+        // register.js now returns a session cookie → auto-login
+        if (res.status === 201) {
+          state.owner = data;
+          setMsg('login-msg', '✉ Account created — check your email to verify your address.', 'success');
+          await new Promise(r => setTimeout(r, 900));
+          onAuthenticated();
+        } else {
           btn.disabled = false;
         }
         return;
@@ -834,6 +1023,8 @@ window.openStore = async function(storeId) {
   await loadProducts();
   loadPaymentSettings(storeId);
 
+  const isNewStore = !state.draft.sections.length;
+
   showScreen('editor');
   showEditorBar();
   renderDesignTab();
@@ -844,6 +1035,8 @@ window.openStore = async function(storeId) {
   updateUndoRedoBtns();
   updatePreview();
   document.getElementById('etab-design').scrollTop = 0;
+
+  if (isNewStore) setTimeout(() => document.getElementById('btn-change-tmpl')?.click(), 150);
 };
 
 // ── Control Panel tabs (Dashboard / Gallery / WIP) ────────────────────────────
@@ -853,9 +1046,11 @@ function setupCpTabs() {
       document.querySelectorAll('.cp-tab').forEach(t => t.classList.remove('active'));
       document.querySelectorAll('.cp-panel').forEach(p => p.classList.remove('active'));
       tab.classList.add('active');
-      const panelId = { dashboard: 'cp-dashboard', gallery: 'cp-gallery', wip: 'cp-wip' }[tab.dataset.cpTab];
+      const panelId = { dashboard: 'cp-dashboard', gallery: 'cp-gallery', orders: 'cp-orders', finance: 'cp-finance', wip: 'cp-wip' }[tab.dataset.cpTab];
       document.getElementById(panelId)?.classList.add('active');
       if (tab.dataset.cpTab === 'gallery') loadGallery();
+      if (tab.dataset.cpTab === 'orders')  loadOrders();
+      if (tab.dataset.cpTab === 'finance') initFinance();
     });
   });
 }
@@ -1247,7 +1442,6 @@ function setupEditorTabs() {
       document.querySelectorAll('.etab-pane').forEach(p => p.classList.remove('active'));
       tab.classList.add('active');
       document.getElementById(`etab-${tab.dataset.tab}`).classList.add('active');
-      if (tab.dataset.tab === 'orders')     loadOrders();
       if (tab.dataset.tab === 'management') loadCustomers();
       if (tab.dataset.tab === 'analytics')  loadAnalytics();
     });
@@ -2327,9 +2521,17 @@ function buildSectionFields(s, i) {
 
     // ── FLOATING BUTTON ───────────────────────────────────────────────────────
     case 'floating-cta': return [
-      fieldSelect('Icon', 'icon', s.icon || 'whatsapp',
-        ['whatsapp','phone','email','link'],
-        ['WhatsApp','Phone','Email','Custom link']),
+      `<div class="form-field">
+        <label>Icon</label>
+        <div style="display:flex;align-items:center;gap:8px">
+          ${s.iconUrl
+            ? `<img src="${esc(s.iconUrl)}" style="width:36px;height:36px;object-fit:contain;border:1px solid var(--line);padding:3px;background:var(--line-soft)" />`
+            : `<span style="font-size:28px;line-height:1">${{'whatsapp':'💬','phone':'📞','email':'✉️','link':'🔗'}[s.icon] || '◎'}</span>`}
+          <button type="button" class="btn-ghost btn-sm" onclick="openIconPicker(${i},-1)">Choose from gallery</button>
+          ${s.iconUrl ? `<button type="button" class="btn-ghost btn-sm" onclick="clearFloatIcon(${i})">✕ Reset</button>` : ''}
+        </div>
+        <p style="font-size:10px;color:var(--fg-faint);margin-top:4px">Upload icons in Admin Panel → Icons ⊕</p>
+      </div>`,
       field('text', 'Button label', 'label', esc(s.label || '')),
       field('text', 'URL / link',   'url',   esc(s.url   || '')),
       `<div class="form-row">
@@ -2469,6 +2671,88 @@ function buildSectionFields(s, i) {
       ].join('');
     }
 
+    // ── CALENDAR BOOKING ──────────────────────────────────────────────────────
+    case 'calendar': return [
+      field('text', 'Section title', 'title', esc(s.title || 'Make a reservation')),
+      fieldGroup('Booking Mode', [
+        fieldSelect('Booking type', 'mode', s.mode || 'single-day',
+          ['single-day', 'date-range'],
+          ['Single day + time (restaurant, salon…)', 'Date range (travel, rental…)']),
+        `<div class="form-row">
+          ${field('time', 'Opening time', 'minTime', s.minTime || '09:00')}
+          ${field('time', 'Closing time', 'maxTime', s.maxTime || '20:00')}
+        </div>`,
+        fieldSelect('Time slot interval', 'timeInterval', s.timeInterval || 30,
+          [15, 30, 60], ['Every 15 min', 'Every 30 min', 'Every hour']),
+        `<div class="form-row">
+          ${field('number', 'Min advance (days)', 'minDays', s.minDays ?? 0)}
+          ${field('number', 'Max advance (days)', 'maxDays', s.maxDays ?? 90)}
+        </div>`,
+      ]),
+      fieldGroup('Customer Details Popup', [
+        field('text', 'Popup title', 'popupTitle', esc(s.popupTitle || 'Your details')),
+        fieldTextarea('Fields to collect (one per line)', 'popupFields',
+          esc(s.popupFields || 'Name\nPhone\nEmail\nNotes (optional)'), 4),
+        field('text', 'Confirmation message', 'confirmMessage', esc(s.confirmMessage || 'Thank you! Your request has been sent.')),
+      ]),
+      fieldGroup('Notification', [
+        fieldSelect('Notify via', 'notifyMethod', s.notifyMethod || 'whatsapp',
+          ['whatsapp', 'email'],
+          ['WhatsApp redirect (default)', 'Email from max@maxcybersolutions.online']),
+        field('text', 'WhatsApp number (digits only)', 'whatsappNumber', esc(s.whatsappNumber || ''), 'e.g. 5493517146520'),
+        field('email', 'Notification email', 'notifyEmail', esc(s.notifyEmail || ''), 'Receives booking details'),
+      ]),
+      fieldGroup('Appearance', [
+        field('color', 'Background', 'bg',    s.bg    || ''),
+        field('color', 'Text color', 'color', s.color || ''),
+      ]),
+    ].join('');
+
+    // ── LOCATION / MAP ────────────────────────────────────────────────────────
+    case 'location': return [
+      field('text', 'Section title', 'title', esc(s.title || 'Find us')),
+      fieldGroup('Map', [
+        fieldTextarea('Address', 'address', esc(s.address || ''), 2),
+        `<div class="form-row">
+          ${field('number', 'Height (px)', 'height', s.height || 420)}
+          ${field('number', 'Zoom level (1–20)', 'zoom', s.zoom || 15)}
+        </div>`,
+        `<p style="font-size:10px;color:var(--fg-faint);margin:0">Tip: paste a full address like "Av. Corrientes 1234, Buenos Aires" for best results.</p>`,
+      ]),
+      fieldGroup('Address Text', [
+        fieldToggle('Show address below map', 'showAddress', s.showAddress !== false),
+        fieldTextarea('Custom address text (leave blank to auto-format)', 'addressText', esc(s.addressText || ''), 2),
+      ]),
+      fieldGroup('Appearance', [
+        field('color', 'Section background', 'bg',    s.bg    || ''),
+        field('color', 'Text color',         'color', s.color || ''),
+      ]),
+    ].join('');
+
+    // ── CAROUSEL ─────────────────────────────────────────────────────────────
+    case 'carousel': return [
+      field('text', 'Section title (optional)', 'title', esc(s.title || '')),
+      buildCarouselSlides(s.slides || [], i),
+      fieldGroup('Behaviour', [
+        fieldToggle('Autoplay', 'autoplay', s.autoplay !== false),
+        fieldToggle('Loop infinitely', 'loop', s.loop !== false),
+        fieldToggle('Pause on hover', 'pauseOnHover', s.pauseOnHover !== false),
+        `<div class="form-row">
+          ${field('number', 'Slide duration (ms)', 'speed', s.speed || 4000)}
+          ${field('number', 'Transition (ms)', 'transition', s.transition || 300)}
+        </div>`,
+      ]),
+      fieldGroup('Appearance', [
+        field('number', 'Slide height (px)', 'height', s.height || 320),
+        fieldSelect('Image fit', 'itemFit', s.itemFit || 'cover', ['cover','contain'], ['Cover','Contain']),
+        fieldToggle('Edge fade (gradient)', 'edgeFade', s.edgeFade !== false),
+        fieldToggle('Show navigation arrows', 'showArrows', s.showArrows !== false),
+        fieldToggle('Show dot indicators', 'showDots', s.showDots !== false),
+        field('color', 'Background', 'bg',    s.bg    || ''),
+        field('color', 'Text color', 'color', s.color || ''),
+      ]),
+    ].join('');
+
     default: return '<p style="padding:8px;color:var(--fg-faint)">No fields for this section type.</p>';
   }
 }
@@ -2575,6 +2859,54 @@ function buildCarouselImages(images, sectionIdx) {
   </div>`;
 }
 
+function buildCarouselSlides(slides, sectionIdx) {
+  const rows = slides.map((sl, si) => `
+    <div style="border:1px solid var(--line);padding:8px;display:flex;flex-direction:column;gap:6px;margin-bottom:6px">
+      <div style="display:flex;align-items:center;gap:6px">
+        ${sl.image ? `<img src="${esc(sl.image)}" style="width:44px;height:36px;object-fit:cover;border:1px solid var(--line);flex-shrink:0" />` : '<div style="width:44px;height:36px;background:var(--line-soft);flex-shrink:0"></div>'}
+        <button type="button" class="btn-ghost btn-sm" onclick="triggerSlideImgAdd(${sectionIdx},${si})" style="flex:1">
+          ${sl.image ? '↺ Change image' : '+ Add image'}
+        </button>
+        <button type="button" class="btn-ghost btn-sm" onclick="removeSlide(${sectionIdx},${si})">✕</button>
+      </div>
+      <input type="text" placeholder="Caption (optional)" value="${esc(sl.caption||'')}"
+        oninput="setSlideField(${sectionIdx},${si},'caption',this.value)"
+        style="width:100%;padding:5px 8px;border:1px solid var(--line);background:var(--bg);color:var(--fg);font-size:12px" />
+      <input type="text" placeholder="Link URL (optional)" value="${esc(sl.url||'')}"
+        oninput="setSlideField(${sectionIdx},${si},'url',this.value)"
+        style="width:100%;padding:5px 8px;border:1px solid var(--line);background:var(--bg);color:var(--fg);font-size:12px" />
+    </div>`).join('');
+
+  return `<div class="form-field">
+    <label>Slides (${slides.length})</label>
+    <div id="carousel-slides-list">${rows || '<p style="font-size:11px;color:var(--fg-faint);margin:0">No slides yet.</p>'}</div>
+    <button type="button" class="btn-ghost btn-sm" style="margin-top:6px" onclick="addSlide(${sectionIdx})">+ Add slide</button>
+  </div>`;
+}
+
+window.addSlide = function(sectionIdx) {
+  const s = state.draft.sections[sectionIdx];
+  if (!Array.isArray(s.slides)) s.slides = [];
+  s.slides.push({ image: '', caption: '', url: '' });
+  openSectionEditor(sectionIdx);
+  markDirty();
+};
+window.removeSlide = function(sectionIdx, si) {
+  const s = state.draft.sections[sectionIdx];
+  if (Array.isArray(s.slides)) s.slides.splice(si, 1);
+  openSectionEditor(sectionIdx);
+  markDirty();
+};
+window.setSlideField = function(sectionIdx, si, field, val) {
+  const s = state.draft.sections[sectionIdx];
+  if (Array.isArray(s.slides) && s.slides[si]) s.slides[si][field] = val;
+  markDirty();
+};
+window.triggerSlideImgAdd = function(sectionIdx, si) {
+  state.imgUploadTarget = { type: 'slide', sectionIdx, si };
+  openImgPicker();
+};
+
 function bindSectionFields(i) {
   const container = document.getElementById('sec-editor-fields');
   container.querySelectorAll('input[data-field], select[data-field], textarea[data-field]').forEach(el => {
@@ -2676,12 +3008,22 @@ window.selectIcon = function(url) {
   if (!_iconPickerTarget) return;
   const { sectionIdx, ci } = _iconPickerTarget;
   const s = state.draft.sections[sectionIdx];
-  if (Array.isArray(s.custom) && s.custom[ci]) {
+  if (ci === -1) {
+    s.iconUrl = url;
+    s.icon    = 'custom';
+  } else if (Array.isArray(s.custom) && s.custom[ci]) {
     s.custom[ci].iconUrl = url;
     s.custom[ci].icon    = '';
   }
   document.getElementById('icon-picker-overlay').classList.remove('active');
   _iconPickerTarget = null;
+  openSectionEditor(sectionIdx);
+  markDirty();
+};
+
+window.clearFloatIcon = function(sectionIdx) {
+  const s = state.draft.sections[sectionIdx];
+  if (s) { s.iconUrl = ''; s.icon = 'whatsapp'; }
   openSectionEditor(sectionIdx);
   markDirty();
 };
@@ -2785,6 +3127,12 @@ async function handleImgUpload(e) {
       state.draft.sections[target.sectionIdx].images.push(url);
       openSectionEditor(target.sectionIdx);
       markDirty();
+    } else if (target.type === 'slide') {
+      const s = state.draft.sections[target.sectionIdx];
+      if (!Array.isArray(s.slides)) s.slides = [];
+      if (s.slides[target.si]) s.slides[target.si].image = url;
+      openSectionEditor(target.sectionIdx);
+      markDirty();
     } else if (target.type === 'product') {
       document.getElementById('pm-image').value = url;
       renderProductImgPreview(url);
@@ -2818,6 +3166,12 @@ function handleImgSelect(url) {
     if (!Array.isArray(state.draft.sections[target.sectionIdx].images))
       state.draft.sections[target.sectionIdx].images = [];
     state.draft.sections[target.sectionIdx].images.push(url);
+    openSectionEditor(target.sectionIdx);
+    markDirty();
+  } else if (target.type === 'slide') {
+    const s = state.draft.sections[target.sectionIdx];
+    if (!Array.isArray(s.slides)) s.slides = [];
+    if (s.slides[target.si]) s.slides[target.si].image = url;
     openSectionEditor(target.sectionIdx);
     markDirty();
   } else if (target.type === 'product') {
@@ -3865,6 +4219,10 @@ function setupOnboarding() {
     const msg  = document.getElementById('ob-msg-1');
     if (!name || !slug) { if (msg) msg.textContent = 'Please fill in both fields.'; return; }
     if (!_obSlugOk) { if (msg) msg.textContent = 'Check slug availability first.'; return; }
+    if (!state.owner?.email_verified) {
+      if (msg) msg.textContent = 'Please verify your email before creating a store. Check your inbox for the verification link.';
+      return;
+    }
 
     const res  = await api('POST', '/api/stores', { name, slug });
     const data = await safeJson(res);
@@ -4163,4 +4521,523 @@ window.openCollabsModal = function(storeId, slug) {
   setTimeout(() => {
     document.querySelector('.etab[data-tab="config"]')?.click();
   }, 800);
+};
+
+// ── Finance ───────────────────────────────────────────────────────────────────
+
+const _fin = {
+  inited:      false,
+  categories:  [],
+  contacts:    [],
+  contactType: 'client',
+  txType:      'income',
+  txPage:      1,
+  txFilters:   {},
+  reportData:  null,
+  editingContactId: null,
+};
+
+const fmtARS = cents => '$ ' + (cents / 100).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const deltaPct = (curr, prev) => prev === 0 ? null : Math.round((curr - prev) / prev * 100);
+
+function finStoreId() { return state.activeStore?.id; }
+
+async function initFinance() {
+  if (!finStoreId()) return;
+  // Wire up sub-tabs once
+  if (!_fin.inited) {
+    document.querySelectorAll('.fin-tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('.fin-tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.fin-pane').forEach(p => p.classList.remove('active'));
+        tab.classList.add('active');
+        const id = { overview: 'fin-overview', transactions: 'fin-transactions', contacts: 'fin-contacts-pane', reports: 'fin-reports-pane' }[tab.dataset.finTab];
+        document.getElementById(id)?.classList.add('active');
+        if (tab.dataset.finTab === 'transactions') loadFinTransactions();
+        if (tab.dataset.finTab === 'contacts')     loadFinContacts();
+        if (tab.dataset.finTab === 'reports')      initFinReports();
+      });
+    });
+    document.getElementById('btn-fin-tx-filter')?.addEventListener('click', () => { _fin.txPage = 1; loadFinTransactions(); });
+    // Set default dates for transaction filter to current month
+    const now = new Date();
+    const y = now.getFullYear(), m = String(now.getMonth() + 1).padStart(2, '0');
+    const todayStr = `${y}-${m}-${String(now.getDate()).padStart(2,'0')}`;
+    const monthStart = `${y}-${m}-01`;
+    const fromEl = document.getElementById('fin-tx-from');
+    const toEl   = document.getElementById('fin-tx-to');
+    if (fromEl && !fromEl.value) fromEl.value = monthStart;
+    if (toEl   && !toEl.value)   toEl.value   = todayStr;
+    _fin.inited = true;
+  }
+  await Promise.all([loadFinCategories(), loadFinOverview()]);
+}
+
+// ── Overview ──────────────────────────────────────────────────────────────────
+
+async function loadFinOverview() {
+  const sid = finStoreId();
+  if (!sid) return;
+  const res  = await api('GET', `/api/finance/${sid}/overview`);
+  const data = res.ok ? await safeJson(res) : null;
+  if (!data) return;
+  renderFinOverview(data);
+}
+
+function renderFinOverview(d) {
+  const tm = d.thisMonth, lm = d.lastMonth;
+  function setCard(id, deltaId, value, prev) {
+    const el = document.getElementById(id);
+    const dd = document.getElementById(deltaId);
+    if (el) el.textContent = fmtARS(value);
+    if (!dd) return;
+    const pct = deltaPct(value, prev);
+    if (pct === null) { dd.textContent = ''; return; }
+    const up = pct >= 0;
+    dd.textContent = (up ? '↑ ' : '↓ ') + Math.abs(pct) + '% vs last month';
+    dd.className = `fin-card__delta fin-card__delta--${up ? 'up' : 'down'}`;
+  }
+  setCard('fin-ov-income',  'fin-ov-income-d',  tm.income,  lm.income);
+  setCard('fin-ov-expense', 'fin-ov-expense-d', tm.expense, lm.expense);
+  setCard('fin-ov-profit',  'fin-ov-profit-d',  tm.profit,  lm.profit);
+
+  renderFinTrendChart(d.trend || []);
+  renderFinCatBars(d.categories || []);
+  renderFinTopList('fin-top-clients',   d.topClients   || []);
+  renderFinTopList('fin-top-providers', d.topProviders || []);
+}
+
+function renderFinTrendChart(trend) {
+  const svg = document.getElementById('fin-trend-svg');
+  if (!svg) return;
+  // Collect months
+  const months = {};
+  trend.forEach(r => {
+    if (!months[r.month]) months[r.month] = { income: 0, expense: 0 };
+    months[r.month][r.type] = r.total;
+  });
+  const keys   = Object.keys(months).sort();
+  if (!keys.length) { svg.innerHTML = ''; return; }
+  const maxVal = Math.max(...keys.map(k => Math.max(months[k].income, months[k].expense)), 1);
+  const W = 400, H = 100, pad = 4;
+  const xStep = keys.length > 1 ? (W - pad * 2) / (keys.length - 1) : W / 2;
+  const yScale = v => H - pad - (v / maxVal) * (H - pad * 2);
+  const pts = type => keys.map((k, i) => `${pad + i * xStep},${yScale(months[k][type])}`).join(' ');
+  svg.innerHTML = `
+    <polyline points="${pts('income')}"  fill="none" stroke="#22c55e" stroke-width="2" stroke-linejoin="round" />
+    <polyline points="${pts('expense')}" fill="none" stroke="#ef4444" stroke-width="2" stroke-linejoin="round" />
+    ${keys.map((k, i) => `<text x="${pad + i * xStep}" y="${H}" text-anchor="middle" font-size="8" fill="currentColor" opacity=".5">${k.slice(5)}</text>`).join('')}
+  `;
+}
+
+function renderFinCatBars(cats) {
+  const el = document.getElementById('fin-cat-bars');
+  if (!el) return;
+  if (!cats.length) { el.innerHTML = '<p style="font-size:12px;color:var(--fg-faint)">No data yet.</p>'; return; }
+  const max = Math.max(...cats.map(c => c.total), 1);
+  el.innerHTML = cats.slice(0, 8).map(c => `
+    <div class="fin-bar-item">
+      <span class="fin-bar-item__label" title="${esc(c.name)}">${esc(c.name)}</span>
+      <div class="fin-bar-item__track"><div class="fin-bar-item__fill" style="width:${(c.total/max*100).toFixed(1)}%;background:${esc(c.color||'var(--accent)')}"></div></div>
+      <span class="fin-bar-item__amt">${fmtARS(c.total)}</span>
+    </div>`).join('');
+}
+
+function renderFinTopList(elId, contacts) {
+  const el = document.getElementById(elId);
+  if (!el) return;
+  if (!contacts.length) { el.innerHTML = '<p style="font-size:12px;color:var(--fg-faint);padding:8px 0">None this month.</p>'; return; }
+  el.innerHTML = contacts.map(c => `
+    <div class="fin-top-row">
+      <span class="fin-top-row__name">${esc(c.name)}</span>
+      <span class="fin-top-row__amt">${fmtARS(c.total)}</span>
+    </div>`).join('');
+}
+
+// ── Categories (loaded on init for selects) ───────────────────────────────────
+
+async function loadFinCategories() {
+  const sid = finStoreId();
+  if (!sid) return;
+  const res = await api('GET', `/api/finance/${sid}/categories`);
+  if (!res.ok) return;
+  _fin.categories = await safeJson(res) || [];
+  populateFinCatSelects();
+}
+
+function populateFinCatSelects() {
+  const cats = _fin.categories;
+  // Filter select in toolbar
+  const filterSel = document.getElementById('fin-tx-cat');
+  if (filterSel) {
+    const cur = filterSel.value;
+    filterSel.innerHTML = '<option value="">All categories</option>' +
+      cats.map(c => `<option value="${esc(c.id)}"${c.id === cur ? ' selected' : ''}>${esc(c.name)} (${c.type})</option>`).join('');
+  }
+  // Modal select (filtered dynamically by type when modal opens)
+  updateFinCatModalSelect();
+}
+
+function updateFinCatModalSelect() {
+  const sel = document.getElementById('fin-tx-cat-sel');
+  if (!sel) return;
+  const filtered = _fin.categories.filter(c => c.type === _fin.txType);
+  sel.innerHTML = '<option value="">— none —</option>' +
+    filtered.map(c => `<option value="${esc(c.id)}">${esc(c.name)}</option>`).join('');
+}
+
+// ── Transactions ──────────────────────────────────────────────────────────────
+
+async function loadFinTransactions() {
+  const sid = finStoreId();
+  if (!sid) return;
+  const body = document.getElementById('fin-tx-body');
+  if (body) body.innerHTML = '<tr><td colspan="8" style="padding:16px;text-align:center;color:var(--fg-faint);font-size:12px">Loading…</td></tr>';
+
+  const params = new URLSearchParams();
+  const from  = document.getElementById('fin-tx-from')?.value;
+  const to    = document.getElementById('fin-tx-to')?.value;
+  const type  = document.getElementById('fin-tx-type')?.value;
+  const catId = document.getElementById('fin-tx-cat')?.value;
+  if (from)  params.set('date_from', from);
+  if (to)    params.set('date_to',   to);
+  if (type)  params.set('type', type);
+  if (catId) params.set('category_id', catId);
+  params.set('page',  _fin.txPage);
+  params.set('limit', '50');
+
+  const res  = await api('GET', `/api/finance/${sid}/transactions?${params}`);
+  const data = res.ok ? await safeJson(res) : {};
+  renderFinTransactions(data);
+}
+
+function renderFinTransactions(data) {
+  const txs    = data.transactions || [];
+  const total  = data.total_count  || 0;
+  const income = data.total_income || 0;
+  const expense= data.total_expense|| 0;
+  const body   = document.getElementById('fin-tx-body');
+  const pager  = document.getElementById('fin-tx-pager');
+
+  if (!txs.length) {
+    if (body) body.innerHTML = '<tr><td colspan="8" style="padding:24px;text-align:center;color:var(--fg-faint)">No transactions found.</td></tr>';
+    if (pager) pager.innerHTML = '';
+    return;
+  }
+
+  if (body) body.innerHTML = txs.map(tx => `
+    <tr class="${tx.status === 'voided' ? 'fin-voided' : ''}" id="ftx-${esc(tx.id)}">
+      <td>${esc(tx.occurred_at)}</td>
+      <td><span class="fin-type-pill fin-type-pill--${esc(tx.type)}">${esc(tx.type)}</span></td>
+      <td>${tx.category_color ? `<span class="fin-cat-dot" style="background:${esc(tx.category_color)}"></span>` : ''}${esc(tx.category_name || '—')}</td>
+      <td>${esc(tx.contact_name || '—')}</td>
+      <td style="font-family:var(--mono);font-size:11px">${esc(tx.payment_method || '—')}</td>
+      <td class="fin-amount--${esc(tx.type)}">${fmtARS(tx.amount)}</td>
+      <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px" title="${esc(tx.notes||'')}">${esc(tx.notes || '')}</td>
+      <td class="fin-tx-actions">
+        ${tx.receipt_asset_url ? `<a href="${esc(tx.receipt_asset_url)}" target="_blank" class="btn-ghost btn-sm" title="View receipt">📎</a>` : ''}
+        ${tx.status === 'posted' ? `<button class="btn-ghost btn-sm btn-ghost--danger" onclick="voidFinTx('${esc(tx.id)}')">Void</button>` : '<span style="font-size:10px;font-family:var(--mono);opacity:.5">voided</span>'}
+      </td>
+    </tr>`).join('');
+
+  // Pager + totals
+  const totalPages = Math.ceil(total / 50);
+  if (pager) pager.innerHTML = `
+    <span>Showing ${txs.length} of ${total} &nbsp;|&nbsp; Income: ${fmtARS(income)} &nbsp; Expenses: ${fmtARS(expense)} &nbsp; Net: ${fmtARS(income - expense)}</span>
+    <div style="flex:1"></div>
+    ${_fin.txPage > 1 ? `<button class="btn-ghost btn-sm" onclick="finTxGoPage(${_fin.txPage - 1})">← Prev</button>` : ''}
+    <span>${_fin.txPage} / ${totalPages || 1}</span>
+    ${_fin.txPage < totalPages ? `<button class="btn-ghost btn-sm" onclick="finTxGoPage(${_fin.txPage + 1})">Next →</button>` : ''}
+  `;
+}
+
+window.finTxGoPage = function(page) { _fin.txPage = page; loadFinTransactions(); };
+
+window.voidFinTx = async function(txId) {
+  const reason = prompt('Reason for voiding this transaction (optional):') ?? '';
+  if (reason === null) return;
+  const sid = finStoreId();
+  const res = await api('PATCH', `/api/finance/${sid}/transactions/${txId}`, { void_reason: reason });
+  if (!res.ok) { alert('Failed to void transaction.'); return; }
+  // Visually mark as voided without full reload
+  const row = document.getElementById(`ftx-${txId}`);
+  if (row) {
+    row.classList.add('fin-voided');
+    const voidBtn = row.querySelector('.btn-ghost--danger');
+    if (voidBtn) voidBtn.replaceWith(Object.assign(document.createElement('span'), { textContent: 'voided', style: 'font-size:10px;font-family:var(--mono);opacity:.5' }));
+  }
+};
+
+// ── Transaction Modal ─────────────────────────────────────────────────────────
+
+window.openFinTxModal = async function() {
+  _fin.txType = 'income';
+  document.querySelectorAll('.fin-type-btn').forEach(b => b.classList.toggle('active', b.dataset.t === 'income'));
+  document.getElementById('fin-tx-amount').value  = '';
+  document.getElementById('fin-tx-date').value    = new Date().toISOString().slice(0, 10);
+  document.getElementById('fin-tx-notes').value   = '';
+  document.getElementById('fin-tx-receipt').value = '';
+  document.getElementById('fin-tx-msg').textContent = '';
+  // Load contacts for select
+  const sid = finStoreId();
+  const cRes = await api('GET', `/api/finance/${sid}/contacts`);
+  const contacts = cRes.ok ? await safeJson(cRes) : [];
+  _fin.contacts = contacts;
+  const conSel = document.getElementById('fin-tx-contact-sel');
+  if (conSel) conSel.innerHTML = '<option value="">— none —</option>' +
+    contacts.map(c => `<option value="${esc(c.id)}">${esc(c.name)} (${c.type})</option>`).join('');
+  updateFinCatModalSelect();
+  document.getElementById('fin-tx-modal').classList.add('active');
+};
+
+window.closeFinTxModal  = function() { document.getElementById('fin-tx-modal').classList.remove('active'); };
+
+window.setFinTxType = function(type, btn) {
+  _fin.txType = type;
+  document.querySelectorAll('.fin-type-btn').forEach(b => b.classList.toggle('active', b === btn));
+  updateFinCatModalSelect();
+};
+
+window.submitFinTx = async function() {
+  const amountStr = document.getElementById('fin-tx-amount')?.value;
+  const date      = document.getElementById('fin-tx-date')?.value;
+  const catId     = document.getElementById('fin-tx-cat-sel')?.value;
+  const conId     = document.getElementById('fin-tx-contact-sel')?.value;
+  const method    = document.getElementById('fin-tx-method')?.value;
+  const notes     = document.getElementById('fin-tx-notes')?.value;
+  const receipt   = document.getElementById('fin-tx-receipt')?.files?.[0];
+  const msgEl     = document.getElementById('fin-tx-msg');
+  const sid       = finStoreId();
+
+  if (!amountStr || parseFloat(amountStr) <= 0) { msgEl.textContent = 'Enter a valid amount.'; msgEl.className = 'status-msg error'; return; }
+  if (!date) { msgEl.textContent = 'Date is required.'; msgEl.className = 'status-msg error'; return; }
+
+  const btn = document.getElementById('btn-fin-tx-submit');
+  btn.disabled = true; btn.textContent = 'Saving…';
+  msgEl.textContent = '';
+
+  let receiptUrl = null;
+  if (receipt) {
+    const fd = new FormData();
+    fd.append('file', receipt);
+    fd.append('store_id', sid);
+    const uRes = await fetch('/api/upload', { method: 'POST', body: fd });
+    const uData = uRes.ok ? await safeJson(uRes) : null;
+    if (!uRes.ok || !uData?.url) { msgEl.textContent = 'Receipt upload failed.'; msgEl.className = 'status-msg error'; btn.disabled = false; btn.textContent = 'Add transaction'; return; }
+    receiptUrl = uData.url;
+  }
+
+  const amountCents = Math.round(parseFloat(amountStr) * 100);
+  const res = await api('POST', `/api/finance/${sid}/transactions`, {
+    type: _fin.txType, amount_cents: amountCents, occurred_at: date,
+    category_id: catId || null, contact_id: conId || null,
+    payment_method: method, receipt_asset_url: receiptUrl, notes: notes || null,
+  });
+
+  btn.disabled = false; btn.textContent = 'Add transaction';
+  if (!res.ok) {
+    const err = await safeJson(res);
+    msgEl.textContent = err.error || 'Failed to save.'; msgEl.className = 'status-msg error'; return;
+  }
+  closeFinTxModal();
+  _fin.txPage = 1;
+  loadFinTransactions();
+};
+
+// ── Contacts ──────────────────────────────────────────────────────────────────
+
+async function loadFinContacts() {
+  const sid = finStoreId();
+  if (!sid) return;
+  const body = document.getElementById('fin-contacts-body');
+  if (body) body.innerHTML = '<tr><td colspan="6" style="padding:16px;text-align:center;color:var(--fg-faint);font-size:12px">Loading…</td></tr>';
+  const res  = await api('GET', `/api/finance/${sid}/contacts?type=${_fin.contactType}`);
+  const rows = res.ok ? await safeJson(res) : [];
+  _fin.contacts = rows;
+  renderFinContacts(rows);
+}
+
+function renderFinContacts(rows) {
+  const body = document.getElementById('fin-contacts-body');
+  if (!body) return;
+  if (!rows.length) {
+    body.innerHTML = `<tr><td colspan="6" style="padding:24px;text-align:center;color:var(--fg-faint)">No ${_fin.contactType}s yet. Add one above.</td></tr>`;
+    return;
+  }
+  body.innerHTML = rows.map(c => `
+    <tr onclick="openFinContactDetail('${esc(c.id)}')">
+      <td><strong>${esc(c.name)}</strong></td>
+      <td style="font-size:12px;color:var(--fg-faint)">${esc(c.contact_info || '—')}</td>
+      <td style="text-align:right;font-family:var(--mono);color:#22c55e">${fmtARS(c.total_income || 0)}</td>
+      <td style="text-align:right;font-family:var(--mono);color:#ef4444">${fmtARS(c.total_expense || 0)}</td>
+      <td style="text-align:right;font-family:var(--serif);font-size:15px">${fmtARS(c.balance || 0)}</td>
+      <td style="font-size:12px;color:var(--fg-faint)">${c.last_tx_date || '—'}</td>
+    </tr>`).join('');
+}
+
+window.setFinContactType = function(type, btn) {
+  _fin.contactType = type;
+  document.querySelectorAll('.fin-toggle-btn').forEach(b => b.classList.toggle('active', b === btn));
+  loadFinContacts();
+};
+
+window.openFinContactModal = function(id) {
+  _fin.editingContactId = id || null;
+  const contact = id ? _fin.contacts.find(c => c.id === id) : null;
+  document.getElementById('fin-contact-modal-title').textContent = contact ? 'Edit contact' : 'Add contact';
+  document.getElementById('fin-con-name').value  = contact?.name         || '';
+  document.getElementById('fin-con-info').value  = contact?.contact_info || '';
+  document.getElementById('fin-con-notes').value = contact?.notes        || '';
+  document.getElementById('fin-con-msg').textContent = '';
+  document.getElementById('fin-contact-modal').classList.add('active');
+};
+
+window.closeFinContactModal = function() { document.getElementById('fin-contact-modal').classList.remove('active'); };
+
+window.submitFinContact = async function() {
+  const name  = document.getElementById('fin-con-name')?.value.trim();
+  const info  = document.getElementById('fin-con-info')?.value.trim();
+  const notes = document.getElementById('fin-con-notes')?.value.trim();
+  const msgEl = document.getElementById('fin-con-msg');
+  const sid   = finStoreId();
+  if (!name) { msgEl.textContent = 'Name is required.'; msgEl.className = 'status-msg error'; return; }
+
+  const btn = document.getElementById('btn-fin-con-submit');
+  btn.disabled = true; btn.textContent = 'Saving…';
+
+  let res;
+  if (_fin.editingContactId) {
+    res = await api('PATCH', `/api/finance/${sid}/contacts/${_fin.editingContactId}`, { name, contact_info: info || null, notes: notes || null });
+  } else {
+    res = await api('POST', `/api/finance/${sid}/contacts`, { type: _fin.contactType, name, contact_info: info || null, notes: notes || null });
+  }
+
+  btn.disabled = false; btn.textContent = 'Save';
+  if (!res.ok) { const e = await safeJson(res); msgEl.textContent = e.error || 'Failed'; msgEl.className = 'status-msg error'; return; }
+  closeFinContactModal();
+  loadFinContacts();
+};
+
+window.openFinContactDetail = async function(contactId) {
+  const sid = finStoreId();
+  const res = await api('GET', `/api/finance/${sid}/contacts/${contactId}`);
+  if (!res.ok) return;
+  const c = await safeJson(res);
+  document.getElementById('fin-cd-name').textContent    = c.name || 'Contact';
+  document.getElementById('fin-cd-balance').textContent = fmtARS(c.balance || 0);
+  document.getElementById('fin-cd-income').textContent  = fmtARS(c.total_income || 0);
+  document.getElementById('fin-cd-expense').textContent = fmtARS(c.total_expense || 0);
+  const body = document.getElementById('fin-cd-body');
+  if (body) {
+    const txs = c.transactions || [];
+    body.innerHTML = !txs.length ? '<tr><td colspan="5" style="padding:16px;text-align:center;color:var(--fg-faint)">No transactions.</td></tr>' :
+      txs.map(tx => `
+        <tr class="${tx.status === 'voided' ? 'fin-voided' : ''}">
+          <td>${esc(tx.occurred_at)}</td>
+          <td><span class="fin-type-pill fin-type-pill--${esc(tx.type)}">${esc(tx.type)}</span></td>
+          <td>${esc(tx.category_name || '—')}</td>
+          <td class="fin-amount--${esc(tx.type)}">${fmtARS(tx.amount)}</td>
+          <td style="font-size:12px;color:var(--fg-faint)">${esc(tx.notes || '—')}</td>
+        </tr>`).join('');
+  }
+  document.getElementById('fin-contact-detail').classList.add('active');
+};
+
+// ── Reports ───────────────────────────────────────────────────────────────────
+
+function initFinReports() {
+  const now = new Date();
+  const y = now.getFullYear();
+  const from = document.getElementById('fin-rpt-from');
+  const to   = document.getElementById('fin-rpt-to');
+  if (from && !from.value) from.value = `${y}-01-01`;
+  if (to   && !to.value)   to.value   = now.toISOString().slice(0, 10);
+}
+
+window.loadFinReports = async function() {
+  const sid  = finStoreId();
+  const from = document.getElementById('fin-rpt-from')?.value;
+  const to   = document.getElementById('fin-rpt-to')?.value;
+  const out  = document.getElementById('fin-rpt-output');
+  if (!sid || !from || !to) return;
+  if (out) out.innerHTML = '<p style="color:var(--fg-faint);font-size:13px">Generating…</p>';
+  const res  = await api('GET', `/api/finance/${sid}/reports?date_from=${from}&date_to=${to}`);
+  const data = res.ok ? await safeJson(res) : null;
+  if (!data || !res.ok) { if (out) out.innerHTML = '<p style="color:#b33">Failed to load report.</p>'; return; }
+  _fin.reportData = data;
+  renderFinReport(data);
+};
+
+function renderFinReport(d) {
+  const out = document.getElementById('fin-rpt-output');
+  if (!out) return;
+
+  const plRows = lines => lines.map(r => `
+    <tr>
+      <td>${r.color ? `<span class="fin-cat-dot" style="background:${esc(r.color)}"></span>` : ''}${esc(r.name || 'Uncategorized')}</td>
+      <td>${fmtARS(r.total)}</td>
+    </tr>`).join('');
+
+  const cfRows = (d.cashflow || []);
+  const cfMonths = [...new Set(cfRows.map(r => r.month))].sort();
+  const cfByMonth = {};
+  cfRows.forEach(r => { if (!cfByMonth[r.month]) cfByMonth[r.month] = { income: 0, expense: 0 }; cfByMonth[r.month][r.type] = r.total; });
+
+  out.innerHTML = `
+    <div class="fin-pl-section">
+      <div class="fin-pl-title">Income statement — ${esc(d.date_from)} to ${esc(d.date_to)}</div>
+      <table class="fin-pl-table">
+        <tr><td colspan="2" style="font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;padding-bottom:6px;color:var(--fg-faint)">Income</td></tr>
+        ${plRows(d.income_lines || [])}
+        <tr class="fin-pl-total"><td>Total Income</td><td>${fmtARS(d.total_income)}</td></tr>
+        <tr><td colspan="2" style="padding-top:16px;font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--fg-faint)">Expenses</td></tr>
+        ${plRows(d.expense_lines || [])}
+        <tr class="fin-pl-total"><td>Total Expenses</td><td>${fmtARS(d.total_expense)}</td></tr>
+      </table>
+      <div class="fin-net-row">
+        <span>Net Profit</span>
+        <span style="color:${d.net_profit >= 0 ? '#22c55e' : '#ef4444'}">${fmtARS(d.net_profit)}</span>
+      </div>
+    </div>
+
+    ${cfMonths.length ? `<div class="fin-pl-section">
+      <div class="fin-pl-title">Cash flow by month</div>
+      <table class="fin-pl-table">
+        <tr>
+          <td style="font-family:var(--mono);font-size:10px;color:var(--fg-faint)">Month</td>
+          <td style="font-family:var(--mono);font-size:10px;color:#22c55e">Income</td>
+          <td style="font-family:var(--mono);font-size:10px;color:#ef4444">Expenses</td>
+          <td style="font-family:var(--mono);font-size:10px;color:var(--fg-faint)">Net</td>
+        </tr>
+        ${cfMonths.map(m => {
+          const row = cfByMonth[m];
+          const net = row.income - row.expense;
+          return `<tr>
+            <td>${esc(m)}</td>
+            <td style="color:#22c55e;font-family:var(--mono)">${fmtARS(row.income)}</td>
+            <td style="color:#ef4444;font-family:var(--mono)">${fmtARS(row.expense)}</td>
+            <td style="color:${net>=0?'#22c55e':'#ef4444'};font-family:var(--mono)">${fmtARS(net)}</td>
+          </tr>`;
+        }).join('')}
+      </table>
+    </div>` : ''}
+  `;
+}
+
+window.exportFinCsv = function() {
+  const data = _fin.reportData;
+  if (!data?.transactions?.length) { alert('Generate a report first.'); return; }
+  const header = ['Date', 'Type', 'Category', 'Contact', 'Amount', 'Currency', 'Method', 'Status', 'Notes', 'Order ID'];
+  const rows   = data.transactions.map(tx => [
+    tx.occurred_at, tx.type, tx.category || '', tx.contact || '',
+    (tx.amount / 100).toFixed(2), tx.currency || 'ARS', tx.payment_method || '',
+    tx.status, (tx.notes || '').replace(/"/g, '""'),
+    tx.linked_order_id || '',
+  ].map(v => `"${v}"`).join(','));
+  const csv  = [header.join(','), ...rows].join('\n');
+  const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
+  const a    = document.createElement('a');
+  a.href     = URL.createObjectURL(blob);
+  a.download = `finance_${data.date_from}_${data.date_to}.csv`;
+  a.click();
 };

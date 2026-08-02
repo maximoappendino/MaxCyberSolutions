@@ -428,16 +428,14 @@ function renderDetail() {
       <div class="dsection__title">Password</div>
       <div class="dfield-grid">
         <div class="dfield">
-          <label>Current password (admin-visible)</label>
-          <input type="text" readonly value="${esc(c.plain_password || '— set a new one to store it —')}" style="color:${c.plain_password ? 'inherit' : 'var(--ink-faint)'}"/>
+          <label>New password</label>
+          <div class="pw-wrap">
+            <input type="password" id="d-new-password" placeholder="Min. 6 characters" autocomplete="new-password"/>
+            <button class="pw-eye" type="button" onclick="togglePw('d-new-password',this)" title="Show/hide">👁</button>
+          </div>
         </div>
-      </div>
-      <div class="dfield-grid" style="margin-top:12px">
-        <div class="dfield">
-          <label>Set new password</label>
-          <input type="text" id="d-new-password" placeholder="Min. 6 characters" autocomplete="off"/>
-        </div>
-        <div class="dfield" style="justify-content:flex-end;padding-bottom:2px">
+        <div class="dfield" style="justify-content:flex-end;gap:6px;padding-bottom:2px;display:flex;flex-direction:row;align-items:flex-end">
+          <button class="btn-solid" style="background:var(--ink-faint)" onclick="generatePassword()">Generate</button>
           <button class="btn-solid" onclick="changePassword('${esc(c.id)}')">Set password</button>
         </div>
       </div>
@@ -813,6 +811,18 @@ window.togglePw = function(inputId, btn) {
   btn.textContent = input.type === 'password' ? '👁' : '🙈';
 };
 
+window.generatePassword = function() {
+  const chars = 'abcdefghjkmnpqrstuvwxyzABCDEFGHJKMNPQRSTUVWXYZ23456789!@#$';
+  const arr   = crypto.getRandomValues(new Uint8Array(14));
+  const pw    = Array.from(arr).map(b => chars[b % chars.length]).join('');
+  const input = document.getElementById('d-new-password');
+  if (!input) return;
+  input.value = pw;
+  input.type  = 'text';
+  const eye = input.parentElement?.querySelector('.pw-eye');
+  if (eye) eye.textContent = '🙈';
+};
+
 // ── Modal helpers ────────────────────────────────────────────────────────────
 function openModal(id)  { document.getElementById(id)?.classList.add('active'); }
 function closeModal(id) { document.getElementById(id)?.classList.remove('active'); }
@@ -854,10 +864,6 @@ window.changePassword = async function(id) {
   if (!res.ok) { flashDetailMsg(data.error || 'Failed', 'err'); return; }
 
   document.getElementById('d-new-password').value = '';
-  // Update the stored-password display without re-rendering the whole panel
-  if (state.selected?.id === id) state.selected.plain_password = pw;
-  const stored = document.querySelector('#admin-detail input[readonly]');
-  if (stored) { stored.value = pw; stored.style.color = 'inherit'; }
   flashDetailMsg('Password updated', 'ok');
 };
 
@@ -876,7 +882,6 @@ async function loadCollaborators(ownerId) {
   listEl.innerHTML = cols.map(c => `
     <div class="store-row" id="col-row-${esc(c.id)}">
       <span class="store-name">${esc(c.email)}</span>
-      <span style="font-family:var(--mono);font-size:10px;color:var(--ink-faint)">${c.plain_password ? esc(c.plain_password) : '—'}</span>
       <button class="btn-solid" style="padding:4px 10px;font-size:9px" onclick="changeCollabPassword('${esc(ownerId)}','${esc(c.id)}','${esc(c.email)}')">Change PW</button>
       <button class="store-remove-btn" onclick="removeCollaborator('${esc(ownerId)}','${esc(c.id)}')" title="Remove">−</button>
     </div>`).join('');

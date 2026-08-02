@@ -23,6 +23,9 @@ PUBLIC_URL  = "https://maxcybersolutions.online"
 # Mercado Pago — Maximo's account (for platform billing + webhook verification)
 # Set via: wrangler secret put MP_ACCESS_TOKEN
 # MP_ACCESS_TOKEN = ""
+# MercadoPago public key — shown to frontend via /api/public/config
+# Set via: wrangler secret put MP_PUBLIC_KEY
+# MP_PUBLIC_KEY = ""
 # Andreani shipping API credentials
 # Set via: wrangler secret put ANDREANI_USER / ANDREANI_PASS / ANDREANI_CONTRATO
 # ANDREANI_USER     = ""
@@ -31,3 +34,6 @@ PUBLIC_URL  = "https://maxcybersolutions.online"
 # Resend email API key — get free key at resend.com
 # Set via: wrangler secret put RESEND_API_KEY
 # RESEND_API_KEY = ""
+# MercadoPago webhook secret — copy from MP dashboard > Your integrations > Webhooks
+# Set via: wrangler secret put MP_WEBHOOK_SECRET
+# MP_WEBHOOK_SECRET = ""

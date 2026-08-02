@@ -3,7 +3,7 @@
    main.js patches [data-config="key"] elements on load.         */
 
 window.SITE_CONFIG = {
-  calendarUrl:  'https://calendar.google.com/calendar/u/0/appointments/schedules/AcZssZ1zqFzLuwcYKQh1bWl7c3MD0YQSR0FhfAzpJfb7HFkioBOU7QptyDRbV5TZDEOmkvc-Rs9oR39D',
+  whatsappUrl:  'https://wa.me/5493517146520',
   dashboardUrl: 'https://maxcybersolutions.online/dashboard/',
   clients: [
     { name: 'Flowerst', logo: '../img/client-flowerst.webp', url: 'https://maxcybersolutions.online/store/flowerst/' },

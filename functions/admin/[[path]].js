@@ -302,6 +302,35 @@ const HTML = `<!DOCTYPE html>
     .empty-msg { font-family: var(--serif); font-style: italic;
       font-size: 15px; color: var(--ink-faint); padding: 20px 14px; }
 
+    /* ── Mobile sidebar toggle ── */
+    .a-sidebar-toggle {
+      display: none;
+      background: none; border: none; padding: 6px 8px; cursor: pointer;
+      font-size: 20px; color: var(--ink); line-height: 1;
+    }
+    .a-sidebar-overlay {
+      display: none; position: fixed; inset: 0; z-index: 149;
+      background: rgba(0,0,0,.35);
+    }
+    @media (max-width: 720px) {
+      .a-sidebar-toggle { display: flex; align-items: center; }
+      .a-layout { position: relative; }
+      .a-sidebar {
+        position: fixed; top: var(--bar-h); left: 0; bottom: 0; z-index: 150;
+        transform: translateX(-100%); transition: transform 260ms ease;
+        box-shadow: 2px 0 16px rgba(0,0,0,.14);
+      }
+      .a-sidebar.open { transform: translateX(0); }
+      .a-sidebar-overlay.open { display: block; }
+      #admin-detail { max-width: 100vw; padding-left: 12px; padding-right: 12px; }
+      .detail-inner { padding: 20px 16px 48px; }
+      .dfield-grid { grid-template-columns: 1fr; }
+      .push-grid { grid-template-columns: 1fr; }
+      .detail-topbar { flex-direction: column; align-items: flex-start; gap: 12px; }
+      .metrics-panel { padding: 20px 16px 48px; }
+      .metrics-grid { grid-template-columns: repeat(auto-fill, minmax(130px,1fr)); }
+    }
+
     /* New-client / generic modal */
     .a-modal-overlay { position: fixed; inset: 0; z-index: 400; background: rgba(0,0,0,.45);
       display: none; align-items: center; justify-content: center; }
@@ -317,6 +346,7 @@ const HTML = `<!DOCTYPE html>
 <body>
 
 <div class="a-bar">
+  <button class="a-sidebar-toggle" id="btn-sidebar-toggle" aria-label="Toggle client list">☰</button>
   <div class="a-bar__brand">
     <img src="/img/icon.webp" alt=""/>
     MaxCyberSolutions
@@ -347,6 +377,7 @@ const HTML = `<!DOCTYPE html>
   </div>
 </div>
 
+<div class="a-sidebar-overlay" id="a-sidebar-overlay" onclick="closeSidebar()"></div>
 <div class="a-layout">
   <aside class="a-sidebar" id="a-sidebar">
     <div class="a-sidebar__head">
@@ -452,6 +483,24 @@ const HTML = `<!DOCTYPE html>
   </div>
 </div>
 
+<script>
+  (function() {
+    var sidebar  = document.getElementById('a-sidebar');
+    var overlay  = document.getElementById('a-sidebar-overlay');
+    var toggle   = document.getElementById('btn-sidebar-toggle');
+    function openSidebar()  { sidebar.classList.add('open'); overlay.classList.add('open'); }
+    window.closeSidebar = function() { sidebar.classList.remove('open'); overlay.classList.remove('open'); }
+    if (toggle) toggle.addEventListener('click', function() {
+      sidebar.classList.contains('open') ? window.closeSidebar() : openSidebar();
+    });
+    // Close sidebar when a client card is tapped on mobile
+    document.addEventListener('click', function(e) {
+      if (e.target.closest && e.target.closest('.client-card') && window.innerWidth <= 720) {
+        window.closeSidebar();
+      }
+    });
+  })();
+</script>
 <script src="/js/admin.js?v=20260719a"></script>
 </body>
 </html>`;
