@@ -45,6 +45,13 @@ export async function onRequestGet({ params, env, request }) {
     try { config = JSON.parse(store.config || '{}'); } catch { config = {}; }
   }
 
+  // Calendar booking page
+  if (!isPreview && url.searchParams.get('book') === '1') {
+    return new Response(renderBookingPage(store, config), {
+      headers: { 'Content-Type': 'text/html;charset=UTF-8', 'Cache-Control': 'public, s-maxage=60' },
+    });
+  }
+
   const { results: products } = await env.DB.prepare(
     'SELECT * FROM products WHERE store_id = ? AND visible = 1 ORDER BY created_at DESC'
   ).bind(store.id).all();
@@ -58,6 +65,187 @@ export async function onRequestGet({ params, env, request }) {
   });
 
   return response;
+}
+
+// ── Calendar Booking Page ─────────────────────────────────────────────────────
+
+function renderBookingPage(store, config) {
+  const b          = config.booking || {};
+  const priceCents = parseInt(b.price_cents) || 0;
+  const maxDays    = parseInt(b.max_days) || 30;
+  const openDays   = JSON.stringify(b.open_days ?? [1,2,3,4,5,6]);
+  const hours      = JSON.stringify(b.available_hours || ['09:00','10:00','11:00','14:00','15:00','16:00']);
+  const accent     = esc(config.theme?.accent || '#e2a14a');
+  const storeName  = esc(store.name || config.name || '');
+  const slug       = esc(store.slug);
+  const priceStr   = priceCents > 0
+    ? ' · $' + (priceCents / 100).toLocaleString('es-AR', { minimumFractionDigits: 2 })
+    : '';
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Book — ${storeName}</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--ac:${accent};--fg:#1a1916;--bg:#faf9f6;--line:#e8e5df;--soft:#f3f1ec}
+body{font-family:system-ui,sans-serif;background:var(--bg);color:var(--fg);min-height:100vh}
+.bk{max-width:460px;margin:0 auto;padding:48px 20px 80px}
+.bk__back{display:inline-block;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--fg);opacity:.45;text-decoration:none;margin-bottom:28px}
+.bk__back:hover{opacity:.8}
+.bk__title{font-size:clamp(24px,5vw,36px);font-weight:400;letter-spacing:-.01em;margin-bottom:6px}
+.bk__sub{font-size:13px;opacity:.5;margin-bottom:36px}
+.bk__cal-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.bk__navbtn{background:none;border:1px solid var(--line);width:30px;height:30px;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;color:var(--fg)}
+.bk__navbtn:hover{border-color:var(--fg)}
+.bk__month{font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase}
+.bk__grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px}
+.bk__wday{text-align:center;font-size:9px;padding:5px 0;opacity:.35;letter-spacing:.08em;text-transform:uppercase}
+.bk__day{aspect-ratio:1;display:flex;align-items:center;justify-content:center;font-size:12px;border-radius:4px;border:1px solid transparent;transition:all 120ms}
+.bk__day.open{cursor:pointer}
+.bk__day.open:hover{border-color:var(--ac);background:color-mix(in srgb,var(--ac) 10%,var(--bg))}
+.bk__day.closed{opacity:.2;pointer-events:none}
+.bk__day.today{font-weight:700;color:var(--ac)}
+.bk__day.selected{background:var(--ac)!important;color:#fff!important;border-color:var(--ac)}
+.bk__day.empty{pointer-events:none}
+.bk__step{margin-top:32px;display:none}
+.bk__step.show{display:block}
+.bk__step-label{font-size:10px;letter-spacing:.12em;text-transform:uppercase;opacity:.45;margin-bottom:10px}
+.bk__slots{display:flex;flex-wrap:wrap;gap:7px}
+.bk__slot{padding:7px 14px;border:1px solid var(--line);font-size:12px;cursor:pointer;background:none;transition:all 120ms;color:var(--fg)}
+.bk__slot:hover,.bk__slot.selected{border-color:var(--ac);background:var(--ac);color:#fff}
+.bk__form{display:flex;flex-direction:column;gap:14px;margin-top:6px}
+.bk__field{display:flex;flex-direction:column;gap:5px}
+.bk__label{font-size:10px;text-transform:uppercase;letter-spacing:.1em;opacity:.45}
+.bk__input{padding:10px 12px;border:1px solid var(--line);background:transparent;font-family:inherit;font-size:14px;width:100%;outline:none;color:var(--fg)}
+.bk__input:focus{border-color:var(--ac)}
+.bk__summary{background:var(--soft);padding:14px;font-size:13px;line-height:1.7;margin-bottom:8px}
+.bk__summary b{font-weight:600}
+.bk__submit{padding:14px;background:var(--ac);color:#fff;border:none;cursor:pointer;font-size:13px;letter-spacing:.08em;text-transform:uppercase;width:100%;margin-top:4px;transition:opacity 150ms}
+.bk__submit:disabled{opacity:.5;cursor:wait}
+.bk__msg{padding:11px;border:1px solid var(--line);font-size:12px;display:none;margin-top:4px}
+.bk__msg.error{border-color:#b33;color:#b33}
+</style>
+</head>
+<body>
+<div class="bk">
+  <a href="/store/${slug}" class="bk__back">← Back to store</a>
+  <h1 class="bk__title">Book an appointment</h1>
+  <p class="bk__sub">${storeName}${priceStr}</p>
+
+  <div class="bk__cal-nav">
+    <button class="bk__navbtn" onclick="bkPrev()">&#8249;</button>
+    <span class="bk__month" id="bk-month"></span>
+    <button class="bk__navbtn" onclick="bkNext()">&#8250;</button>
+  </div>
+  <div class="bk__grid" id="bk-grid"></div>
+
+  <div class="bk__step" id="bk-step-time">
+    <div class="bk__step-label">Choose a time</div>
+    <div class="bk__slots" id="bk-slots"></div>
+  </div>
+
+  <div class="bk__step" id="bk-step-form">
+    <div class="bk__summary" id="bk-summary"></div>
+    <form class="bk__form" onsubmit="bkSubmit(event)">
+      <div class="bk__field"><label class="bk__label">Full name *</label>
+        <input class="bk__input" id="bk-name" required placeholder="Your name" /></div>
+      <div class="bk__field"><label class="bk__label">Email *</label>
+        <input class="bk__input" id="bk-email" type="email" required placeholder="your@email.com" /></div>
+      <div class="bk__field"><label class="bk__label">Phone</label>
+        <input class="bk__input" id="bk-phone" type="tel" placeholder="Optional" /></div>
+      <div class="bk__field"><label class="bk__label">Notes</label>
+        <textarea class="bk__input" id="bk-notes" rows="2" placeholder="Anything we should know?"></textarea></div>
+      <div class="bk__msg" id="bk-msg"></div>
+      <button class="bk__submit" type="submit" id="bk-btn">Confirm reservation →</button>
+    </form>
+  </div>
+</div>
+<script>
+var BD={openDays:${openDays},hours:${hours},priceCents:${priceCents},slug:${JSON.stringify(store.slug)},maxDays:${maxDays}};
+var bkY=new Date().getFullYear(),bkM=new Date().getMonth(),bkDate=null,bkTime=null;
+var bkToday=new Date().toISOString().slice(0,10);
+var bkMaxDate=new Date();bkMaxDate.setDate(bkMaxDate.getDate()+BD.maxDays);
+var bkMaxStr=bkMaxDate.toISOString().slice(0,10);
+var MONTHS=['January','February','March','April','May','June','July','August','September','October','November','December'];
+function pad(n){return String(n).padStart(2,'0');}
+function bkRender(){
+  document.getElementById('bk-month').textContent=MONTHS[bkM]+' '+bkY;
+  var first=new Date(bkY,bkM,1).getDay(),last=new Date(bkY,bkM+1,0).getDate();
+  var wdays=['Su','Mo','Tu','We','Th','Fr','Sa'].map(function(d){return'<div class="bk__wday">'+d+'</div>';}).join('');
+  var days='';
+  for(var i=0;i<first;i++)days+='<div class="bk__day empty"></div>';
+  for(var d=1;d<=last;d++){
+    var ds=bkY+'-'+pad(bkM+1)+'-'+pad(d);
+    var dow=new Date(ds+'T12:00:00').getDay();
+    var cls='bk__day';
+    if(!BD.openDays.includes(dow)||ds<bkToday||ds>bkMaxStr)cls+=' closed';
+    else{cls+=' open';if(ds===bkToday)cls+=' today';}
+    if(ds===bkDate)cls+=' selected';
+    days+='<div class="'+cls+'" onclick="bkPickDate(\''+ds+'\')">'+d+'</div>';
+  }
+  document.getElementById('bk-grid').innerHTML=wdays+days;
+}
+function bkPrev(){bkM--;if(bkM<0){bkM=11;bkY--;}bkRender();}
+function bkNext(){bkM++;if(bkM>11){bkM=0;bkY++;}bkRender();}
+function bkPickDate(ds){
+  bkDate=ds;bkTime=null;bkRender();
+  var step=document.getElementById('bk-step-time');
+  step.className='bk__step show';
+  var d=new Date(ds+'T12:00:00');
+  var label=d.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});
+  document.getElementById('bk-slots').innerHTML=BD.hours.map(function(h){
+    return'<button type="button" class="bk__slot" onclick="bkPickTime(\''+h+'\',\''+label+'\')">'+h+'</button>';
+  }).join('');
+  document.getElementById('bk-step-form').className='bk__step';
+  step.scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+function bkPickTime(t,label){
+  bkTime=t;
+  document.querySelectorAll('.bk__slot').forEach(function(b){b.classList.toggle('selected',b.textContent===t);});
+  var sum=document.getElementById('bk-summary');
+  sum.innerHTML='<b>'+label+' at '+t+'</b>'+(BD.priceCents>0?'<br>Price: $'+(BD.priceCents/100).toFixed(2):'');
+  var fStep=document.getElementById('bk-step-form');
+  fStep.className='bk__step show';
+  fStep.scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+async function bkSubmit(e){
+  e.preventDefault();
+  var btn=document.getElementById('bk-btn'),msg=document.getElementById('bk-msg');
+  btn.disabled=true;btn.textContent='Sending…';
+  msg.style.display='none';msg.className='bk__msg';
+  try{
+    var res=await fetch('/api/public/stores/'+BD.slug+'/reservations',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        customer_name:document.getElementById('bk-name').value.trim(),
+        customer_email:document.getElementById('bk-email').value.trim(),
+        customer_phone:document.getElementById('bk-phone').value.trim(),
+        reservation_date:bkDate,reservation_time:bkTime,
+        reservation_notes:document.getElementById('bk-notes').value.trim(),
+        payment_mode:'on_arrival',price_cents:BD.priceCents,
+      }),
+    });
+    var data=await res.json();
+    if(!res.ok){
+      msg.textContent=data.error||'Something went wrong.';
+      msg.className='bk__msg error';msg.style.display='';
+      btn.disabled=false;btn.textContent='Confirm reservation →';
+      return;
+    }
+    document.querySelector('.bk').innerHTML='<div style="text-align:center;padding:60px 20px"><div style="font-size:48px;margin-bottom:20px">✓</div><h2 style="font-size:24px;font-weight:400;margin-bottom:10px">Reservation confirmed!</h2><p style="opacity:.55">'+((data.message)||'We\'ll see you soon.')+'</p><a href="/store/'+BD.slug+'" style="display:inline-block;margin-top:28px;font-size:12px;color:inherit;opacity:.5;text-decoration:none">← Back to store</a></div>';
+  }catch{
+    msg.textContent='Network error. Please try again.';
+    msg.className='bk__msg error';msg.style.display='';
+    btn.disabled=false;btn.textContent='Confirm reservation →';
+  }
+}
+bkRender();
+</script>
+</body>
+</html>`;
 }
 
 // ── Top-level renderer ────────────────────────────────────────────────────────
@@ -1251,155 +1439,6 @@ function renderCalendar(s) {
 </script>`;
 }
 
-// ── Reservation (DB-tracked booking) ─────────────────────────────────────────
-
-function renderReservation(s) {
-  const title       = s.title         || 'Book an appointment';
-  const service     = s.service_name  || 'Appointment';
-  const payMode     = s.payment_mode  || 'on_arrival';
-  const priceCents  = parseInt(s.price_cents) || 0;
-  const durLabel    = s.duration_label || '';
-  const hours       = (s.available_hours || '09:00\n10:00\n11:00\n14:00\n15:00\n16:00')
-                        .split('\n').map(h => h.trim()).filter(Boolean);
-  const maxDays     = parseInt(s.max_days) || 30;
-  const confirmMsg  = s.confirm_msg   || 'Your reservation is confirmed.';
-  const bgStyle     = s.bg    ? `background:${esc(s.bg)};`    : '';
-  const colorStyle  = s.color ? `color:${esc(s.color)};`      : '';
-
-  // Disabled weekdays: 0=Sun … 6=Sat
-  const dayFields   = ['day_sun','day_mon','day_tue','day_wed','day_thu','day_fri','day_sat'];
-  const disabledDays = dayFields.map((f, i) => s[f] === false ? i : null).filter(x => x !== null);
-
-  // Build min/max date strings
-  const today   = new Date();
-  const maxDate = new Date(today); maxDate.setDate(today.getDate() + maxDays);
-  const minStr  = today.toISOString().slice(0, 10);
-  const maxStr  = maxDate.toISOString().slice(0, 10);
-
-  const timeOptions = hours.map(h => `<option value="${esc(h)}">${esc(h)}</option>`).join('');
-  const priceHtml   = priceCents > 0
-    ? `<div class="s-res__price">$${(priceCents / 100).toLocaleString('es-AR', { minimumFractionDigits: 2 })}</div>`
-    : '';
-  const durHtml = durLabel ? `<div class="s-res__dur">${esc(durLabel)}</div>` : '';
-
-  const uid = 'sres_' + Math.random().toString(36).slice(2, 8);
-
-  return `<section class="s-res" style="${bgStyle}${colorStyle}" id="${uid}">
-  <div class="s-res__inner">
-    ${title ? `<h2 class="s-res__title">${esc(title)}</h2>` : ''}
-    <div class="s-res__meta">
-      <span class="s-res__service">${esc(service)}</span>
-      ${durHtml}${priceHtml}
-    </div>
-    <form class="s-res__form" id="${uid}_form" onsubmit="${uid}_submit(event)">
-      <div class="s-res__row">
-        <div class="s-res__field">
-          <label class="s-res__label" for="${uid}_date">Date</label>
-          <input class="s-res__input" id="${uid}_date" type="date" min="${esc(minStr)}" max="${esc(maxStr)}" required oninput="${uid}_checkDay(this)" />
-        </div>
-        <div class="s-res__field">
-          <label class="s-res__label" for="${uid}_time">Time</label>
-          <select class="s-res__input" id="${uid}_time" required>${timeOptions}</select>
-        </div>
-      </div>
-      <div class="s-res__field">
-        <label class="s-res__label" for="${uid}_name">Full name *</label>
-        <input class="s-res__input" id="${uid}_name" type="text" required placeholder="Your name" />
-      </div>
-      <div class="s-res__field">
-        <label class="s-res__label" for="${uid}_email">Email *</label>
-        <input class="s-res__input" id="${uid}_email" type="email" required placeholder="your@email.com" />
-      </div>
-      <div class="s-res__field">
-        <label class="s-res__label" for="${uid}_phone">Phone</label>
-        <input class="s-res__input" id="${uid}_phone" type="tel" placeholder="Optional" />
-      </div>
-      <div class="s-res__field">
-        <label class="s-res__label" for="${uid}_notes">Notes</label>
-        <textarea class="s-res__input" id="${uid}_notes" rows="2" placeholder="Anything we should know?"></textarea>
-      </div>
-      <p class="s-res__msg" id="${uid}_msg" style="display:none"></p>
-      <button class="s-res__btn" type="submit" id="${uid}_btn">
-        ${payMode === 'upfront' && priceCents > 0 ? 'Continue to payment →' : 'Confirm reservation →'}
-      </button>
-    </form>
-  </div>
-  <style>
-    .s-res { padding: 60px 20px; }
-    .s-res__inner { max-width: 520px; margin: 0 auto; }
-    .s-res__title { font-size: clamp(20px, 4vw, 28px); font-weight: 400; margin: 0 0 16px; }
-    .s-res__meta { display: flex; gap: 16px; align-items: center; margin-bottom: 28px; flex-wrap: wrap; }
-    .s-res__service { font-size: 14px; opacity: 0.7; }
-    .s-res__dur { font-size: 13px; opacity: 0.6; }
-    .s-res__price { font-size: 18px; font-weight: 600; }
-    .s-res__form { display: flex; flex-direction: column; gap: 14px; }
-    .s-res__row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-    .s-res__field { display: flex; flex-direction: column; gap: 5px; }
-    .s-res__label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; opacity: 0.6; }
-    .s-res__input { padding: 10px 12px; border: 1px solid currentColor; border-opacity: 0.3; background: transparent; color: inherit; font-family: inherit; font-size: 14px; width: 100%; outline: none; }
-    .s-res__input:focus { border-opacity: 1; }
-    .s-res__btn { padding: 14px 28px; background: currentColor; color: inherit; border: none; cursor: pointer; font-size: 13px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; margin-top: 6px; filter: invert(1); mix-blend-mode: difference; }
-    .s-res__msg { font-size: 13px; padding: 10px; border: 1px solid currentColor; border-opacity: 0.3; }
-    @media(max-width:480px){ .s-res__row { grid-template-columns: 1fr; } }
-  </style>
-  <script>
-  (function(){
-    var _disabledDays=[${disabledDays.join(',')}];
-    window['${uid}_checkDay']=function(inp){
-      if(!_disabledDays.length)return;
-      var d=new Date(inp.value+'T12:00:00');
-      if(_disabledDays.includes(d.getDay())){
-        inp.value='';
-        inp.setCustomValidity('Closed on this day. Please pick another date.');
-        inp.reportValidity();
-      } else { inp.setCustomValidity(''); }
-    };
-    async function ${uid}_submit(e) {
-      e.preventDefault();
-      const btn = document.getElementById('${uid}_btn');
-      const msg = document.getElementById('${uid}_msg');
-      btn.disabled = true; btn.textContent = 'Sending…';
-      msg.style.display = 'none';
-      const slug = location.pathname.replace(/^\\/store\\//, '').replace(/\\/$/, '');
-      try {
-        const res = await fetch('/api/public/stores/' + slug + '/reservations', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            customer_name:     document.getElementById('${uid}_name').value.trim(),
-            customer_email:    document.getElementById('${uid}_email').value.trim(),
-            customer_phone:    document.getElementById('${uid}_phone').value.trim(),
-            reservation_date:  document.getElementById('${uid}_date').value,
-            reservation_time:  document.getElementById('${uid}_time').value,
-            reservation_notes: document.getElementById('${uid}_notes').value.trim(),
-            payment_mode:      '${payMode}',
-            price_cents:       ${priceCents},
-            service_name:      ${JSON.stringify(service)},
-            confirm_msg:       ${JSON.stringify(confirmMsg)},
-          }),
-        });
-        const data = await res.json();
-        if (!res.ok) {
-          msg.textContent = data.error || 'Something went wrong. Please try again.';
-          msg.style.display = '';
-          btn.disabled = false; btn.textContent = '${payMode === 'upfront' && priceCents > 0 ? 'Continue to payment →' : 'Confirm reservation →'}';
-          return;
-        }
-        if (data.init_point) { location.href = data.init_point; return; }
-        document.getElementById('${uid}_form').innerHTML =
-          '<p style="font-size:16px;line-height:1.6">' + (data.message || '${confirmMsg}') + '</p>';
-      } catch {
-        msg.textContent = 'Network error. Please try again.';
-        msg.style.display = '';
-        btn.disabled = false; btn.textContent = '${payMode === 'upfront' && priceCents > 0 ? 'Continue to payment →' : 'Confirm reservation →'}';
-      }
-    }
-    window['${uid}_submit'] = ${uid}_submit;
-  })();
-  </script>
-</section>`;
-}
-
 // ── Location ──────────────────────────────────────────────────────────────────
 
 function renderLocation(s) {
@@ -1536,7 +1575,6 @@ function renderSection(section, products, config) {
     case 'rich-text':     return renderRichText(section);
     case 'footer':        return renderFooter(section, config);
     case 'calendar':      return renderCalendar(section);
-    case 'reservation':   return renderReservation(section);
     case 'location':      return renderLocation(section);
     case 'carousel':      return renderCarousel(section);
     default:              return '';

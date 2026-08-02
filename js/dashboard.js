@@ -180,23 +180,6 @@ const SECTION_TYPES = {
       bg: '', color: '',
     },
   },
-  reservation: {
-    label: 'Reservation Form', icon: '🗓',
-    defaults: {
-      title: 'Book an appointment',
-      service_name: 'Appointment',
-      payment_mode: 'on_arrival',
-      price_cents: 0,
-      duration_label: '',
-      available_hours: '09:00\n10:00\n11:00\n14:00\n15:00\n16:00',
-      max_days: 30,
-      confirm_msg: 'Your reservation is confirmed.',
-      bg: '', color: '',
-      day_sun: true, day_mon: true, day_tue: true, day_wed: true,
-      day_thu: true, day_fri: true, day_sat: true,
-      max_overlapping: 1,
-    },
-  },
   location: {
     label: 'Location / Map', icon: '📍',
     defaults: {
@@ -2784,39 +2767,6 @@ function buildSectionFields(s, i) {
     ].join('');
 
     // ── RESERVATIONS (DB-tracked) ─────────────────────────────────────────────
-    case 'reservation': return [
-      field('text', 'Section title', 'title', esc(s.title || 'Book an appointment')),
-      fieldGroup('Service', [
-        field('text', 'Service name', 'service_name', esc(s.service_name || 'Appointment'), 'Shown on the booking form'),
-        field('text', 'Duration', 'duration_label', esc(s.duration_label || ''), 'Informational, e.g. "60 min"'),
-        fieldSelect('Payment mode', 'payment_mode', s.payment_mode || 'on_arrival',
-          ['on_arrival', 'upfront'],
-          ['Pay on arrival (no upfront charge)', 'Pay upfront via MercadoPago']),
-        field('number', 'Price in ARS cents (0 = free)', 'price_cents', esc(String(s.price_cents || 0))),
-      ]),
-      fieldGroup('Availability', [
-        fieldTextarea('Available time slots (one per line, e.g. 09:00)', 'available_hours',
-          esc(s.available_hours || '09:00\n10:00\n11:00\n14:00\n15:00\n16:00'), 6),
-        field('number', 'Max days in advance', 'max_days', esc(String(s.max_days || 30))),
-        `<div class="form-field"><label>Open days</label>
-          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;padding-top:4px">
-            ${[['day_sun','Sun'],['day_mon','Mon'],['day_tue','Tue'],['day_wed','Wed'],
-               ['day_thu','Thu'],['day_fri','Fri'],['day_sat','Sat']].map(([f,l]) =>
-              fieldToggle(l, f, s[f] !== false)).join('')}
-          </div>
-        </div>`,
-        field('number', 'Max overlapping bookings', 'max_overlapping', s.max_overlapping ?? 1,
-          'e.g. tables at a restaurant or barbers in a shop'),
-      ]),
-      fieldGroup('Confirmation', [
-        field('text', 'Confirmation message', 'confirm_msg', esc(s.confirm_msg || 'Your reservation is confirmed.')),
-      ]),
-      fieldGroup('Appearance', [
-        field('color', 'Background', 'bg',    s.bg    || ''),
-        field('color', 'Text color', 'color', s.color || ''),
-      ]),
-    ].join('');
-
     // ── LOCATION / MAP ────────────────────────────────────────────────────────
     case 'location': return [
       field('text', 'Section title', 'title', esc(s.title || 'Find us')),
@@ -4524,6 +4474,7 @@ async function loadReservations() {
   const res = await api('GET', `/api/stores/${state.activeStore.id}/orders?type=reservation&limit=500`);
   _rvData = res.ok ? ((await safeJson(res)) || []) : [];
   if (!Array.isArray(_rvData)) _rvData = [];
+  rvLoadSettings();
   renderRvCalendar();
   if (_rvDate) renderRvDay(_rvDate);
   else if (listEl) listEl.innerHTML = '<p class="rv-day__empty">Select a date to view reservations.</p>';
@@ -4682,6 +4633,53 @@ function setupRvCalendar() {
   document.getElementById('rv-cal-next')?.addEventListener('click', () => {
     _rvMonth++; if (_rvMonth > 11) { _rvMonth = 0; _rvYear++; }
     renderRvCalendar();
+  });
+  document.getElementById('rv-save-settings')?.addEventListener('click', rvSaveSettings);
+  document.getElementById('rv-copy-link')?.addEventListener('click', rvCopyBookingLink);
+  document.querySelectorAll('.rv-day-btn').forEach(btn => {
+    btn.addEventListener('click', () => btn.classList.toggle('rv-day-btn--on'));
+  });
+}
+
+function rvLoadSettings() {
+  const b = state.activeStore?.config?.booking || {};
+  const openDays = new Set(b.open_days ?? [1,2,3,4,5,6]);
+  document.querySelectorAll('.rv-day-btn').forEach(btn =>
+    btn.classList.toggle('rv-day-btn--on', openDays.has(+btn.dataset.day))
+  );
+  const h = document.getElementById('rv-hours');
+  if (h) h.value = (b.available_hours || ['09:00','10:00','11:00','14:00','15:00','16:00']).join('\n');
+  const p = document.getElementById('rv-price');       if (p) p.value = b.price_cents ?? 0;
+  const o = document.getElementById('rv-max-overlap'); if (o) o.value = b.max_overlapping ?? 1;
+  const d = document.getElementById('rv-max-days');    if (d) d.value = b.max_days ?? 30;
+}
+
+async function rvSaveSettings() {
+  if (!state.activeStore) return;
+  const openDays = [...document.querySelectorAll('.rv-day-btn.rv-day-btn--on')].map(b => +b.dataset.day);
+  const hours = (document.getElementById('rv-hours')?.value || '')
+    .split('\n').map(h => h.trim()).filter(Boolean);
+  const booking = {
+    available_hours:  hours,
+    open_days:        openDays,
+    price_cents:      parseInt(document.getElementById('rv-price')?.value || '0') || 0,
+    max_overlapping:  parseInt(document.getElementById('rv-max-overlap')?.value || '1') || 1,
+    max_days:         parseInt(document.getElementById('rv-max-days')?.value || '30') || 30,
+  };
+  const res = await api('PUT', `/api/stores/${state.activeStore.id}`, { _draft: false, config: { booking } });
+  if (!res.ok) { alert('Failed to save booking settings'); return; }
+  if (!state.activeStore.config) state.activeStore.config = {};
+  state.activeStore.config.booking = booking;
+  const btn = document.getElementById('rv-save-settings');
+  if (btn) { const t = btn.textContent; btn.textContent = 'Saved!'; setTimeout(() => btn.textContent = t, 1800); }
+}
+
+function rvCopyBookingLink() {
+  if (!state.activeStore) return;
+  const url = `${location.origin}/store/${state.activeStore.slug}?book=1`;
+  navigator.clipboard.writeText(url).then(() => {
+    const btn = document.getElementById('rv-copy-link');
+    if (btn) { const t = btn.textContent; btn.textContent = 'Copied!'; setTimeout(() => btn.textContent = t, 1800); }
   });
 }
 
