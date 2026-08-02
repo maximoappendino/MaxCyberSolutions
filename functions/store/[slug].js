@@ -1213,6 +1213,141 @@ function renderCalendar(s) {
 </script>`;
 }
 
+// ── Reservation (DB-tracked booking) ─────────────────────────────────────────
+
+function renderReservation(s) {
+  const title       = s.title         || 'Book an appointment';
+  const service     = s.service_name  || 'Appointment';
+  const payMode     = s.payment_mode  || 'on_arrival';
+  const priceCents  = parseInt(s.price_cents) || 0;
+  const durLabel    = s.duration_label || '';
+  const hours       = (s.available_hours || '09:00\n10:00\n11:00\n14:00\n15:00\n16:00')
+                        .split('\n').map(h => h.trim()).filter(Boolean);
+  const maxDays     = parseInt(s.max_days) || 30;
+  const confirmMsg  = s.confirm_msg   || 'Your reservation is confirmed.';
+  const bgStyle     = s.bg    ? `background:${esc(s.bg)};`    : '';
+  const colorStyle  = s.color ? `color:${esc(s.color)};`      : '';
+
+  // Build min/max date strings
+  const today   = new Date();
+  const maxDate = new Date(today); maxDate.setDate(today.getDate() + maxDays);
+  const minStr  = today.toISOString().slice(0, 10);
+  const maxStr  = maxDate.toISOString().slice(0, 10);
+
+  const timeOptions = hours.map(h => `<option value="${esc(h)}">${esc(h)}</option>`).join('');
+  const priceHtml   = priceCents > 0
+    ? `<div class="s-res__price">$${(priceCents / 100).toLocaleString('es-AR', { minimumFractionDigits: 2 })}</div>`
+    : '';
+  const durHtml = durLabel ? `<div class="s-res__dur">${esc(durLabel)}</div>` : '';
+
+  const uid = 'sres_' + Math.random().toString(36).slice(2, 8);
+
+  return `<section class="s-res" style="${bgStyle}${colorStyle}" id="${uid}">
+  <div class="s-res__inner">
+    ${title ? `<h2 class="s-res__title">${esc(title)}</h2>` : ''}
+    <div class="s-res__meta">
+      <span class="s-res__service">${esc(service)}</span>
+      ${durHtml}${priceHtml}
+    </div>
+    <form class="s-res__form" id="${uid}_form" onsubmit="${uid}_submit(event)">
+      <div class="s-res__row">
+        <div class="s-res__field">
+          <label class="s-res__label" for="${uid}_date">Date</label>
+          <input class="s-res__input" id="${uid}_date" type="date" min="${esc(minStr)}" max="${esc(maxStr)}" required />
+        </div>
+        <div class="s-res__field">
+          <label class="s-res__label" for="${uid}_time">Time</label>
+          <select class="s-res__input" id="${uid}_time" required>${timeOptions}</select>
+        </div>
+      </div>
+      <div class="s-res__field">
+        <label class="s-res__label" for="${uid}_name">Full name *</label>
+        <input class="s-res__input" id="${uid}_name" type="text" required placeholder="Your name" />
+      </div>
+      <div class="s-res__field">
+        <label class="s-res__label" for="${uid}_email">Email *</label>
+        <input class="s-res__input" id="${uid}_email" type="email" required placeholder="your@email.com" />
+      </div>
+      <div class="s-res__field">
+        <label class="s-res__label" for="${uid}_phone">Phone</label>
+        <input class="s-res__input" id="${uid}_phone" type="tel" placeholder="Optional" />
+      </div>
+      <div class="s-res__field">
+        <label class="s-res__label" for="${uid}_notes">Notes</label>
+        <textarea class="s-res__input" id="${uid}_notes" rows="2" placeholder="Anything we should know?"></textarea>
+      </div>
+      <p class="s-res__msg" id="${uid}_msg" style="display:none"></p>
+      <button class="s-res__btn" type="submit" id="${uid}_btn">
+        ${payMode === 'upfront' && priceCents > 0 ? 'Continue to payment →' : 'Confirm reservation →'}
+      </button>
+    </form>
+  </div>
+  <style>
+    .s-res { padding: 60px 20px; }
+    .s-res__inner { max-width: 520px; margin: 0 auto; }
+    .s-res__title { font-size: clamp(20px, 4vw, 28px); font-weight: 400; margin: 0 0 16px; }
+    .s-res__meta { display: flex; gap: 16px; align-items: center; margin-bottom: 28px; flex-wrap: wrap; }
+    .s-res__service { font-size: 14px; opacity: 0.7; }
+    .s-res__dur { font-size: 13px; opacity: 0.6; }
+    .s-res__price { font-size: 18px; font-weight: 600; }
+    .s-res__form { display: flex; flex-direction: column; gap: 14px; }
+    .s-res__row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .s-res__field { display: flex; flex-direction: column; gap: 5px; }
+    .s-res__label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; opacity: 0.6; }
+    .s-res__input { padding: 10px 12px; border: 1px solid currentColor; border-opacity: 0.3; background: transparent; color: inherit; font-family: inherit; font-size: 14px; width: 100%; outline: none; }
+    .s-res__input:focus { border-opacity: 1; }
+    .s-res__btn { padding: 14px 28px; background: currentColor; color: inherit; border: none; cursor: pointer; font-size: 13px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; margin-top: 6px; filter: invert(1); mix-blend-mode: difference; }
+    .s-res__msg { font-size: 13px; padding: 10px; border: 1px solid currentColor; border-opacity: 0.3; }
+    @media(max-width:480px){ .s-res__row { grid-template-columns: 1fr; } }
+  </style>
+  <script>
+  (function(){
+    async function ${uid}_submit(e) {
+      e.preventDefault();
+      const btn = document.getElementById('${uid}_btn');
+      const msg = document.getElementById('${uid}_msg');
+      btn.disabled = true; btn.textContent = 'Sending…';
+      msg.style.display = 'none';
+      const slug = location.pathname.replace(/^\\/store\\//, '').replace(/\\/$/, '');
+      try {
+        const res = await fetch('/api/public/stores/' + slug + '/reservations', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            customer_name:     document.getElementById('${uid}_name').value.trim(),
+            customer_email:    document.getElementById('${uid}_email').value.trim(),
+            customer_phone:    document.getElementById('${uid}_phone').value.trim(),
+            reservation_date:  document.getElementById('${uid}_date').value,
+            reservation_time:  document.getElementById('${uid}_time').value,
+            reservation_notes: document.getElementById('${uid}_notes').value.trim(),
+            payment_mode:      '${payMode}',
+            price_cents:       ${priceCents},
+            service_name:      ${JSON.stringify(service)},
+            confirm_msg:       ${JSON.stringify(confirmMsg)},
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          msg.textContent = data.error || 'Something went wrong. Please try again.';
+          msg.style.display = '';
+          btn.disabled = false; btn.textContent = '${payMode === 'upfront' && priceCents > 0 ? 'Continue to payment →' : 'Confirm reservation →'}';
+          return;
+        }
+        if (data.init_point) { location.href = data.init_point; return; }
+        document.getElementById('${uid}_form').innerHTML =
+          '<p style="font-size:16px;line-height:1.6">' + (data.message || '${confirmMsg}') + '</p>';
+      } catch {
+        msg.textContent = 'Network error. Please try again.';
+        msg.style.display = '';
+        btn.disabled = false; btn.textContent = '${payMode === 'upfront' && priceCents > 0 ? 'Continue to payment →' : 'Confirm reservation →'}';
+      }
+    }
+    window['${uid}_submit'] = ${uid}_submit;
+  })();
+  </script>
+</section>`;
+}
+
 // ── Location ──────────────────────────────────────────────────────────────────
 
 function renderLocation(s) {
@@ -1349,6 +1484,7 @@ function renderSection(section, products, config) {
     case 'rich-text':     return renderRichText(section);
     case 'footer':        return renderFooter(section, config);
     case 'calendar':      return renderCalendar(section);
+    case 'reservation':   return renderReservation(section);
     case 'location':      return renderLocation(section);
     case 'carousel':      return renderCarousel(section);
     default:              return '';

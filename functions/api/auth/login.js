@@ -35,6 +35,11 @@ export async function onRequestPost({ request, env }) {
   const valid = await verifyPassword(password, account.salt, account.hash);
   if (!valid) return json({ error: 'Invalid credentials' }, 401);
 
+  // Block unverified client accounts from logging in
+  if (owner && owner.role === 'client' && !owner.email_verified) {
+    return json({ error: 'email_not_verified', message: 'Please verify your email address before logging in. Check your inbox.' }, 403);
+  }
+
   // For collaborators, the session owner_id is their associated owner
   const sessionOwnerId = collab ? collab.owner_id : owner.id;
 

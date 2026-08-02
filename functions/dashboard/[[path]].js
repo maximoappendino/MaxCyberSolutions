@@ -133,11 +133,12 @@ const HTML = `<!DOCTYPE html>
       pointer-events: none;
     }
     .d-notif-panel {
-      position: absolute; top: calc(var(--bar-h) + 4px); right: 60px;
+      position: fixed; top: var(--bar-h); right: 60px;
       width: 340px; background: var(--bg); border: 1px solid var(--line);
       box-shadow: 0 8px 24px rgba(0,0,0,.12); z-index: 200;
-      display: flex; flex-direction: column; max-height: 480px;
+      flex-direction: column; max-height: 480px; display: none;
     }
+    .d-notif-panel:not([hidden]) { display: flex; }
     .d-notif-panel__head { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; border-bottom: 1px solid var(--line-soft); }
     .d-notif-panel__title { font-family: var(--mono); font-size: 10px; letter-spacing: .13em; text-transform: uppercase; }
     .d-notif-panel__mark-all { font-family: var(--mono); font-size: 9px; letter-spacing: .1em; text-transform: uppercase; background: none; border: none; color: var(--accent); cursor: pointer; }
@@ -153,10 +154,53 @@ const HTML = `<!DOCTYPE html>
     .d-verify-banner {
       background: color-mix(in srgb, var(--accent) 10%, var(--bg));
       border-bottom: 1px solid var(--accent);
-      padding: 10px 20px; display: flex; align-items: center; gap: 12px;
+      padding: 10px 20px; align-items: center; gap: 12px;
       font-family: var(--mono); font-size: 10px; letter-spacing: .1em;
+      display: none;
     }
+    .d-verify-banner:not([hidden]) { display: flex; }
     .d-verify-banner a { color: var(--accent); text-decoration: underline; cursor: pointer; }
+    /* Checkout modal (for plan upsell in dashboard) */
+    .co-modal { position: fixed; inset: 0; z-index: 900; display: flex; align-items: center; justify-content: center; }
+    .co-modal[hidden] { display: none; }
+    .co-modal__backdrop { position: absolute; inset: 0; background: rgba(0,0,0,0.55); backdrop-filter: blur(4px); }
+    .co-modal__box { position: relative; z-index: 1; background: var(--bg); border: 1px solid var(--line); width: min(520px, calc(100vw - 32px)); max-height: calc(100dvh - 48px); overflow-y: auto; padding: 36px 36px 40px; display: flex; flex-direction: column; gap: 24px; }
+    .co-modal__close { position: absolute; top: 14px; right: 18px; background: none; border: none; cursor: pointer; font-size: 22px; line-height: 1; padding: 4px 8px; color: var(--fg-faint); transition: color 120ms ease; }
+    .co-modal__close:hover { color: var(--fg); }
+    .co-modal__head { display: flex; flex-direction: column; gap: 6px; border-bottom: 1px solid var(--line-soft); padding-bottom: 20px; }
+    .co-modal__plan { font-family: var(--serif); font-size: 22px; }
+    .co-modal__price { font-family: var(--mono); font-size: 11px; letter-spacing: 0.14em; color: var(--fg-faint); }
+    .co-step { display: flex; flex-direction: column; gap: 14px; }
+    .co-group { display: flex; flex-direction: column; gap: 5px; }
+    .co-label { font-family: var(--mono); font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--fg-faint); display: block; }
+    .co-required { color: var(--accent); letter-spacing: 0; }
+    .co-optional { font-style: italic; text-transform: none; letter-spacing: 0; font-size: 9px; opacity: 0.75; }
+    .co-pw-wrap { position: relative; display: flex; }
+    .co-input--pw { flex: 1; padding-right: 48px; }
+    .co-pw-toggle { position: absolute; right: 0; top: 0; bottom: 0; width: 44px; background: none; border: none; cursor: pointer; font-size: 16px; display: flex; align-items: center; justify-content: center; color: var(--fg-faint); }
+    .co-pw-toggle:hover { color: var(--fg); }
+    .co-input { font-family: var(--sans); font-size: 14px; color: var(--fg); background: transparent; border: 1px solid var(--line); padding: 11px 14px; outline: none; width: 100%; transition: border-color 160ms ease; }
+    .co-input:focus { border-color: var(--accent); }
+    .co-input::placeholder { color: var(--fg-faint); font-size: 13px; }
+    .co-btn { font-family: var(--mono); font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; padding: 14px 28px; background: var(--fg); color: var(--bg); border: 1px solid var(--fg); cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; transition: opacity 160ms ease; width: 100%; }
+    .co-btn:hover { opacity: 0.85; }
+    .co-note { font-family: var(--mono); font-size: 10px; letter-spacing: 0.1em; color: var(--fg-faint); margin: 0; text-align: center; }
+    .co-msg { font-family: var(--mono); font-size: 11px; letter-spacing: 0.1em; color: var(--fg-faint); margin: 0; }
+    .co-msg--error { color: #c44; }
+    .co-success { font-family: var(--serif); font-size: 18px; text-align: center; padding: 24px 0; line-height: 1.5; }
+    /* Upsell tier mini-cards */
+    .upsell-tiers { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 16px; width: 100%; max-width: 880px; }
+    .upsell-tier { border: 1px solid var(--line); padding: 22px 18px; display: flex; flex-direction: column; gap: 10px; cursor: pointer; transition: border-color 180ms ease; }
+    .upsell-tier:hover { border-color: var(--fg); }
+    .upsell-tier--featured { border-color: var(--accent); }
+    .upsell-tier__name { font-family: var(--mono); font-size: 10px; letter-spacing: .13em; text-transform: uppercase; color: var(--fg-faint); }
+    .upsell-tier--featured .upsell-tier__name { color: var(--accent); }
+    .upsell-tier__price { font-family: var(--serif); font-size: 28px; line-height: 1; }
+    .upsell-tier__price small { font-size: 12px; color: var(--fg-faint); font-family: var(--sans); }
+    .upsell-tier__list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--fg-soft); flex: 1; }
+    .upsell-tier__cta { font-family: var(--mono); font-size: 10px; letter-spacing: .13em; text-transform: uppercase; padding: 9px 14px; border: 1px solid var(--line); background: transparent; color: var(--fg-soft); cursor: pointer; transition: color 160ms ease, border-color 160ms ease; margin-top: 4px; }
+    .upsell-tier__cta:hover { color: var(--fg); border-color: var(--fg); }
+    .upsell-tier--featured .upsell-tier__cta { background: var(--accent); color: #fff; border-color: var(--accent); }
     .d-bar__logout  {
       font-family: var(--mono); font-size: 10px; letter-spacing: 0.12em;
       text-transform: uppercase; padding: 6px 12px;
@@ -895,15 +939,39 @@ const HTML = `<!DOCTYPE html>
 
   <!-- ── Client upsell (role=client, no subscription) ── -->
   <div class="screen" id="screen-upsell">
-    <div class="login-wrap">
-      <div class="login-box" style="text-align:center">
-        <div style="font-size:48px;margin-bottom:16px">🏪</div>
+    <div class="ob-wrap" style="flex-direction:column;gap:36px;padding-top:48px">
+      <div style="text-align:center">
         <span class="login-box__tag">MaxCyberSolutions</span>
-        <h1 class="login-box__title" style="margin-top:8px">Unlock your store</h1>
-        <p class="login-box__sub" style="margin-top:12px">You have a free account. Subscribe to a plan to create and manage your online store.</p>
-        <a href="https://maxcybersolutions.online/#pricing" class="login-submit" style="display:block;margin-top:28px;max-width:260px;align-self:center;text-decoration:none">See plans →</a>
-        <button class="login-submit" style="margin-top:12px;max-width:260px;align-self:center;background:transparent;color:var(--fg);border-color:var(--line)" onclick="logout()">Sign out</button>
+        <h1 class="login-box__title" style="margin-top:8px">Choose a plan</h1>
+        <p class="login-box__sub" style="margin-top:10px">Subscribe to create and manage your online store.</p>
       </div>
+      <div class="upsell-tiers">
+        <div class="upsell-tier" data-checkout-plan="basic" data-checkout-name="Basic" data-checkout-price="$15/mo">
+          <div class="upsell-tier__name">Basic</div>
+          <div class="upsell-tier__price">$15<small>/mo</small></div>
+          <ul class="upsell-tier__list"><li>50 MB Storage</li><li>1 update / day</li><li>1 website</li><li>Dashboard</li></ul>
+          <button type="button" class="upsell-tier__cta" data-checkout-plan="basic" data-checkout-name="Basic" data-checkout-price="$15/mo">Subscribe</button>
+        </div>
+        <div class="upsell-tier" data-checkout-plan="plus" data-checkout-name="Plus" data-checkout-price="$20/mo">
+          <div class="upsell-tier__name">Plus</div>
+          <div class="upsell-tier__price">$20<small>/mo</small></div>
+          <ul class="upsell-tier__list"><li>100 MB Storage</li><li>3 updates / day</li><li>MercadoPago</li><li>MercadoEnvíos</li></ul>
+          <button type="button" class="upsell-tier__cta" data-checkout-plan="plus" data-checkout-name="Plus" data-checkout-price="$20/mo">Subscribe</button>
+        </div>
+        <div class="upsell-tier upsell-tier--featured" data-checkout-plan="pro" data-checkout-name="Pro" data-checkout-price="$30/mo">
+          <div class="upsell-tier__name">Pro — Most Popular</div>
+          <div class="upsell-tier__price">$30<small>/mo</small></div>
+          <ul class="upsell-tier__list"><li>500 MB Storage</li><li>10 updates / day</li><li>2 websites</li><li>Customer Management</li></ul>
+          <button type="button" class="upsell-tier__cta" data-checkout-plan="pro" data-checkout-name="Pro" data-checkout-price="$30/mo">Subscribe</button>
+        </div>
+        <div class="upsell-tier" data-checkout-plan="ultra" data-checkout-name="Ultra" data-checkout-price="$50/mo">
+          <div class="upsell-tier__name">Ultra</div>
+          <div class="upsell-tier__price">$50<small>/mo</small></div>
+          <ul class="upsell-tier__list"><li>2 GB Storage</li><li>30 updates / day</li><li>5 websites</li><li>Analytics</li></ul>
+          <button type="button" class="upsell-tier__cta" data-checkout-plan="ultra" data-checkout-name="Ultra" data-checkout-price="$50/mo">Subscribe</button>
+        </div>
+      </div>
+      <button class="btn-ghost btn-sm" onclick="logout()" style="align-self:center">Sign out</button>
     </div>
   </div>
 
@@ -2331,7 +2399,58 @@ const HTML = `<!DOCTYPE html>
   <input type="file" id="img-upload-input" accept="image/*" style="display:none" />
   <input type="file" id="pm-img-input"     accept="image/*" style="display:none" />
 
-  <script src="/js/dashboard.js?v=20260719c"></script>
+  <!-- Checkout modal (used from upsell screen) -->
+  <div id="checkout-modal" class="co-modal" hidden aria-modal="true" role="dialog" aria-labelledby="co-plan-name">
+    <div class="co-modal__backdrop"></div>
+    <div class="co-modal__box">
+      <button class="co-modal__close" id="co-close" aria-label="Close">&times;</button>
+      <div class="co-modal__head">
+        <div class="co-modal__plan" id="co-plan-name"></div>
+        <div class="co-modal__price" id="co-plan-price"></div>
+      </div>
+      <div class="co-step" id="co-step-info">
+        <div class="co-group">
+          <label class="co-label" for="co-email">Email <span class="co-required">*</span></label>
+          <input class="co-input" id="co-email" type="email" autocomplete="email" placeholder="you@example.com" />
+        </div>
+        <div class="co-group">
+          <label class="co-label" for="co-password">Password <span class="co-required">*</span></label>
+          <div class="co-pw-wrap">
+            <input class="co-input co-input--pw" id="co-password" type="password" autocomplete="new-password" placeholder="Min. 8 characters" />
+            <button type="button" class="co-pw-toggle" id="co-pw-toggle" aria-label="Show/hide password">&#128065;</button>
+          </div>
+        </div>
+        <div class="co-group">
+          <label class="co-label" for="co-brand">Business / Brand <span class="co-optional">(optional)</span></label>
+          <input class="co-input" id="co-brand" type="text" autocomplete="organization" placeholder="Your brand name" />
+        </div>
+        <p class="co-msg" id="co-msg" hidden></p>
+        <button class="co-btn" id="co-next">Continue &rarr;</button>
+        <p class="co-note">Monthly subscription &middot; Cancel anytime</p>
+      </div>
+      <div class="co-step" id="co-step-card" hidden>
+        <div id="cardPayment-container"></div>
+      </div>
+      <div class="co-step" id="co-step-success" hidden>
+        <p class="co-success">Payment approved &mdash; activating your account&hellip;</p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    window.CO_STRINGS = {
+      locale:         'es-AR',
+      errEmail:       'Please enter a valid email address.',
+      errPassword:    'Password must be at least 8 characters.',
+      errConfig:      'Configuration error. Please try again.',
+      errUnavailable: 'Online payment is not available right now.',
+      errSdk:         'Could not load the payment form. Please try again.',
+      errBrick:       'Could not initialize payment. Please try again.',
+      errPayment:     'Subscription error. Please try again.',
+    };
+  </script>
+  <script src="/js/dashboard.js?v=20260802a"></script>
+  <script src="/js/checkout.js?v=20260802a"></script>
 </body>
 </html>`;
 

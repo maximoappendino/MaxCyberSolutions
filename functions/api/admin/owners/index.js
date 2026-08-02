@@ -16,8 +16,8 @@ export async function onRequestPost({ request, env }) {
   const { salt, hash } = await hashPassword(password);
   const id = uuid();
   await env.DB.prepare(
-    'INSERT INTO owners (id, email, salt, hash, plain_password, name, plan, product_limit, storage_limit_mb) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
-  ).bind(id, email.toLowerCase().trim(), salt, hash, password, (name || '').trim(), 'basic', 50, 100).run();
+    'INSERT INTO owners (id, email, salt, hash, plain_password, name, plan, product_limit, storage_limit_mb, role, email_verified, onboarded) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+  ).bind(id, email.toLowerCase().trim(), salt, hash, password, (name || '').trim(), 'basic', 50, 100, 'owner', 1, 1).run();
 
   return json({ id, email: email.toLowerCase().trim() }, 201);
 }

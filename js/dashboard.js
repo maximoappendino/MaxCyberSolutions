@@ -178,6 +178,20 @@ const SECTION_TYPES = {
       bg: '', color: '',
     },
   },
+  reservation: {
+    label: 'Reservations (tracked)', icon: '🗓',
+    defaults: {
+      title: 'Book an appointment',
+      service_name: 'Appointment',
+      payment_mode: 'on_arrival',
+      price_cents: 0,
+      duration_label: '',
+      available_hours: '09:00\n10:00\n11:00\n14:00\n15:00\n16:00',
+      max_days: 30,
+      confirm_msg: 'Your reservation is confirmed.',
+      bg: '', color: '',
+    },
+  },
   location: {
     label: 'Location / Map', icon: '📍',
     defaults: {
@@ -847,7 +861,23 @@ function setupLoginForm() {
       const data = await safeJson(res);
 
       if (!res.ok) {
-        setMsg('login-msg', data.error || `Server error (${res.status})`, 'error');
+        if (data.error === 'email_not_verified') {
+          const msgEl = document.getElementById('login-msg');
+          if (msgEl) {
+            msgEl.innerHTML = (data.message || 'Please verify your email.') +
+              ' <a href="#" id="resend-login-link" style="color:var(--accent);text-decoration:underline">Resend email</a>';
+            msgEl.className = 'login-msg error';
+            document.getElementById('resend-login-link')?.addEventListener('click', async (e) => {
+              e.preventDefault();
+              const lnk = document.getElementById('resend-login-link');
+              if (lnk) lnk.textContent = 'Sending…';
+              await api('POST', '/api/auth/resend-verification', { email });
+              if (lnk) lnk.textContent = 'Sent! Check your inbox.';
+            });
+          }
+        } else {
+          setMsg('login-msg', data.error || `Server error (${res.status})`, 'error');
+        }
         btn.disabled = false; return;
       }
 
@@ -2708,6 +2738,31 @@ function buildSectionFields(s, i) {
       ]),
     ].join('');
 
+    // ── RESERVATIONS (DB-tracked) ─────────────────────────────────────────────
+    case 'reservation': return [
+      field('text', 'Section title', 'title', esc(s.title || 'Book an appointment')),
+      fieldGroup('Service', [
+        field('text', 'Service name', 'service_name', esc(s.service_name || 'Appointment'), 'Shown on the booking form'),
+        field('text', 'Duration', 'duration_label', esc(s.duration_label || ''), 'Informational, e.g. "60 min"'),
+        fieldSelect('Payment mode', 'payment_mode', s.payment_mode || 'on_arrival',
+          ['on_arrival', 'upfront'],
+          ['Pay on arrival (no upfront charge)', 'Pay upfront via MercadoPago']),
+        field('number', 'Price in ARS cents (0 = free)', 'price_cents', esc(String(s.price_cents || 0))),
+      ]),
+      fieldGroup('Availability', [
+        fieldTextarea('Available time slots (one per line, e.g. 09:00)', 'available_hours',
+          esc(s.available_hours || '09:00\n10:00\n11:00\n14:00\n15:00\n16:00'), 6),
+        field('number', 'Max days in advance', 'max_days', esc(String(s.max_days || 30))),
+      ]),
+      fieldGroup('Confirmation', [
+        field('text', 'Confirmation message', 'confirm_msg', esc(s.confirm_msg || 'Your reservation is confirmed.')),
+      ]),
+      fieldGroup('Appearance', [
+        field('color', 'Background', 'bg',    s.bg    || ''),
+        field('color', 'Text color', 'color', s.color || ''),
+      ]),
+    ].join('');
+
     // ── LOCATION / MAP ────────────────────────────────────────────────────────
     case 'location': return [
       field('text', 'Section title', 'title', esc(s.title || 'Find us')),
@@ -4329,29 +4384,42 @@ function renderOrders(orders) {
   const fmtARS = c => '$' + (c/100).toLocaleString('es-AR',{minimumFractionDigits:2,maximumFractionDigits:2});
 
   list.innerHTML = orders.map(o => {
-    const date = new Date(o.created_at).toLocaleDateString('es-AR', { day:'2-digit', month:'short' });
+    const date       = new Date(o.created_at).toLocaleDateString('es-AR', { day:'2-digit', month:'short' });
+    const isRes      = o.order_type === 'reservation';
+    const typeBadge  = isRes ? `<span class="order-badge" style="background:#2d6a4f;color:#fff">reservation</span>` : '';
+    const resAt      = isRes && o.reservation_at
+      ? `<div class="order-detail__row"><span class="order-detail__key">Appointment</span><span>${esc(new Date(o.reservation_at).toLocaleString('es-AR',{dateStyle:'medium',timeStyle:'short'}))}</span></div>`
+      : '';
+    const resNotes   = isRes && o.reservation_notes
+      ? `<div class="order-detail__row"><span class="order-detail__key">Notes</span><span>${esc(o.reservation_notes)}</span></div>`
+      : '';
+    const statusOpts = isRes
+      ? ['pending','confirmed','cancelled']
+      : ['pending','awaiting_transfer','paid','processing','shipped','delivered','cancelled'];
     return `
     <div class="order-row" id="ord-${esc(o.id)}">
       <div class="order-row__head">
         <span class="order-name">${esc(o.customer_name)}</span>
+        ${typeBadge}
         <span class="order-badge order-badge--${esc(o.status)}">${esc(o.status.replace('_',' '))}</span>
         <span class="order-amt">${fmtARS(o.total_cents)}</span>
       </div>
-      <div style="display:flex;gap:8px;align-items:center">
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
         <span class="order-ref">#${esc(o.id.slice(0,8).toUpperCase())}</span>
         <span class="order-date">${esc(date)}</span>
+        ${isRes && o.reservation_at ? `<span class="order-ref">📅 ${esc(new Date(o.reservation_at).toLocaleDateString('es-AR',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}))}</span>` : ''}
         <span class="order-ref">${esc(o.payment_method || '')}</span>
       </div>
       <div class="order-detail" id="ord-detail-${esc(o.id)}">
         <div class="order-detail__row"><span class="order-detail__key">Email</span><span>${esc(o.customer_email)}</span></div>
         <div class="order-detail__row"><span class="order-detail__key">Phone</span><span>${esc(o.customer_phone || '—')}</span></div>
-        <div class="order-detail__row"><span class="order-detail__key">Address</span><span>${esc([o.shipping_address,o.shipping_city,o.shipping_province,o.shipping_zip].filter(Boolean).join(', ') || '—')}</span></div>
-        <div class="order-detail__row"><span class="order-detail__key">Shipping</span><span>${esc(o.shipping_method || '—')} ${o.shipping_cost_cents ? fmtARS(o.shipping_cost_cents) : ''}</span></div>
-        <div class="order-detail__row"><span class="order-detail__key">Subtotal</span><span>${fmtARS(o.subtotal_cents)}</span></div>
+        ${resAt}${resNotes}
+        ${!isRes ? `<div class="order-detail__row"><span class="order-detail__key">Address</span><span>${esc([o.shipping_address,o.shipping_city,o.shipping_province,o.shipping_zip].filter(Boolean).join(', ') || '—')}</span></div>` : ''}
+        ${!isRes ? `<div class="order-detail__row"><span class="order-detail__key">Shipping</span><span>${esc(o.shipping_method || '—')} ${o.shipping_cost_cents ? fmtARS(o.shipping_cost_cents) : ''}</span></div>` : ''}
         <div class="order-detail__row"><span class="order-detail__key">Total</span><span>${fmtARS(o.total_cents)}</span></div>
         ${o.payment_id ? `<div class="order-detail__row"><span class="order-detail__key">Payment ID</span><span style="font-family:var(--mono);font-size:10px">${esc(o.payment_id)}</span></div>` : ''}
         <select class="order-status-sel" onchange="updateOrderStatus('${esc(o.id)}', this.value)">
-          ${['pending','awaiting_transfer','paid','processing','shipped','delivered','cancelled'].map(s =>
+          ${statusOpts.map(s =>
             `<option value="${s}"${s === o.status ? ' selected' : ''}>${s.replace('_',' ')}</option>`
           ).join('')}
         </select>

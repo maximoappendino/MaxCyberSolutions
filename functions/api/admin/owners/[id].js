@@ -7,7 +7,7 @@ const PROFILE_FIELDS = [
   'phone', 'address', 'description',
   'payment_method', 'payment_notes',
   'product_limit', 'storage_limit_mb',
-  'status',
+  'status', 'role', 'email_verified', 'onboarded',
   'push_daily_limit', 'push_weekly_limit',
   'push_daily_used', 'push_weekly_used',
   'email_monthly_limit', 'email_monthly_used',

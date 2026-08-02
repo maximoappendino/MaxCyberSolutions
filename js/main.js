@@ -128,11 +128,14 @@ function buildPricing(tiers) {
 }
 
 function renderTier(t) {
-  const isMax = t.id === 'max';
+  const isMax     = t.id === 'max';
+  const coAttrs   = isMax ? '' : `data-checkout-plan="${esc(t.id)}" data-checkout-name="${esc(t.name)}" data-checkout-price="${esc(t.price + (t.period || ''))}"`;
+  const cursorCss = isMax ? '' : ' style="cursor:pointer"';
   return `
 <div class="tier${t.feat ? ' tier--featured' : ''}${isMax ? ' tier--max' : ''}"
      data-most-chosen="${esc(S.mostChosen)}"
-     data-tier-id="${esc(t.id)}">
+     data-tier-id="${esc(t.id)}"
+     ${coAttrs}${cursorCss}>
   <canvas class="tier__canvas" aria-hidden="true"></canvas>
   <div class="tier__head">
     <div class="tier__name">${esc(t.name)}</div>
@@ -153,93 +156,127 @@ function renderTier(t) {
 </div>`;
 }
 
-// ── WebGL fragment shaders (one per tier) ─────────────────────────────────────
+// ── WebGL fragment shaders — falling rain-stars, one subtle tint per tier ─────
 const SHADERS = {
 
 basic: `precision mediump float;
 uniform vec2 iResolution;
 uniform float iTime;
-float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
-float noise(vec2 p){
-  vec2 i=floor(p),f=fract(p),u=f*f*(3.0-2.0*f);
-  return mix(mix(hash(i),hash(i+vec2(1,0)),u.x),mix(hash(i+vec2(0,1)),hash(i+vec2(1,1)),u.x),u.y);
-}
+float h(float n){return fract(sin(n)*43758.5);}
 void main(){
   vec2 uv=gl_FragCoord.xy/iResolution.xy;
-  float t=iTime*0.25;
-  float n=(noise(uv*3.0+vec2(t,t*0.7))+noise(uv*6.0-vec2(t*0.8,t*0.5))*0.5+noise(uv*12.0+vec2(t*0.3,-t))*0.25)/1.75;
-  gl_FragColor=vec4(mix(vec3(0.04,0.08,0.22),vec3(0.15,0.32,0.70),n),0.82);
+  vec3 tint=vec3(0.78,0.88,1.0);
+  float acc=0.0;
+  for(int i=0;i<48;i++){
+    float f=float(i);
+    float spd=0.06+h(f*7.3)*0.13;
+    float cx=h(f);
+    float cy=fract(h(f*4.1)-iTime*spd);
+    float dx=(uv.x-cx)*iResolution.x/iResolution.y;
+    float dy=uv.y-cy;
+    float r2=dx*dx+dy*dy;
+    float bri=h(f*13.7+0.1);
+    float star=bri*0.00045/(r2+0.00018);
+    float tail=bri*step(0.0,dy)*step(dy,0.08)*exp(-dx*dx*iResolution.x*iResolution.x*2.0)*smoothstep(0.08,0.0,dy)*0.22;
+    acc+=clamp(star+tail,0.0,0.7);
+  }
+  gl_FragColor=vec4(tint*min(acc,1.0),min(acc*0.9,0.88));
 }`,
 
 plus: `precision mediump float;
 uniform vec2 iResolution;
 uniform float iTime;
+float h(float n){return fract(sin(n)*43758.5);}
 void main(){
   vec2 uv=gl_FragCoord.xy/iResolution.xy;
-  float t=iTime*0.4;
-  float s1=sin(uv.x*8.0+t)*sin(uv.y*6.0+t*0.8);
-  float s2=sin((uv.x+uv.y)*7.0-t*1.2);
-  float s3=sin(sqrt(uv.x*uv.x+uv.y*uv.y)*10.0-t);
-  float v=(s1+s2+s3+3.0)/6.0;
-  vec3 col=mix(mix(vec3(0.45,0.25,0.0),vec3(0.85,0.60,0.15),v),vec3(0.30,0.15,0.0),pow(1.0-v,3.0));
-  col+=vec3(0.1,0.05,0.0)*(1.0-length(uv-0.5)*1.5);
-  gl_FragColor=vec4(clamp(col,0.0,1.0),0.88);
+  vec3 tint=vec3(1.0,0.88,0.62);
+  float acc=0.0;
+  for(int i=0;i<48;i++){
+    float f=float(i);
+    float spd=0.06+h(f*7.3)*0.13;
+    float cx=h(f);
+    float cy=fract(h(f*4.1)-iTime*spd);
+    float dx=(uv.x-cx)*iResolution.x/iResolution.y;
+    float dy=uv.y-cy;
+    float r2=dx*dx+dy*dy;
+    float bri=h(f*13.7+0.1);
+    float star=bri*0.00045/(r2+0.00018);
+    float tail=bri*step(0.0,dy)*step(dy,0.08)*exp(-dx*dx*iResolution.x*iResolution.x*2.0)*smoothstep(0.08,0.0,dy)*0.22;
+    acc+=clamp(star+tail,0.0,0.7);
+  }
+  gl_FragColor=vec4(tint*min(acc,1.0),min(acc*0.9,0.88));
 }`,
 
 pro: `precision mediump float;
 uniform vec2 iResolution;
 uniform float iTime;
-vec2 h2(vec2 p){p=vec2(dot(p,vec2(127.1,311.7)),dot(p,vec2(269.5,183.3)));return fract(sin(p)*43758.5453);}
+float h(float n){return fract(sin(n)*43758.5);}
 void main(){
-  vec2 uv=gl_FragCoord.xy/iResolution.y*5.0;
-  float t=iTime*0.18;
-  vec2 i=floor(uv),f=fract(uv);
-  float d1=8.0,d2=8.0;
-  for(int y=-1;y<=1;y++)for(int x=-1;x<=1;x++){
-    vec2 nb=vec2(float(x),float(y)),o=0.5+0.5*sin(t+6.2831*h2(i+nb));
-    float d=length(nb+o-f);
-    if(d<d1){d2=d1;d1=d;}else if(d<d2)d2=d;
+  vec2 uv=gl_FragCoord.xy/iResolution.xy;
+  vec3 tint=vec3(0.6,0.95,1.0);
+  float acc=0.0;
+  for(int i=0;i<48;i++){
+    float f=float(i);
+    float spd=0.06+h(f*7.3)*0.13;
+    float cx=h(f);
+    float cy=fract(h(f*4.1)-iTime*spd);
+    float dx=(uv.x-cx)*iResolution.x/iResolution.y;
+    float dy=uv.y-cy;
+    float r2=dx*dx+dy*dy;
+    float bri=h(f*13.7+0.1);
+    float star=bri*0.00045/(r2+0.00018);
+    float tail=bri*step(0.0,dy)*step(dy,0.08)*exp(-dx*dx*iResolution.x*iResolution.x*2.0)*smoothstep(0.08,0.0,dy)*0.22;
+    acc+=clamp(star+tail,0.0,0.7);
   }
-  vec3 col=vec3(0.0,0.22,0.28)+vec3(0.0,0.55,0.65)*(1.0-smoothstep(0.0,0.04,d2-d1));
-  col+=vec3(0.0,0.85,0.95)*(1.0-smoothstep(0.0,0.01,d1));
-  gl_FragColor=vec4(clamp(col*(0.8+d1*0.4),0.0,1.0),0.90);
+  gl_FragColor=vec4(tint*min(acc,1.0),min(acc*0.9,0.88));
 }`,
 
 ultra: `precision mediump float;
 uniform vec2 iResolution;
 uniform float iTime;
-float h(float n){return fract(sin(n)*43758.5453);}
+float h(float n){return fract(sin(n)*43758.5);}
 void main(){
-  vec2 uv=(gl_FragCoord.xy-iResolution.xy*0.5)/iResolution.y;
-  float t=iTime*0.08;
-  vec3 col=vec3(0.01,0.0,0.04);
+  vec2 uv=gl_FragCoord.xy/iResolution.xy;
+  vec3 tint=vec3(0.82,0.70,1.0);
+  float acc=0.0;
   for(int i=0;i<48;i++){
-    float fi=float(i);
-    float r=h(fi+400.0)*0.8,angle=h(fi+300.0)*6.2831+t*(0.3+h(fi+200.0)*0.7);
-    vec2 p=vec2(cos(angle),sin(angle))*r;
-    float d=length(uv-p);
-    col+=clamp(0.0006/(d*d+0.00005)*(0.5+0.5*cos(fi*0.37+vec3(0.0,2.1,4.2))),0.0,0.4);
+    float f=float(i);
+    float spd=0.06+h(f*7.3)*0.13;
+    float cx=h(f);
+    float cy=fract(h(f*4.1)-iTime*spd);
+    float dx=(uv.x-cx)*iResolution.x/iResolution.y;
+    float dy=uv.y-cy;
+    float r2=dx*dx+dy*dy;
+    float bri=h(f*13.7+0.1);
+    float star=bri*0.00045/(r2+0.00018);
+    float tail=bri*step(0.0,dy)*step(dy,0.08)*exp(-dx*dx*iResolution.x*iResolution.x*2.0)*smoothstep(0.08,0.0,dy)*0.22;
+    acc+=clamp(star+tail,0.0,0.7);
   }
-  vec2 q=uv*2.0;
-  for(int i=0;i<3;i++){float fi=float(i);q=abs(q)/dot(q,q)-(0.55+fi*0.08);}
-  col+=vec3(0.25,0.0,0.55)*0.08/(length(q)+0.1)+vec3(0.0,0.1,0.4)*0.05/(length(uv)+0.1);
-  gl_FragColor=vec4(clamp(col,0.0,1.0),0.93);
+  gl_FragColor=vec4(tint*min(acc,1.0),min(acc*0.9,0.88));
 }`,
 
 max: `precision mediump float;
 uniform vec2 iResolution;
 uniform float iTime;
+float h(float n){return fract(sin(n)*43758.5);}
 void main(){
   vec2 uv=gl_FragCoord.xy/iResolution.xy;
-  float t=iTime*0.35;
-  vec3 col=vec3(0.0,0.0,0.02);
-  for(float i=0.0;i<7.0;i++){
-    float ph=i*0.9,wave=sin(uv.x*(6.0+i*1.5)+t+ph+sin(uv.x*2.5+t*0.6+ph)*0.6+sin(uv.x*4.0-t*0.4+ph)*0.3);
-    float y=uv.y-0.5-wave*0.14;
-    col+=(0.5+0.5*cos(i*0.92+t*0.2+vec3(0.0,2.1,4.2)))*exp(-abs(y)*18.0)*0.4;
+  vec3 tint=vec3(1.0,1.0,1.0);
+  float acc=0.0;
+  for(int i=0;i<48;i++){
+    float f=float(i);
+    float spd=0.06+h(f*7.3)*0.13;
+    float cx=h(f);
+    float cy=fract(h(f*4.1)-iTime*spd);
+    float dx=(uv.x-cx)*iResolution.x/iResolution.y;
+    float dy=uv.y-cy;
+    float r2=dx*dx+dy*dy;
+    float bri=h(f*13.7+0.1);
+    float star=bri*0.00045/(r2+0.00018);
+    float tail=bri*step(0.0,dy)*step(dy,0.08)*exp(-dx*dx*iResolution.x*iResolution.x*2.0)*smoothstep(0.08,0.0,dy)*0.22;
+    acc+=clamp(star+tail,0.0,0.7);
   }
-  col+=vec3(1.0)*sin(uv.x*40.0+t*3.0)*sin(uv.y*30.0-t*2.0)*0.04;
-  gl_FragColor=vec4(clamp(col,0.0,1.0),0.95);
+  gl_FragColor=vec4(tint*min(acc,1.0),min(acc*0.9,0.88));
 }`
 
 };
