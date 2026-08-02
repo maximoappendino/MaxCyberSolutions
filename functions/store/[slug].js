@@ -56,7 +56,7 @@ export async function onRequestGet({ params, env, request }) {
     'SELECT * FROM products WHERE store_id = ? AND visible = 1 ORDER BY created_at DESC'
   ).bind(store.id).all();
 
-  const html = renderStorefront(store, config, products || [], isPreview, isInspect);
+  const html = renderStorefront(store, config, products || [], isPreview, isInspect, url.origin);
   const response = new Response(html, {
     headers: {
       'Content-Type':  'text/html;charset=UTF-8',
@@ -263,7 +263,7 @@ const STYLE_VARS = {
   vivi:   { r: '0px',  rb: '2px',  bw: '1px', sh: 'none',                             shc: '0 2px 8px rgba(0,0,0,.07)' },
 };
 
-function renderStorefront(store, config, products, isPreview = false, isInspect = false) {
+function renderStorefront(store, config, products, isPreview = false, isInspect = false, origin = '') {
   const name     = config.name  || store.name || store.slug;
   const theme    = config.theme    || {};
   const seo      = config.seo      || {};
@@ -310,11 +310,19 @@ function renderStorefront(store, config, products, isPreview = false, isInspect 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>${esc(seo.title || name)}</title>
   <meta name="description" content="${esc(seo.description || '')}" />
+  <meta property="og:type"        content="website" />
+  <meta property="og:site_name"   content="${esc(name)}" />
+  <meta property="og:title"       content="${esc(seo.title || name)}" />
+  <meta property="og:description" content="${esc(seo.description || '')}" />
+  <meta property="og:url"         content="${esc(origin ? `${origin}/store/${store.slug}/` : '')}" />${logo ? `
+  <meta property="og:image"       content="${esc(logo)}" />
+  <meta name="twitter:card"       content="summary" />
+  <meta name="twitter:image"      content="${esc(logo)}" />` : ''}
+  <link rel="icon" href="${esc(logo || '/img/icon.webp')}" type="${logo ? 'image/png' : 'image/webp'}" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400;1,500&family=DM+Sans:wght@300;400;500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
   ${fontLinks}
-  <link rel="icon" href="/img/icon.webp" type="image/webp" />
   <style>
     :root {
       --accent:      ${esc(accent)};
@@ -1275,16 +1283,17 @@ function renderCalendar(s) {
 
 <script>
 (function(){
-  var UID      = ${JSON.stringify(uniqueId)};
-  var MODE     = ${JSON.stringify(mode)};
-  var MIN_TIME = ${JSON.stringify(minTime)};
-  var MAX_TIME = ${JSON.stringify(maxTime)};
-  var INTERVAL = ${JSON.stringify(interval)};
-  var MAX_DAYS = ${JSON.stringify(maxDays)};
-  var NOTIFY   = ${JSON.stringify(notifyMethod)};
-  var WA_NUM   = ${JSON.stringify(waNumber)};
-  var EMAIL    = ${JSON.stringify(notifyEmail)};
-  var CONFIRM  = ${JSON.stringify(confirmMsg)};
+  var UID       = ${JSON.stringify(uniqueId)};
+  var MODE      = ${JSON.stringify(mode)};
+  var MIN_TIME  = ${JSON.stringify(minTime)};
+  var MAX_TIME  = ${JSON.stringify(maxTime)};
+  var INTERVAL  = ${JSON.stringify(interval)};
+  var MAX_DAYS  = ${JSON.stringify(maxDays)};
+  var OPEN_DAYS = ${JSON.stringify(s.open_days ?? [0,1,2,3,4,5,6])};
+  var NOTIFY    = ${JSON.stringify(notifyMethod)};
+  var WA_NUM    = ${JSON.stringify(waNumber)};
+  var EMAIL     = ${JSON.stringify(notifyEmail)};
+  var CONFIRM   = ${JSON.stringify(confirmMsg)};
 
   var today    = new Date(); today.setHours(0,0,0,0);
   var viewYear = today.getFullYear(), viewMonth = today.getMonth();
@@ -1314,8 +1323,9 @@ function renderCalendar(s) {
       var btn = document.createElement('div');
       var isPast = dt < today;
       var isTooFar = MAX_DAYS > 0 && (dt - today) / 86400000 > MAX_DAYS;
+      var isClosed = OPEN_DAYS.length > 0 && !OPEN_DAYS.includes(dt.getDay());
       var cls = 's-cal__day';
-      if (isPast || isTooFar) cls += ' s-cal__day--past';
+      if (isPast || isTooFar || isClosed) cls += ' s-cal__day--past';
       var k = dateKey(dt);
       if (selDate1 && k === dateKey(selDate1)) cls += ' s-cal__day--selected';
       if (MODE === 'date-range' && selDate1 && selDate2) {
@@ -1324,7 +1334,7 @@ function renderCalendar(s) {
       }
       btn.className = cls;
       btn.textContent = d;
-      if (!isPast && !isTooFar) btn.onclick = (function(date){ return function(){ clickFn(date); }; })(dt);
+      if (!isPast && !isTooFar && !isClosed) btn.onclick = (function(date){ return function(){ clickFn(date); }; })(dt);
       el.appendChild(btn);
     }
   }

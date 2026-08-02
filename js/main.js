@@ -10,7 +10,10 @@ const CONF   = window.SITE_CONFIG || {};
 document.addEventListener('DOMContentLoaded', () => {
   applyConfig();
   patchConfigLinks();
-  buildMarquee(CONF.clients || []);
+  fetch('/api/public/carousel-logos')
+    .then(r => r.ok ? r.json() : null)
+    .then(logos => buildMarquee(logos?.length ? logos : (CONF.clients || [])))
+    .catch(() => buildMarquee(CONF.clients || []));
   buildPricing(DATA.pricing);
   initDarkToggle();
   initCursorHalo();

@@ -264,6 +264,10 @@ function renderDetail() {
           <input id="d-category" value="${esc(c.category)}" placeholder="Fashion, Food, Art…"/>
         </div>
       </div>
+      <label class="toggle-row" style="margin-top:10px;display:flex;align-items:center;gap:10px;cursor:pointer">
+        <input type="checkbox" id="d-show-in-carousel" ${c.show_in_carousel ? 'checked' : ''} style="width:16px;height:16px;cursor:pointer" />
+        <span style="font-size:12px">Show logo in landing page carousel</span>
+      </label>
     </div>
 
     <div class="dsection">
@@ -537,6 +541,7 @@ window.saveClient = async function() {
     description:      (document.getElementById('d-description')?.value || '').trim(),
     product_limit:    Math.max(0, parseInt(document.getElementById('d-product-limit')?.value, 10) || 50),
     storage_limit_mb: Math.max(0, parseInt(document.getElementById('d-storage-limit')?.value, 10) || 100),
+    show_in_carousel: document.getElementById('d-show-in-carousel')?.checked ? 1 : 0,
   };
 
   const res  = await api('PUT', `/api/admin/owners/${c.id}`, body);

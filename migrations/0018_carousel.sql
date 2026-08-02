@@ -1,0 +1,1 @@
+ALTER TABLE owners ADD COLUMN show_in_carousel INTEGER DEFAULT 0;

@@ -11,6 +11,7 @@ const PROFILE_FIELDS = [
   'push_daily_limit', 'push_weekly_limit',
   'push_daily_used', 'push_weekly_used',
   'email_monthly_limit', 'email_monthly_used',
+  'show_in_carousel',
 ];
 
 export async function onRequestGet({ params, env }) {
@@ -25,6 +26,7 @@ export async function onRequestGet({ params, env }) {
       o.push_daily_used, o.push_weekly_used,
       o.push_daily_reset, o.push_weekly_reset,
       o.email_monthly_limit, o.email_monthly_used, o.email_monthly_reset,
+      o.show_in_carousel,
       o.created_at,
       (SELECT COUNT(*) FROM products p JOIN stores s ON s.id = p.store_id WHERE s.owner_id = o.id) AS product_count
     FROM owners o

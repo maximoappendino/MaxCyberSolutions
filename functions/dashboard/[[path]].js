@@ -390,16 +390,6 @@ const HTML = `<!DOCTYPE html>
     .rv-notes-label { font-family: var(--mono); font-size: 8px; letter-spacing: .12em; text-transform: uppercase; color: var(--fg-faint); display: block; margin-bottom: 5px; }
     .rv-notes-area textarea { width: 100%; box-sizing: border-box; resize: none; font-family: var(--mono); font-size: 11px; background: var(--line-soft); border: 1px solid var(--line); border-radius: 4px; padding: 6px 8px; color: var(--fg); }
     /* Reservations — booking settings */
-    .rv-settings { border-top: 1px solid var(--line-soft); padding: 10px 10px 16px; flex-shrink: 0; }
-    .rv-settings__hdr { font-family: var(--mono); font-size: 8px; letter-spacing: .14em; text-transform: uppercase; color: var(--fg-faint); padding: 6px 0 8px; }
-    .rv-settings__group { margin-bottom: 10px; }
-    .rv-settings__label { font-family: var(--mono); font-size: 9px; letter-spacing: .08em; color: var(--fg-faint); display: block; margin-bottom: 4px; }
-    .rv-settings__input { width: 100%; padding: 5px 7px; font-size: 11px; border: 1px solid var(--line); background: var(--line-soft); color: var(--fg); font-family: var(--mono); }
-    .rv-settings__ta { width: 100%; padding: 5px 7px; font-size: 11px; border: 1px solid var(--line); background: var(--line-soft); color: var(--fg); font-family: var(--mono); resize: none; box-sizing: border-box; }
-    .rv-day-btns { display: grid; grid-template-columns: repeat(7,1fr); gap: 3px; }
-    .rv-day-btn { font-family: var(--mono); font-size: 9px; padding: 4px 0; border: 1px solid var(--line); background: var(--line-soft); color: var(--fg-faint); cursor: pointer; text-align: center; transition: all 120ms; }
-    .rv-day-btn.rv-day-btn--on { background: var(--accent); color: #fff; border-color: var(--accent); }
-    .rv-settings__actions { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 12px; }
     .rv-link { font-family: var(--mono); font-size: 8px; letter-spacing: .06em; color: var(--fg-faint); word-break: break-all; margin-top: 4px; }
 
     /* Gallery upload progress */
@@ -1886,47 +1876,6 @@ const HTML = `<!DOCTYPE html>
               <div class="rv-cal__days" id="rv-cal-days"></div>
             </div>
           </div>
-          <!-- Booking Settings -->
-          <div class="rv-settings">
-            <div class="rv-settings__hdr">Booking Settings</div>
-            <div class="rv-settings__group">
-              <label class="rv-settings__label">Open days</label>
-              <div class="rv-day-btns">
-                <button class="rv-day-btn" data-day="0">Su</button>
-                <button class="rv-day-btn rv-day-btn--on" data-day="1">Mo</button>
-                <button class="rv-day-btn rv-day-btn--on" data-day="2">Tu</button>
-                <button class="rv-day-btn rv-day-btn--on" data-day="3">We</button>
-                <button class="rv-day-btn rv-day-btn--on" data-day="4">Th</button>
-                <button class="rv-day-btn rv-day-btn--on" data-day="5">Fr</button>
-                <button class="rv-day-btn rv-day-btn--on" data-day="6">Sa</button>
-              </div>
-            </div>
-            <div class="rv-settings__group">
-              <label class="rv-settings__label">Price (ARS cents, 0 = free)</label>
-              <input type="number" id="rv-price" class="rv-settings__input" value="0" min="0" />
-            </div>
-            <div class="rv-settings__group">
-              <label class="rv-settings__label">Max overlapping bookings</label>
-              <input type="number" id="rv-max-overlap" class="rv-settings__input" value="1" min="1" />
-            </div>
-            <div class="rv-settings__group">
-              <label class="rv-settings__label">Max days in advance</label>
-              <input type="number" id="rv-max-days" class="rv-settings__input" value="30" min="1" />
-            </div>
-            <div class="rv-settings__group">
-              <label class="rv-settings__label">Time slots (one per line)</label>
-              <textarea id="rv-hours" class="rv-settings__ta" rows="6">09:00
-10:00
-11:00
-14:00
-15:00
-16:00</textarea>
-            </div>
-            <div class="rv-settings__actions">
-              <button class="btn-ghost btn-sm" id="rv-save-settings">Save settings</button>
-              <button class="btn-ghost btn-sm" id="rv-copy-link">Copy booking link</button>
-            </div>
-          </div>
           <div class="rv-day">
             <div class="rv-day__hdr">
               <span class="rv-day__title" id="rv-day-title">Select a date</span>
@@ -2601,7 +2550,7 @@ const HTML = `<!DOCTYPE html>
       errPayment:     'Subscription error. Please try again.',
     };
   </script>
-  <script src="/js/dashboard.js?v=20260802d"></script>
+  <script src="/js/dashboard.js?v=20260802e"></script>
   <script src="/js/checkout.js?v=20260802a"></script>
 </body>
 </html>`;

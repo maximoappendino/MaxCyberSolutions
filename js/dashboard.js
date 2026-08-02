@@ -4506,7 +4506,6 @@ async function loadReservations() {
   const res = await api('GET', `/api/stores/${state.activeStore.id}/orders?type=reservation&limit=500`);
   _rvData = res.ok ? ((await safeJson(res)) || []) : [];
   if (!Array.isArray(_rvData)) _rvData = [];
-  rvLoadSettings();
   renderRvCalendar();
   if (_rvDate) renderRvDay(_rvDate);
   else if (listEl) listEl.innerHTML = '<p class="rv-day__empty">Select a date to view reservations.</p>';
@@ -4666,54 +4665,6 @@ function setupRvCalendar() {
     _rvMonth++; if (_rvMonth > 11) { _rvMonth = 0; _rvYear++; }
     renderRvCalendar();
   });
-  document.getElementById('rv-save-settings')?.addEventListener('click', rvSaveSettings);
-  document.getElementById('rv-copy-link')?.addEventListener('click', rvCopyBookingLink);
-  document.querySelectorAll('.rv-day-btn').forEach(btn => {
-    btn.addEventListener('click', () => btn.classList.toggle('rv-day-btn--on'));
-  });
-}
-
-function rvLoadSettings() {
-  const b = state.activeStore?.config?.booking || {};
-  const openDays = new Set(b.open_days ?? [1,2,3,4,5,6]);
-  document.querySelectorAll('.rv-day-btn').forEach(btn =>
-    btn.classList.toggle('rv-day-btn--on', openDays.has(+btn.dataset.day))
-  );
-  const h = document.getElementById('rv-hours');
-  if (h) h.value = (b.available_hours || ['09:00','10:00','11:00','14:00','15:00','16:00']).join('\n');
-  const p = document.getElementById('rv-price');       if (p) p.value = b.price_cents ?? 0;
-  const o = document.getElementById('rv-max-overlap'); if (o) o.value = b.max_overlapping ?? 1;
-  const d = document.getElementById('rv-max-days');    if (d) d.value = b.max_days ?? 30;
-}
-
-async function rvSaveSettings() {
-  if (!state.activeStore) return;
-  const openDays = [...document.querySelectorAll('.rv-day-btn.rv-day-btn--on')].map(b => +b.dataset.day);
-  const hours = (document.getElementById('rv-hours')?.value || '')
-    .split('\n').map(h => h.trim()).filter(Boolean);
-  const booking = {
-    available_hours:  hours,
-    open_days:        openDays,
-    price_cents:      parseInt(document.getElementById('rv-price')?.value || '0') || 0,
-    max_overlapping:  parseInt(document.getElementById('rv-max-overlap')?.value || '1') || 1,
-    max_days:         parseInt(document.getElementById('rv-max-days')?.value || '30') || 30,
-  };
-  const res = await api('PUT', `/api/stores/${state.activeStore.id}`, { _draft: false, config: { booking } });
-  if (!res.ok) { alert('Failed to save booking settings'); return; }
-  if (!state.activeStore.config) state.activeStore.config = {};
-  state.activeStore.config.booking = booking;
-  const btn = document.getElementById('rv-save-settings');
-  if (btn) { const t = btn.textContent; btn.textContent = 'Saved!'; setTimeout(() => btn.textContent = t, 1800); }
-}
-
-function rvCopyBookingLink() {
-  if (!state.activeStore) return;
-  const url = `${location.origin}/store/${state.activeStore.slug}?book=1`;
-  navigator.clipboard.writeText(url).then(() => {
-    const btn = document.getElementById('rv-copy-link');
-    if (btn) { const t = btn.textContent; btn.textContent = 'Copied!'; setTimeout(() => btn.textContent = t, 1800); }
-  });
-}
 
 // ── Management tab — Customers ────────────────────────────────────────────────
 async function loadCustomers() {
