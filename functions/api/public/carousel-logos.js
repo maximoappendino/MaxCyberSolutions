@@ -1,14 +1,14 @@
 // GET /api/public/carousel-logos
-// Returns [{name, logo, url}] for owners with show_in_carousel = 1
+// Returns [{name, logo, url}] for stores with show_in_carousel = 1
 import { json } from '../../_lib/helpers.js';
 
 export async function onRequestGet({ env }) {
   const { results } = await env.DB.prepare(`
-    SELECT o.name AS owner_name, s.slug, s.config
-    FROM owners o
-    JOIN stores s ON s.owner_id = o.id
-    WHERE o.show_in_carousel = 1 AND o.status = 'active'
-    ORDER BY o.created_at ASC
+    SELECT s.slug, s.config, s.name AS store_name
+    FROM stores s
+    JOIN owners o ON o.id = s.owner_id
+    WHERE s.show_in_carousel = 1 AND o.status = 'active'
+    ORDER BY s.created_at ASC
   `).all();
 
   const logos = (results || []).flatMap(row => {
@@ -16,7 +16,7 @@ export async function onRequestGet({ env }) {
     try { cfg = JSON.parse(row.config || '{}'); } catch {}
     if (!cfg.logo) return [];
     return [{
-      name: cfg.name || row.owner_name || '',
+      name: cfg.name || row.store_name || '',
       logo: cfg.logo,
       url: `/store/${row.slug}/`,
     }];

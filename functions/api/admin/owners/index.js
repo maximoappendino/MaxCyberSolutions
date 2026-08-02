@@ -7,7 +7,6 @@ export async function onRequestPost({ request, env }) {
 
   const { email, password, name } = body ?? {};
   if (!email || !password) return json({ error: 'email and password are required' }, 400);
-  if (password.length < 6)  return json({ error: 'Password must be at least 6 characters' }, 400);
 
   const existing = await env.DB.prepare('SELECT id FROM owners WHERE email = ?')
     .bind(email.toLowerCase().trim()).first();

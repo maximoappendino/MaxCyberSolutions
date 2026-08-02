@@ -264,10 +264,13 @@ function renderDetail() {
           <input id="d-category" value="${esc(c.category)}" placeholder="Fashion, Food, Art…"/>
         </div>
       </div>
-      <label class="toggle-row" style="margin-top:10px;display:flex;align-items:center;gap:10px;cursor:pointer">
-        <input type="checkbox" id="d-show-in-carousel" ${c.show_in_carousel ? 'checked' : ''} style="width:16px;height:16px;cursor:pointer" />
-        <span style="font-size:12px">Show logo in landing page carousel</span>
-      </label>
+      <div class="dfield" style="margin-top:10px">
+        <label>Account role</label>
+        <select id="d-role">
+          <option value="owner" ${(c.role||'owner')==='owner'?'selected':''}>owner — full dashboard access</option>
+          <option value="client" ${c.role==='client'?'selected':''}>client — sees "Choose a plan" screen</option>
+        </select>
+      </div>
     </div>
 
     <div class="dsection">
@@ -410,6 +413,10 @@ function renderDetail() {
                 <button class="type-pill type-pill--${tp}${t===tp?' active':''}" onclick="setStoreType('${esc(c.id)}','${esc(s.id)}','${tp}',this)">${tp}</button>
               `).join('')}
             </div>
+            <label style="display:flex;align-items:center;gap:6px;margin-top:5px;cursor:pointer;font-size:11px;color:var(--ink-faint)">
+              <input type="checkbox" id="carousel-${esc(s.id)}" ${s.show_in_carousel ? 'checked' : ''} onchange="toggleStoreCarousel('${esc(c.id)}','${esc(s.id)}',this.checked)" style="cursor:pointer" />
+              Show in landing carousel
+            </label>
           </div>
           <div class="store-actions">
             <button class="btn-solid" style="padding:3px 8px;font-size:9px" onclick="accessDashboard('${esc(c.id)}')" title="Access dashboard as this client">🔑</button>
@@ -434,7 +441,7 @@ function renderDetail() {
         <div class="dfield">
           <label>New password</label>
           <div class="pw-wrap">
-            <input type="password" id="d-new-password" placeholder="Min. 6 characters" autocomplete="new-password"/>
+            <input type="password" id="d-new-password" placeholder="New password" autocomplete="new-password"/>
             <button class="pw-eye" type="button" onclick="togglePw('d-new-password',this)" title="Show/hide">👁</button>
           </div>
         </div>
@@ -541,7 +548,7 @@ window.saveClient = async function() {
     description:      (document.getElementById('d-description')?.value || '').trim(),
     product_limit:    Math.max(0, parseInt(document.getElementById('d-product-limit')?.value, 10) || 50),
     storage_limit_mb: Math.max(0, parseInt(document.getElementById('d-storage-limit')?.value, 10) || 100),
-    show_in_carousel: document.getElementById('d-show-in-carousel')?.checked ? 1 : 0,
+    role:             document.getElementById('d-role')?.value || 'owner',
   };
 
   const res  = await api('PUT', `/api/admin/owners/${c.id}`, body);
@@ -723,12 +730,18 @@ window.accessDashboard = async function(ownerId) {
   const data = await safeJson(res);
   if (!res.ok) { flashDetailMsg(data.error || 'Impersonation failed', 'err'); return; }
 
-  const url = `/api/auth/impersonate?t=${encodeURIComponent(data.token)}`;
-  // Browser cookies are shared across all tabs — opening this will replace the admin session.
-  // Tip: open in a private/incognito window to keep both sessions active simultaneously.
-  navigator.clipboard.writeText(window.location.origin + url).catch(() => {
-    prompt('Copy this link and open it in a private/incognito window:', window.location.origin + url);
-  });
+  const url = `${location.origin}/api/auth/impersonate?t=${encodeURIComponent(data.token)}`;
+  window.open(url, '_blank');
+};
+
+// ── Toggle store carousel ─────────────────────────────────────────────────────
+window.toggleStoreCarousel = async function(ownerId, storeId, checked) {
+  const res = await api('PATCH', `/api/admin/owners/${ownerId}/stores/${storeId}`, { show_in_carousel: checked ? 1 : 0 });
+  if (!res.ok) {
+    const el = document.getElementById(`carousel-${storeId}`);
+    if (el) el.checked = !checked;
+    flashDetailMsg('Failed to update carousel', 'err');
+  }
 };
 
 // ── Download templates ────────────────────────────────────────────────────────

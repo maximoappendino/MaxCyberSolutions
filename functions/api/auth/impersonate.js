@@ -20,9 +20,9 @@ export async function onRequestGet({ request, env }) {
     return new Response('Invalid or expired impersonation token', { status: 403 });
   }
 
-  // Expire tokens older than 5 minutes
-  const ageMs = Date.now() - new Date(row.created_at + 'Z').getTime();
-  if (ageMs > 5 * 60 * 1000) {
+  // Expire tokens older than 30 minutes
+  const ageMs = Date.now() - new Date(row.created_at.replace(' ', 'T') + 'Z').getTime();
+  if (ageMs > 30 * 60 * 1000) {
     return new Response('Impersonation token has expired', { status: 403 });
   }
 

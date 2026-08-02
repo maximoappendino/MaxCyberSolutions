@@ -26,24 +26,34 @@ export async function onRequestPatch({ params, request, env }) {
   let body;
   try { body = await request.json(); } catch { return json({ error: 'Invalid JSON' }, 400); }
 
-  const { slug } = body ?? {};
-  if (!slug) return json({ error: 'slug is required' }, 400);
-  if (!/^[a-z0-9-]{2,48}$/.test(slug)) {
-    return json({ error: 'slug must be 2–48 chars: lowercase letters, numbers, hyphens' }, 400);
-  }
-
   const store = await env.DB.prepare(
     'SELECT id FROM stores WHERE id = ? AND owner_id = ?'
   ).bind(params.storeId, params.id).first();
   if (!store) return json({ error: 'Not found' }, 404);
 
-  const conflict = await env.DB.prepare(
-    'SELECT id FROM stores WHERE slug = ? AND id != ?'
-  ).bind(slug, params.storeId).first();
-  if (conflict) return json({ error: 'Slug already taken' }, 409);
+  const sets = [];
+  const vals = [];
 
-  await env.DB.prepare('UPDATE stores SET slug = ? WHERE id = ?').bind(slug, params.storeId).run();
-  return json({ ok: true, slug });
+  if (body.slug !== undefined) {
+    const { slug } = body;
+    if (!slug || !/^[a-z0-9-]{2,48}$/.test(slug)) {
+      return json({ error: 'slug must be 2–48 chars: lowercase letters, numbers, hyphens' }, 400);
+    }
+    const conflict = await env.DB.prepare(
+      'SELECT id FROM stores WHERE slug = ? AND id != ?'
+    ).bind(slug, params.storeId).first();
+    if (conflict) return json({ error: 'Slug already taken' }, 409);
+    sets.push('slug = ?'); vals.push(slug);
+  }
+
+  if (body.show_in_carousel !== undefined) {
+    sets.push('show_in_carousel = ?'); vals.push(body.show_in_carousel ? 1 : 0);
+  }
+
+  if (!sets.length) return json({ error: 'Nothing to update' }, 400);
+  vals.push(params.storeId);
+  await env.DB.prepare(`UPDATE stores SET ${sets.join(', ')} WHERE id = ?`).bind(...vals).run();
+  return json({ ok: true });
 }
 
 export async function onRequestDelete({ params, env }) {

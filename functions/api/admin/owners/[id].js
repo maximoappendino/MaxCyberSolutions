@@ -36,7 +36,7 @@ export async function onRequestGet({ params, env }) {
   if (!owner) return json({ error: 'Not found' }, 404);
 
   const { results: stores } = await env.DB.prepare(
-    'SELECT id, slug, name, store_type, created_at FROM stores WHERE owner_id = ? ORDER BY created_at DESC'
+    'SELECT id, slug, name, store_type, show_in_carousel, created_at FROM stores WHERE owner_id = ? ORDER BY created_at DESC'
   ).bind(params.id).all();
 
   return json({ ...owner, stores: stores || [] });
@@ -70,7 +70,7 @@ export async function onRequestPatch({ params, request, env }) {
   try { body = await request.json(); } catch { return json({ error: 'Invalid JSON' }, 400); }
 
   const { password } = body ?? {};
-  if (!password || password.length < 6) return json({ error: 'Password must be at least 6 characters' }, 400);
+  if (!password) return json({ error: 'Password is required' }, 400);
 
   const owner = await env.DB.prepare('SELECT id FROM owners WHERE id = ?').bind(params.id).first();
   if (!owner) return json({ error: 'Not found' }, 404);
