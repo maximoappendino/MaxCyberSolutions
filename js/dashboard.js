@@ -171,6 +171,9 @@ const SECTION_TYPES = {
       minTime: '09:00', maxTime: '20:00',
       timeInterval: 30,
       minDays: 0, maxDays: 90,
+      price_cents: 0,
+      open_days: [1,2,3,4,5,6],
+      max_overlapping: 1,
       popupTitle: 'Your details',
       popupFields: 'Name\nPhone\nEmail\nNotes (optional)',
       notifyMethod: 'whatsapp',
@@ -2747,6 +2750,18 @@ function buildSectionFields(s, i) {
           ${field('number', 'Max advance (days)', 'maxDays', s.maxDays ?? 90)}
         </div>`,
       ]),
+      fieldGroup('Pricing & Availability', [
+        field('number', 'Price per slot (cents, 0 = free)', 'price_cents', s.price_cents ?? 0, 'e.g. 500 = $5.00'),
+        field('number', 'Max overlapping bookings', 'max_overlapping', s.max_overlapping ?? 1, 'e.g. 4 tables, 3 barbers…'),
+        `<label class="form-label" style="margin-bottom:4px">Open days</label>
+        <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px">
+          ${['Su','Mo','Tu','We','Th','Fr','Sa'].map((d, i) => {
+            const active = (s.open_days ?? [1,2,3,4,5,6]).includes(i);
+            return `<button type="button" class="rv-day-btn${active ? ' rv-day-btn--on' : ''}" data-sec-day="${i}" onclick="secDayToggle(this,${i})">${d}</button>`;
+          }).join('')}
+        </div>
+        <input type="hidden" id="sec-field-open_days" data-field="open_days" value="${esc(JSON.stringify(s.open_days ?? [1,2,3,4,5,6]))}" />`,
+      ]),
       fieldGroup('Customer Details Popup', [
         field('text', 'Popup title', 'popupTitle', esc(s.popupTitle || 'Your details')),
         fieldTextarea('Fields to collect (one per line)', 'popupFields',
@@ -2982,7 +2997,11 @@ function bindSectionFields(i) {
     const isColor = el.type === 'color';
     const isRange = el.type === 'range';
     el.addEventListener((isColor || isRange) ? 'input' : 'change', () => {
-      const value = el.type === 'checkbox' ? el.checked : (el.type === 'number' || isRange ? parseFloat(el.value) || 0 : el.value);
+      let value;
+      if (el.type === 'checkbox') value = el.checked;
+      else if (el.type === 'number' || isRange) value = parseFloat(el.value) || 0;
+      else if (el.type === 'hidden' && el.value.startsWith('[')) { try { value = JSON.parse(el.value); } catch { value = el.value; } }
+      else value = el.value;
       setNestedField(state.draft.sections[i], el.dataset.field, value);
       markDirty();
     });
@@ -2994,6 +3013,19 @@ function bindSectionFields(i) {
     }
   });
 }
+
+window.secDayToggle = function(btn, dayIndex) {
+  btn.classList.toggle('rv-day-btn--on');
+  const hidden = document.getElementById('sec-field-open_days');
+  if (!hidden) return;
+  let days;
+  try { days = JSON.parse(hidden.value); } catch { days = [1,2,3,4,5,6]; }
+  if (btn.classList.contains('rv-day-btn--on')) { if (!days.includes(dayIndex)) days.push(dayIndex); }
+  else { days = days.filter(d => d !== dayIndex); }
+  days.sort((a, b) => a - b);
+  hidden.value = JSON.stringify(days);
+  hidden.dispatchEvent(new Event('change'));
+};
 
 // ── Gallery / carousel image actions ──────────────────────────────────────────
 window.triggerGalleryImgAdd = function(sectionIdx) {

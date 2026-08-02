@@ -2601,7 +2601,7 @@ const HTML = `<!DOCTYPE html>
       errPayment:     'Subscription error. Please try again.',
     };
   </script>
-  <script src="/js/dashboard.js?v=20260802c"></script>
+  <script src="/js/dashboard.js?v=20260802d"></script>
   <script src="/js/checkout.js?v=20260802a"></script>
 </body>
 </html>`;
