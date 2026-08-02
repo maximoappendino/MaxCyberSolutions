@@ -108,6 +108,7 @@ const SECTION_TYPES = {
       bg: '#1c1a16', color: '#e2a14a', align: 'center',
       ctaLabel: '', ctaUrl: '', ctaStyle: 'outline',
       sticky: false, dismissible: false,
+      marqueeSpeed: 22,
     },
   },
   'image-gallery': {
@@ -2502,6 +2503,10 @@ function buildSectionFields(s, i) {
         fieldToggle('Sticky banner', 'sticky', !!s.sticky),
         fieldToggle('Dismissible',   'dismissible', !!s.dismissible),
       ]),
+      fieldGroup('Marquee speed', [
+        fieldRange('Speed — lower = faster', 'marqueeSpeed', s.marqueeSpeed ?? 22, 4, 80, 1, 's'),
+        `<p style="font-size:10px;color:var(--fg-faint);margin-top:2px">Only applies to "Scrolling Marquee" layout.</p>`,
+      ]),
     ].join('');
 
     // ── IMAGE GALLERY ─────────────────────────────────────────────────────────
@@ -2871,6 +2876,16 @@ function fieldImg(label, fieldPath, currentUrl, sectionIdx) {
   </div>`;
 }
 
+function fieldRange(label, fieldPath, value, min, max, step = 1, unit = '') {
+  const id = 'fr-' + fieldPath.replace(/[^a-z0-9]/gi, '-');
+  return `<div class="form-field">
+    <label style="display:flex;justify-content:space-between;align-items:center">${esc(label)} <span id="${id}-val" style="font-family:var(--mono);font-size:10px;color:var(--fg-faint)">${value}${esc(unit)}</span></label>
+    <input type="range" data-field="${esc(fieldPath)}" value="${value}" min="${min}" max="${max}" step="${step}"
+           style="width:100%;accent-color:var(--accent);margin-top:4px;cursor:pointer"
+           oninput="var d=document.getElementById('${id}-val');if(d)d.textContent=this.value+'${unit}'" />
+  </div>`;
+}
+
 function fieldGroup(label, fieldsHtml) {
   return `<div class="field-group">
     <span class="field-group__label">${esc(label)}</span>
@@ -2966,8 +2981,9 @@ function bindSectionFields(i) {
   const container = document.getElementById('sec-editor-fields');
   container.querySelectorAll('input[data-field], select[data-field], textarea[data-field]').forEach(el => {
     const isColor = el.type === 'color';
-    el.addEventListener(isColor ? 'input' : 'change', () => {
-      const value = el.type === 'checkbox' ? el.checked : (el.type === 'number' ? parseFloat(el.value) || 0 : el.value);
+    const isRange = el.type === 'range';
+    el.addEventListener((isColor || isRange) ? 'input' : 'change', () => {
+      const value = el.type === 'checkbox' ? el.checked : (el.type === 'number' || isRange ? parseFloat(el.value) || 0 : el.value);
       setNestedField(state.draft.sections[i], el.dataset.field, value);
       markDirty();
     });

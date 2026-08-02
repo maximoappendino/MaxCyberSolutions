@@ -3,6 +3,16 @@
 // type=partial:  give slug to target owner (new empty store); original store gets a temp slug
 import { json, uuid } from '../../../../../../_lib/helpers.js';
 
+async function measureStoreBytes(storeId, env) {
+  let total = 0, cursor;
+  do {
+    const listed = await env.ASSETS_BUCKET.list({ prefix: `stores/${storeId}/`, cursor });
+    for (const obj of listed.objects) total += obj.size;
+    cursor = listed.truncated ? listed.cursor : undefined;
+  } while (cursor);
+  return total;
+}
+
 export async function onRequestPost({ params, request, env }) {
   let body;
   try { body = await request.json(); } catch { return json({ error: 'Invalid JSON' }, 400); }
@@ -24,11 +34,26 @@ export async function onRequestPost({ params, request, env }) {
   if (params.id === target_owner_id) return json({ error: 'Source and target owner are the same' }, 400);
 
   if (type === 'complete') {
-    // Move the entire store record to the new owner
+    // Measure store's R2 footprint before moving
+    const storeBytes = await measureStoreBytes(store.id, env).catch(() => 0);
+
     await env.DB.prepare(
       'UPDATE stores SET owner_id = ? WHERE id = ?'
     ).bind(target_owner_id, store.id).run();
-    return json({ ok: true, type: 'complete', slug: store.slug });
+
+    // Transfer storage accounting: subtract from source, add to target
+    if (storeBytes > 0) {
+      await Promise.all([
+        env.DB.prepare(
+          'UPDATE owners SET storage_used_bytes = MAX(0, storage_used_bytes - ?) WHERE id = ?'
+        ).bind(storeBytes, params.id).run(),
+        env.DB.prepare(
+          'UPDATE owners SET storage_used_bytes = storage_used_bytes + ? WHERE id = ?'
+        ).bind(storeBytes, target_owner_id).run(),
+      ]);
+    }
+
+    return json({ ok: true, type: 'complete', slug: store.slug, bytes_transferred: storeBytes });
   }
 
   // Partial: target gets a new empty store at this slug; original gets a temp slug

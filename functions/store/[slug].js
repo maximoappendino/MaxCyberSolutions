@@ -1852,10 +1852,11 @@ function renderBanner(s) {
     ? `<a href="${esc(s.ctaUrl)}" class="s-banner__cta">${esc(s.ctaLabel)}</a>` : '';
 
   if (layout === 'marquee') {
-    const txt = esc(s.text || '');
+    const txt      = esc(s.text || '');
     const repeated = Array(8).fill(`<span>${txt}</span>`).join('');
+    const speed    = Math.max(4, parseInt(s.marqueeSpeed) || 22);
     return `<div class="s-banner s-banner--marquee${stickyClass}" style="background:${esc(bg)};color:${esc(color)};position:relative">
-  <div class="s-banner__marquee">${repeated}${repeated}</div>
+  <div class="s-banner__marquee" style="animation-duration:${speed}s">${repeated}${repeated}</div>
   ${dismissBtn}
 </div>`;
   }
@@ -2505,8 +2506,8 @@ function cartHtml(slug, cbuCvu, mpToken, waNumber, waMessage) {
 </script>
 <script>
 (function(){
-  if (!('IntersectionObserver' in window)) {
-    // Fallback: load all immediately
+  var isPreview = new URLSearchParams(location.search).get('preview') === '1';
+  if (isPreview || !('IntersectionObserver' in window)) {
     document.querySelectorAll('.s-card__img--lazy').forEach(function(el) {
       var bg = el.getAttribute('data-bg');
       if (bg) el.style.backgroundImage = 'url(' + JSON.stringify(bg) + ')';
