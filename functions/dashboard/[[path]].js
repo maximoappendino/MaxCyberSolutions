@@ -401,17 +401,23 @@ const HTML = `<!DOCTYPE html>
     .global-upload-bar__fill { height: 100%; background: var(--accent); transition: width 80ms linear; width: 0%; }
 
     /* Gallery panel */
-    .gallery-pane { display: flex; flex-direction: column; width: 100%; }
-    .gallery-pane__toolbar { display: flex; align-items: center; gap: 8px; padding: 10px 16px; border-bottom: 1px solid var(--line); flex-shrink: 0; }
+    .gallery-pane { display: flex; flex-direction: column; width: 100%; flex: 1; min-height: 0; }
+    .gallery-pane__toolbar { display: flex; align-items: center; gap: 8px; padding: 10px 16px; border-bottom: 1px solid var(--line); flex-shrink: 0; flex-wrap: wrap; }
     .gallery-pane__title { font-family: var(--mono); font-size: 9px; letter-spacing: .16em; text-transform: uppercase; color: var(--fg-faint); flex: 1; }
-    .gallery-pane__grid { flex: 1; overflow-y: auto; padding: 16px; display: grid; grid-template-columns: repeat(auto-fill, minmax(140px,1fr)); gap: 12px; align-content: start; }
+    .gallery-sort-btns { display: flex; gap: 3px; }
+    .gallery-sort-btn { font-family: var(--mono); font-size: 8px; letter-spacing: .06em; padding: 3px 7px; border: 1px solid var(--line); background: none; color: var(--fg-faint); cursor: pointer; text-transform: uppercase; }
+    .gallery-sort-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .gallery-pane__grid { flex: 1; min-height: 0; overflow-y: auto; padding: 16px; display: grid; grid-template-columns: repeat(auto-fill, minmax(150px,1fr)); gap: 12px; align-content: start; }
     .gallery-item { position: relative; border: 1px solid var(--line); overflow: hidden; }
-    .gallery-item__img { width: 100%; aspect-ratio: 1; object-fit: cover; display: block; background: var(--line-soft); }
+    .gallery-item__img { width: 100%; aspect-ratio: 1; object-fit: contain; display: block; background: var(--line-soft); padding: 4px; }
     .gallery-item__actions { position: absolute; inset: 0; background: rgba(0,0,0,.55); display: none; align-items: center; justify-content: center; gap: 8px; }
     .gallery-item:hover .gallery-item__actions { display: flex; }
     .gallery-item__btn { font-family: var(--mono); font-size: 10px; padding: 5px 10px; border: 1px solid rgba(255,255,255,.4); background: rgba(0,0,0,.4); color: #fff; cursor: pointer; transition: background 150ms; }
     .gallery-item__btn:hover { background: rgba(0,0,0,.7); }
-    .gallery-item__size { font-family: var(--mono); font-size: 8px; letter-spacing: .08em; color: var(--fg-faint); padding: 4px 6px; text-align: right; }
+    .gallery-item__meta { font-family: var(--mono); font-size: 8px; letter-spacing: .06em; color: var(--fg-faint); padding: 4px 6px 5px; display: flex; flex-direction: column; gap: 1px; }
+    .gallery-item__name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .gallery-load-more { grid-column: 1/-1; font-family: var(--mono); font-size: 10px; letter-spacing: .1em; text-transform: uppercase; padding: 10px; border: 1px solid var(--line); background: none; color: var(--fg-faint); cursor: pointer; }
+    .gallery-load-more:hover { background: var(--line-soft); color: var(--fg); }
     .gallery-empty { grid-column: 1/-1; color: var(--fg-faint); font-size: 13px; text-align: center; padding: 40px; }
     .gallery-pane__grid.drag-over { outline: 2px dashed var(--accent); outline-offset: -6px; background: color-mix(in srgb, var(--accent) 8%, var(--bg)); }
     .gallery-drop-hint { grid-column: 1/-1; text-align: center; padding: 24px; font-family: var(--mono); font-size: 10px; letter-spacing: .1em; text-transform: uppercase; color: var(--fg-faint); border: 2px dashed var(--line); }
@@ -434,7 +440,7 @@ const HTML = `<!DOCTYPE html>
     .img-picker-toolbar { display: flex; gap: 8px; padding: 10px 16px; border-bottom: 1px solid var(--line); flex-shrink: 0; }
     .img-picker-grid { flex: 1; overflow-y: auto; padding: 16px; display: grid; grid-template-columns: repeat(auto-fill, minmax(140px,1fr)); gap: 12px; align-content: start; }
     .picker-item { position: relative; border: 2px solid transparent; overflow: hidden; cursor: pointer; }
-    .picker-item img { width: 100%; aspect-ratio: 1; object-fit: cover; display: block; background: var(--line-soft); }
+    .picker-item img { width: 100%; aspect-ratio: 1; object-fit: contain; display: block; background: var(--line-soft); padding: 4px; }
     .picker-item:hover { border-color: var(--accent); }
     .img-picker-empty { grid-column: 1/-1; color: var(--fg-faint); font-size: 13px; text-align: center; padding: 40px; }
 
@@ -1820,6 +1826,12 @@ const HTML = `<!DOCTYPE html>
         <div class="gallery-pane">
           <div class="gallery-pane__toolbar">
             <span class="gallery-pane__title">Image Gallery</span>
+            <div class="gallery-sort-btns">
+              <button class="gallery-sort-btn active" id="gsort-date-desc" onclick="setGallerySort('date-desc')">Date ↓</button>
+              <button class="gallery-sort-btn" id="gsort-date-asc" onclick="setGallerySort('date-asc')">Date ↑</button>
+              <button class="gallery-sort-btn" id="gsort-name-asc" onclick="setGallerySort('name-asc')">A–Z</button>
+              <button class="gallery-sort-btn" id="gsort-name-desc" onclick="setGallerySort('name-desc')">Z–A</button>
+            </div>
             <button class="btn-ghost btn-sm" id="btn-gallery-upload">+ Upload</button>
             <button class="btn-ghost btn-sm" id="btn-gallery-refresh">↻</button>
           </div>
@@ -2550,7 +2562,7 @@ const HTML = `<!DOCTYPE html>
       errPayment:     'Subscription error. Please try again.',
     };
   </script>
-  <script src="/js/dashboard.js?v=20260802f"></script>
+  <script src="/js/dashboard.js?v=20260802i"></script>
   <script src="/js/checkout.js?v=20260802a"></script>
 </body>
 </html>`;

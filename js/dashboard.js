@@ -1081,6 +1081,9 @@ function setupCpTabs() {
 // ── Gallery ───────────────────────────────────────────────────────────────────
 let _galleryImages = [];
 let _galleryLoaded = false;
+let _gallerySort = 'date-desc';
+const GALLERY_PAGE = 24;
+let _galleryPage = 1;
 
 async function loadGallery() {
   const grid = document.getElementById('gallery-pane-grid');
@@ -1091,8 +1094,32 @@ async function loadGallery() {
   const data = await res.json();
   _galleryImages = data.images || [];
   _galleryLoaded = true;
+  _galleryPage = 1;
+  applyGallerySort();
   renderGalleryGrid();
 }
+
+function applyGallerySort() {
+  if (_gallerySort === 'date-asc')  _galleryImages.sort((a,b) => new Date(a.uploaded) - new Date(b.uploaded));
+  if (_gallerySort === 'date-desc') _galleryImages.sort((a,b) => new Date(b.uploaded) - new Date(a.uploaded));
+  if (_gallerySort === 'name-asc')  _galleryImages.sort((a,b) => (a.name||'').localeCompare(b.name||''));
+  if (_gallerySort === 'name-desc') _galleryImages.sort((a,b) => (b.name||'').localeCompare(a.name||''));
+}
+
+window.setGallerySort = function(sort) {
+  _gallerySort = sort;
+  _galleryPage = 1;
+  document.querySelectorAll('.gallery-sort-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.id === `gsort-${sort}`);
+  });
+  applyGallerySort();
+  renderGalleryGrid();
+};
+
+window.galleryLoadMore = function() {
+  _galleryPage++;
+  renderGalleryGrid();
+};
 
 function renderGalleryGrid() {
   const grid = document.getElementById('gallery-pane-grid');
@@ -1101,16 +1128,27 @@ function renderGalleryGrid() {
     grid.innerHTML = '<p class="gallery-empty">No images uploaded yet. Click "+ Upload" to add one.</p>' + drop;
     return;
   }
-  grid.innerHTML = _galleryImages.map((img, i) => `
+  const visible = _galleryImages.slice(0, _galleryPage * GALLERY_PAGE);
+  const remaining = _galleryImages.length - visible.length;
+  const loadMore = remaining > 0
+    ? `<button class="gallery-load-more" onclick="galleryLoadMore()">Load ${Math.min(remaining, GALLERY_PAGE)} more (${remaining} remaining)</button>`
+    : '';
+  grid.innerHTML = visible.map((img, i) => {
+    const thumb = `/cdn-cgi/image/width=300,quality=75,format=webp${img.url}`;
+    return `
 <div class="gallery-item" data-idx="${i}">
-  <img class="gallery-item__img" src="${esc(img.url)}" alt="" loading="lazy" onerror="this.src=''" />
+  <img class="gallery-item__img" src="${esc(thumb)}" alt="" loading="lazy" decoding="async" onerror="this.onerror=null;this.src='${esc(img.url)}'" />
   <div class="gallery-item__actions">
     <button class="gallery-item__btn" onclick="openImgEditor(${i})">Edit</button>
     <button class="gallery-item__btn" onclick="copyImgUrl(${i})" title="Copy URL">Copy</button>
     <button class="gallery-item__btn" onclick="deleteGalleryImg(${i})">Delete</button>
   </div>
-  <div class="gallery-item__size">${formatBytes(img.size)}</div>
-</div>`).join('') + drop;
+  <div class="gallery-item__meta">
+    <span class="gallery-item__name" title="${esc(img.name || '')}">${esc(img.name || '')}</span>
+    <span>${formatBytes(img.size)}</span>
+  </div>
+</div>`;
+  }).join('') + loadMore + drop;
 }
 
 function formatBytes(b) {
@@ -3300,11 +3338,9 @@ async function openImgPicker() {
   if (!_galleryImages.length) {
     grid.innerHTML = '<p class="img-picker-empty">No images yet. Upload one above.</p>';
   } else {
-    grid.innerHTML = _galleryImages.map((img, i) =>
-      `<div class="picker-item" onclick="window.pickImg(${i})">
-        <img src="${img.url}" loading="lazy" alt="" />
-      </div>`
-    ).join('');
+    grid.innerHTML = _galleryImages.map((img, i) => `<div class="picker-item" onclick="window.pickImg(${i})">
+        <img src="${esc(img.url)}" loading="lazy" decoding="async" alt="" />
+      </div>`).join('');
   }
   overlay.classList.add('active');
 }
@@ -4665,6 +4701,7 @@ function setupRvCalendar() {
     _rvMonth++; if (_rvMonth > 11) { _rvMonth = 0; _rvYear++; }
     renderRvCalendar();
   });
+}
 
 // ── Management tab — Customers ────────────────────────────────────────────────
 async function loadCustomers() {
